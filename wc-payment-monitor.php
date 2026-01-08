@@ -77,6 +77,7 @@ class WC_Payment_Monitor {
         
         // Load core classes
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-database.php';
+        require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-logger.php';
     }
     
     /**
@@ -117,7 +118,8 @@ class WC_Payment_Monitor {
      * Initialize plugin components
      */
     private function init_components() {
-        // Components will be initialized here in future tasks
+        // Initialize transaction logger
+        new WC_Payment_Monitor_Logger();
     }
     
     /**

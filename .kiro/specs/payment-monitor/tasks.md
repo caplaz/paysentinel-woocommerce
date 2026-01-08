@@ -14,15 +14,15 @@ This implementation plan converts the Payment Monitor design into discrete PHP c
   - Create basic plugin structure with autoloading
   - _Requirements: 6.1_
 
-- [ ] 1.1 Write unit tests for database schema creation
+- [x] 1.1 Write unit tests for database schema creation
 
   - Test table creation and index setup
   - Test plugin activation/deactivation
   - _Requirements: 6.1_
 
-- [ ] 2. Implement core transaction monitoring
+- [-] 2. Implement core transaction monitoring
 
-  - [ ] 2.1 Create WC_Payment_Monitor_Logger class
+  - [x] 2.1 Create WC_Payment_Monitor_Logger class
 
     - Hook into WooCommerce payment events (success, failure, pending)
     - Implement transaction data extraction from WooCommerce orders

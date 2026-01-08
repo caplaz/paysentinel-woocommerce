@@ -476,9 +476,8 @@ class Test_Database_Schema extends WC_Payment_Monitor_Test_Case {
         }
         
         if (!class_exists('WooCommerce')) {
-            class WooCommerce {
-                // Mock WooCommerce class
-            }
+            // Mock WooCommerce class existence
+            eval('class WooCommerce {}');
         }
         
         if (!defined('WC_VERSION')) {
