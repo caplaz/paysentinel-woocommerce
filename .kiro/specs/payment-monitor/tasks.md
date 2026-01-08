@@ -14,7 +14,7 @@ This implementation plan converts the Payment Monitor design into discrete PHP c
   - Create basic plugin structure with autoloading
   - _Requirements: 6.1_
 
-- [ ]\* 1.1 Write unit tests for database schema creation
+- [ ] 1.1 Write unit tests for database schema creation
 
   - Test table creation and index setup
   - Test plugin activation/deactivation
