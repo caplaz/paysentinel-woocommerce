@@ -1,16 +1,17 @@
-.PHONY: test test-rebuild build down lint lint-fix quality help
+.PHONY: test test-rebuild build down lint lint-fix static-analysis quality help
 
 # Show available targets
 help:
 	@echo "Available targets:"
-	@echo "  test         - Run the test suite (downloads WP + test suite on first run)"
-	@echo "  test-rebuild - Rebuild the test image and run tests"
-	@echo "  build        - Build the test image"
-	@echo "  down         - Tear down containers and volumes"
-	@echo "  lint         - Run PHP CodeSniffer linting"
-	@echo "  lint-fix     - Auto-fix PHP CodeSniffer issues where possible"
-	@echo "  quality      - Run all code quality checks (lint + mess detector)"
-	@echo "  help         - Show this help message"
+	@echo "  test            - Run the test suite (downloads WP + test suite on first run)"
+	@echo "  test-rebuild    - Rebuild the test image and run tests"
+	@echo "  build           - Build the test image"
+	@echo "  down            - Tear down containers and volumes"
+	@echo "  lint            - Run PHP CodeSniffer linting"
+	@echo "  lint-fix        - Auto-fix PHP CodeSniffer issues where possible"
+	@echo "  static-analysis - Run PHPStan static analysis"
+	@echo "  quality         - Run all code quality checks (lint + mess detector + static analysis)"
+	@echo "  help            - Show this help message"
 
 # Run the test suite (downloads WP + test suite on first run)
 test:
@@ -34,6 +35,10 @@ lint:
 # Auto-fix PHP CodeSniffer issues where possible
 lint-fix:
 	composer lint-fix
+
+# Run PHPStan static analysis
+static-analysis:
+	composer static-analysis
 
 # Run all code quality checks
 quality:

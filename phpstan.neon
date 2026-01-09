@@ -1,0 +1,17 @@
+parameters:
+    level: 2
+    paths:
+        - includes/
+        - wc-payment-monitor.php
+    excludePaths:
+        - tests/
+    ignoreErrors:
+        # WordPress globals
+        - '#Undefined variable: \$wpdb#'
+        - '#Undefined variable: \$wp_version#'
+        - '#Undefined variable: \$wp_actions#'
+        # WooCommerce classes that may not be loaded in static analysis
+        - '#Class WC_.* not found#'
+        # Dynamic method calls on WordPress objects
+        - '#Call to an undefined method WP_Error::.*#'
+        - '#Call to an undefined method wpdb::.*#'
