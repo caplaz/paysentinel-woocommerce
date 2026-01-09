@@ -112,6 +112,9 @@ class WC_Payment_Monitor_Health {
             $this->store_health_data($gateway_id, $period, $period_health);
         }
         
+        // Trigger alert checking for this gateway
+        do_action('wc_payment_monitor_gateway_health_calculated', $gateway_id, $health_data);
+        
         return $health_data;
     }
     

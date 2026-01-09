@@ -79,6 +79,8 @@ class WC_Payment_Monitor {
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-database.php';
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-logger.php';
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-health.php';
+        require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-alerts.php';
+        require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-retry.php';
     }
     
     /**
@@ -124,6 +126,12 @@ class WC_Payment_Monitor {
         
         // Initialize health calculation engine
         new WC_Payment_Monitor_Health();
+        
+        // Initialize alert system
+        new WC_Payment_Monitor_Alerts();
+        
+        // Initialize retry engine
+        new WC_Payment_Monitor_Retry();
     }
     
     /**
@@ -157,6 +165,7 @@ class WC_Payment_Monitor {
         // Clear scheduled events
         wp_clear_scheduled_hook('wc_payment_monitor_health_calculation');
         wp_clear_scheduled_hook('wc_payment_monitor_retry_payments');
+        wp_clear_scheduled_hook('wc_payment_monitor_process_retries');
     }
     
     /**
@@ -170,10 +179,12 @@ class WC_Payment_Monitor {
         // Remove options
         delete_option('wc_payment_monitor_version');
         delete_option('wc_payment_monitor_settings');
+        delete_option('wc_payment_monitor_retry_stats');
         
         // Clear scheduled events
         wp_clear_scheduled_hook('wc_payment_monitor_health_calculation');
         wp_clear_scheduled_hook('wc_payment_monitor_retry_payments');
+        wp_clear_scheduled_hook('wc_payment_monitor_process_retries');
     }
     
     /**
@@ -209,7 +220,11 @@ class WC_Payment_Monitor {
             'enable_auto_retry' => true,
             'retry_schedule' => array(3600, 21600, 86400), // 1h, 6h, 24h
             'alert_phone' => '',
-            'slack_webhook' => ''
+            'slack_webhook' => '',
+            'license_key' => '',
+            'twilio_sid' => '',
+            'twilio_token' => '',
+            'twilio_from' => ''
         );
         
         add_option('wc_payment_monitor_settings', $default_settings);
