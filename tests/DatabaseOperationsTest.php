@@ -19,7 +19,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
         foreach ($table_names as $table) {
             // Table names should use underscores
             $this->assertStringContainsString('payment_monitor', $table);
-            $this->assertRegExp('/^[a-z_]+$/', $table);
+            $this->assertMatchesRegularExpression('/^[a-z_]+$/', $table);
             $this->assertGreaterThan(0, strlen($table));
         }
     }
@@ -44,7 +44,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
         
         foreach ($required_columns as $column) {
             $this->assertNotEmpty($column);
-            $this->assertRegExp('/^[a-z_]+$/', $column);
+            $this->assertMatchesRegularExpression('/^[a-z_]+$/', $column);
         }
     }
     

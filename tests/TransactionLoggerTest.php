@@ -15,7 +15,7 @@ class TransactionLoggerTest extends PHPUnit\Framework\TestCase {
         foreach ($valid_statuses as $status) {
             $this->assertIsString($status);
             $this->assertNotEmpty($status);
-            $this->assertRegExp('/^[a-z]+$/', $status);
+            $this->assertMatchesRegularExpression('/^[a-z]+$/', $status);
         }
     }
     
@@ -55,7 +55,7 @@ class TransactionLoggerTest extends PHPUnit\Framework\TestCase {
         
         foreach ($valid_amounts as $amount) {
             $this->assertGreaterThan(0, $amount);
-            $this->assertIsFloat($amount) || $this->assertIsInt($amount);
+            $this->assertTrue(is_float($amount) || is_int($amount));
         }
     }
     
@@ -67,7 +67,7 @@ class TransactionLoggerTest extends PHPUnit\Framework\TestCase {
         
         foreach ($valid_currencies as $currency) {
             $this->assertEquals(3, strlen($currency));
-            $this->assertRegExp('/^[A-Z]{3}$/', $currency);
+            $this->assertMatchesRegularExpression('/^[A-Z]{3}$/', $currency);
         }
     }
     

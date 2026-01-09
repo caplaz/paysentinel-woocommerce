@@ -45,7 +45,7 @@ class TransactionLoggingPropertyTest extends PHPUnit\Framework\TestCase {
             $this->assertContains($random_status, $valid_statuses);
             $this->assertNotEmpty($random_status);
             $this->assertIsString($random_status);
-            $this->assertRegExp('/^[a-z]+$/', $random_status);
+            $this->assertMatchesRegularExpression('/^[a-z]+$/', $random_status);
         }
     }
     
@@ -67,8 +67,9 @@ class TransactionLoggingPropertyTest extends PHPUnit\Framework\TestCase {
             $this->assertIsNumeric($amount);
             
             // Amount should have reasonable precision (max 2 decimals for currency)
-            $decimals = strlen($amount) - strrpos($amount, '.') - 1;
-            $this->assertLessThanOrEqual(2, $decimals, "Amount should have max 2 decimal places");
+            // Round to 2 decimals and verify equality
+            $rounded_amount = round($amount, 2);
+            $this->assertEquals($amount, $rounded_amount, "Amount should have max 2 decimal places", 0.001);
         }
     }
 }

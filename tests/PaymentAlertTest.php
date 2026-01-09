@@ -46,7 +46,7 @@ class PaymentAlertTest extends PHPUnit\Framework\TestCase {
         foreach ($valid_states as $state) {
             $this->assertIsString($state);
             $this->assertNotEmpty($state);
-            $this->assertRegExp('/^[a-z]+$/', $state);
+            $this->assertMatchesRegularExpression('/^[a-z]+$/', $state);
         }
     }
     

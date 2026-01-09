@@ -4,10 +4,7 @@
  * Tests universal correctness properties with 100+ iterations
  */
 
-// Load the security class
-require_once dirname(__DIR__) . '/includes/class-wc-payment-monitor-security.php';
-
-// Mock WordPress functions if not available
+// Mock WordPress functions if not available (in case bootstrap doesn't load)
 if (!function_exists('get_transient')) {
     function get_transient($transient) {
         return false;
@@ -22,10 +19,6 @@ if (!function_exists('get_transient')) {
     }
     
     function user_can($user_id, $capability) {
-        return true;
-    }
-    
-    function current_user_can($capability) {
         return true;
     }
     
