@@ -6,11 +6,13 @@
  * Tests WooCommerce hook integration
  * Tests database insertion methods
  * Requirements: 1.1, 1.2, 1.3
+ *
+ * @testClass TestLogger
  */
 
 require_once __DIR__ . '/includes/class-wc-payment-monitor-test-case.php';
 
-class Test_Logger extends WC_Payment_Monitor_Test_Case {
+class TestLogger extends WC_Payment_Monitor_Test_Case {
     
     /**
      * Logger instance
@@ -30,7 +32,7 @@ class Test_Logger extends WC_Payment_Monitor_Test_Case {
         
         // Mock WordPress and WooCommerce functions
         $this->mock_woocommerce_functions();
-        $this->mock_wordpress_database_functions();
+        // $this->mock_wordpress_database_functions();
         
         // Create database instance and tables
         $this->database = new WC_Payment_Monitor_Database();
@@ -574,10 +576,10 @@ class Test_Logger extends WC_Payment_Monitor_Test_Case {
         };
         
         // Mock dbDelta function
-        if (!function_exists('dbDelta')) {
-            function dbDelta($sql) {
-                return ['created' => 1];
-            }
-        }
+        // if (!function_exists('dbDelta')) {
+        //     function dbDelta($sql) {
+        //         return ['created' => 1];
+        //     }
+        // }
     }
 }

@@ -29,40 +29,40 @@ This implementation plan converts the Payment Monitor design into discrete PHP c
     - Create database insertion methods for transaction logging
     - _Requirements: 1.1, 1.2, 1.3_
 
-  - [ ]\* 2.2 Write property test for transaction logging completeness
+  - [ ] 2.2 Write property test for transaction logging completeness
 
     - **Property 1: Transaction Logging Completeness**
     - **Validates: Requirements 1.1, 1.2, 1.3**
 
-  - [ ]\* 2.3 Write property test for checkout non-interference
+  - [ ] 2.3 Write property test for checkout non-interference
     - **Property 2: Checkout Process Non-Interference**
     - **Validates: Requirements 1.4**
 
-- [ ] 3. Implement health calculation engine
+- [x] 3. Implement health calculation engine
 
-  - [ ] 3.1 Create WC_Payment_Monitor_Health class
+  - [x] 3.1 Create WC_Payment_Monitor_Health class
 
     - Implement success rate calculation for 1hr, 24hr, 7day periods
     - Create database methods for storing and retrieving health metrics
     - Set up WordPress cron for periodic health updates
     - _Requirements: 2.1, 2.2, 2.4_
 
-  - [ ]\* 3.2 Write property test for health calculation accuracy
+  - [ ] 3.2 Write property test for health calculation accuracy
 
     - **Property 3: Health Calculation Accuracy**
     - **Validates: Requirements 2.1, 2.4**
 
-  - [ ]\* 3.3 Write property test for health update scheduling
+  - [ ] 3.3 Write property test for health update scheduling
 
     - **Property 4: Health Update Scheduling**
     - **Validates: Requirements 2.2**
 
-  - [ ]\* 3.4 Write property test for gateway status threshold detection
+  - [ ] 3.4 Write property test for gateway status threshold detection
 
     - **Property 5: Gateway Status Threshold Detection**
     - **Validates: Requirements 2.3**
 
-  - [ ]\* 3.5 Write unit test for empty data handling
+  - [ ] 3.5 Write unit test for empty data handling
     - **Property 6: Empty Data Handling**
     - **Validates: Requirements 2.5**
 

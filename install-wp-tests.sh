@@ -70,11 +70,39 @@ fi
 
 echo "Installing WordPress test suite in $WP_TESTS_DIR..."
 mkdir -p $WP_TESTS_DIR
-svn co --quiet https://develop.svn.wordpress.org/tags/$WP_BRANCH/tests/phpunit/includes/ $WP_TESTS_DIR/includes
-svn co --quiet https://develop.svn.wordpress.org/tags/$WP_BRANCH/tests/phpunit/data/ $WP_TESTS_DIR/data
 
-if [ ! -f $WP_TESTS_DIR/wp-tests-config.php ]; then
-	download https://develop.svn.wordpress.org/tags/$WP_BRANCH/wp-tests-config-sample.php $WP_TESTS_DIR/wp-tests-config.php
+# Use Git for WordPress test suite (SVN is deprecated)
+if command -v git >/dev/null 2>&1; then
+    echo "Using Git to download WordPress test suite..."
+    TMP_TESTS_DIR="$TMPDIR/wordpress-develop"
+    if [ -d "$TMP_TESTS_DIR" ]; then
+        rm -rf "$TMP_TESTS_DIR"
+    fi
+    
+    if [[ $WP_BRANCH == 'trunk' ]]; then
+        git clone --depth=1 --branch=trunk https://github.com/WordPress/wordpress-develop.git "$TMP_TESTS_DIR"
+    else
+        # For specific versions, try to find the tag
+        git clone --depth=1 --branch="$WP_BRANCH" https://github.com/WordPress/wordpress-develop.git "$TMP_TESTS_DIR" 2>/dev/null || \
+        git clone --depth=1 --branch="trunk" https://github.com/WordPress/wordpress-develop.git "$TMP_TESTS_DIR"
+    fi
+    
+    cp -r "$TMP_TESTS_DIR/tests/phpunit/includes" "$WP_TESTS_DIR/"
+    cp -r "$TMP_TESTS_DIR/tests/phpunit/data" "$WP_TESTS_DIR/"
+    if [ ! -f "$WP_TESTS_DIR/wp-tests-config.php" ]; then
+        cp "$TMP_TESTS_DIR/wp-tests-config-sample.php" "$WP_TESTS_DIR/wp-tests-config.php"
+    fi
+    # Create src directory with WordPress core for tests
+    mkdir -p "$WP_TESTS_DIR/src"
+    cp -r "$WP_CORE_DIR"/* "$WP_TESTS_DIR/src/"
+    rm -rf "$TMP_TESTS_DIR"
+else
+    echo "Git not found, falling back to SVN..."
+    svn co --quiet https://develop.svn.wordpress.org/tags/$WP_BRANCH/tests/phpunit/includes/ $WP_TESTS_DIR/includes
+    svn co --quiet https://develop.svn.wordpress.org/tags/$WP_BRANCH/tests/phpunit/data/ $WP_TESTS_DIR/data
+    if [ ! -f $WP_TESTS_DIR/wp-tests-config.php ]; then
+        download https://develop.svn.wordpress.org/tags/$WP_BRANCH/wp-tests-config-sample.php $WP_TESTS_DIR/wp-tests-config.php
+    fi
 fi
 
 if [ ! -f $WP_CORE_DIR/wp-tests-config.php ]; then
@@ -93,5 +121,11 @@ sed -i "s/youremptytestdbnamehere/$DB_NAME/" $WP_CORE_DIR/wp-tests-config.php
 sed -i "s/yourusernamehere/$DB_USER/" $WP_CORE_DIR/wp-tests-config.php
 sed -i "s/yourpasswordhere/$DB_PASS/" $WP_CORE_DIR/wp-tests-config.php
 sed -i "s|localhost|${DB_HOST}|" $WP_CORE_DIR/wp-tests-config.php
+
+# Also configure the tests config file
+sed -i "s/youremptytestdbnamehere/$DB_NAME/" $WP_TESTS_DIR/wp-tests-config.php
+sed -i "s/yourusernamehere/$DB_USER/" $WP_TESTS_DIR/wp-tests-config.php
+sed -i "s/yourpasswordhere/$DB_PASS/" $WP_TESTS_DIR/wp-tests-config.php
+sed -i "s|localhost|${DB_HOST}|" $WP_TESTS_DIR/wp-tests-config.php
 
 echo "Done!"

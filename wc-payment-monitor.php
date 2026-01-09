@@ -78,6 +78,7 @@ class WC_Payment_Monitor {
         // Load core classes
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-database.php';
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-logger.php';
+        require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-health.php';
     }
     
     /**
@@ -120,6 +121,9 @@ class WC_Payment_Monitor {
     private function init_components() {
         // Initialize transaction logger
         new WC_Payment_Monitor_Logger();
+        
+        // Initialize health calculation engine
+        new WC_Payment_Monitor_Health();
     }
     
     /**
@@ -141,6 +145,9 @@ class WC_Payment_Monitor {
         
         // Set default options
         $this->set_default_options();
+        
+        // Trigger health calculation scheduling
+        do_action('wc_payment_monitor_activated');
     }
     
     /**
