@@ -1,1 +1,1 @@
-{"version":1,"defects":[],"times":[]}
+{"version":1,"defects":[],"times":{"MinimalLoggerTest::test_minimal":0.004,"PluginStructureTest::test_plugin_file_exists":0.001,"PluginStructureTest::test_logger_class_file_exists":0,"PluginStructureTest::test_database_class_file_exists":0,"PluginStructureTest::test_alerts_class_file_exists":0,"SimpleTest::testSimple":0}}

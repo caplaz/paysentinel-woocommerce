@@ -42,7 +42,7 @@ services:
     # Installs the WP test suite only if needed (cached in volume)
     # then runs phpunit using the repo's vendor binary.
     command: >-
-      bash -lc "bash ./tests/entrypoint.sh && vendor/bin/phpunit --testdox"
+      bash -lc "bash ./tests/entrypoint.sh && vendor/bin/phpunit"
 
 volumes:
   wp-core:
