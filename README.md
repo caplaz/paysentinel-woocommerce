@@ -80,4 +80,4 @@ Notes:
 - The test runner installs the WordPress test suite into a temporary directory inside the container and uses the database provided by the `db` service.
 - Database credentials are defined in `docker-compose.yml` and passed to `install-wp-tests.sh`. Database creation is handled by the MySQL container; the installer is invoked with `skip-database-creation=true`.
 - To pin a specific WordPress version, set `WP_VERSION` in `docker-compose.yml` (e.g. `6.6`).
-- **Note**: The `install-wp-tests.sh` script is outdated for WordPress 6.x; it uses SVN which no longer hosts the test suite. For WP 6.x, the tests may fail to install. Consider using a local WordPress install or updating the script to use Git from https://github.com/WordPress/wordpress-develop.
+- **Note**: The WordPress test suite may have compatibility issues with certain versions. If tests fail with syntax errors, try a different `WP_VERSION` or consider running tests locally without Docker.
