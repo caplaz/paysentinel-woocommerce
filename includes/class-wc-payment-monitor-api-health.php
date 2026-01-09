@@ -131,6 +131,9 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				return $this->get_success_response( array() );
 			}
 
+			// Initialize connectivity checker
+			$connectivity = new WC_Payment_Monitor_Gateway_Connectivity();
+
 			$health_data = array();
 
 			foreach ( $gateways as $gateway ) {
@@ -139,11 +142,14 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				// Get health metrics for this gateway
 				$health = $this->get_gateway_health_data( $gateway_id, $backend_period );
 
+				// Get last connectivity check
+				$last_check = $connectivity->get_last_check( $gateway_id );
+
 				if ( $health ) {
 					// Get historical trend data
 					$trend_data = $this->get_gateway_trend_data( $gateway_id, $period );
 
-					$health_data[] = array(
+					$item = array(
 						'gateway_id'              => $gateway_id,
 						'gateway_name'            => $gateway->title,
 						'health_percentage'       => floatval( $health->success_rate ),
@@ -153,6 +159,21 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 						'last_checked'            => $health->calculated_at,
 						'trend_data'              => $trend_data,
 					);
+
+					// Add connectivity status if available
+					if ( $last_check ) {
+						$item['connectivity_status'] = $last_check->status;
+						$item['connectivity_message'] = $last_check->message;
+						$item['connectivity_checked_at'] = $last_check->checked_at;
+						$item['connectivity_response_time_ms'] = floatval( $last_check->response_time_ms );
+					} else {
+						$item['connectivity_status'] = null;
+						$item['connectivity_message'] = 'No connectivity check performed yet';
+						$item['connectivity_checked_at'] = null;
+						$item['connectivity_response_time_ms'] = null;
+					}
+
+					$health_data[] = $item;
 				}
 			}
 
@@ -214,6 +235,10 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				);
 			}
 
+			// Initialize connectivity checker
+			$connectivity = new WC_Payment_Monitor_Gateway_Connectivity();
+			$last_check = $connectivity->get_last_check( $gateway_id );
+
 			$response_data = array(
 				'gateway_id'              => $gateway_id,
 				'gateway_name'            => $gateway->title,
@@ -225,6 +250,19 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				'avg_response_time'       => intval( $health->avg_response_time ),
 				'last_updated'            => $health->calculated_at,
 			);
+
+			// Add connectivity status
+			if ( $last_check ) {
+				$response_data['connectivity_status'] = $last_check->status;
+				$response_data['connectivity_message'] = $last_check->message;
+				$response_data['connectivity_checked_at'] = $last_check->checked_at;
+				$response_data['connectivity_response_time_ms'] = floatval( $last_check->response_time_ms );
+			} else {
+				$response_data['connectivity_status'] = null;
+				$response_data['connectivity_message'] = 'No connectivity check performed yet';
+				$response_data['connectivity_checked_at'] = null;
+				$response_data['connectivity_response_time_ms'] = null;
+			}
 
 			return new WP_REST_Response( $response_data );
 		} catch ( Exception $e ) {

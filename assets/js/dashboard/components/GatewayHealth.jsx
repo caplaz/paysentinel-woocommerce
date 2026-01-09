@@ -94,6 +94,24 @@ function GatewayHealthComponent({
   };
 
   /**
+   * Get connectivity status badge class and text
+   */
+  const getConnectivityClass = (status) => {
+    if (status === "online") return "connectivity-online";
+    if (status === "offline") return "connectivity-offline";
+    return "connectivity-unconfigured";
+  };
+
+  /**
+   * Get connectivity status text
+   */
+  const getConnectivityText = (status) => {
+    if (status === "online") return "Connected";
+    if (status === "offline") return "Disconnected";
+    return "Not Configured";
+  };
+
+  /**
    * Get time period label
    */
   const getTimePeriodLabel = () => {
@@ -154,12 +172,24 @@ function GatewayHealthComponent({
               className={`gateway-card ${isExpanded ? "expanded" : ""}`}>
               <div className='gateway-header'>
                 <h3>{gateway.gateway_name || gateway.gateway_id}</h3>
-                <span
-                  className={`status-badge ${getStatusClass(
-                    gateway.health_percentage
-                  )}`}>
-                  {getStatusText(gateway.health_percentage)}
-                </span>
+                <div className='gateway-badges'>
+                  <span
+                    className={`status-badge ${getStatusClass(
+                      gateway.health_percentage
+                    )}`}
+                    title='Transaction-based health status'>
+                    {getStatusText(gateway.health_percentage)}
+                  </span>
+                  {gateway.connectivity_status && (
+                    <span
+                      className={`connectivity-badge ${getConnectivityClass(
+                        gateway.connectivity_status
+                      )}`}
+                      title={gateway.connectivity_message || "Connectivity status'}>
+                      {getConnectivityText(gateway.connectivity_status)}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className='gateway-stats'>
@@ -191,6 +221,38 @@ function GatewayHealthComponent({
                   </span>
                 </div>
               </div>
+
+              {gateway.connectivity_status && (
+                <div className='connectivity-info'>
+                  <div className='connectivity-row'>
+                    <span className='connectivity-label'>API Status:</span>
+                    <span className={`connectivity-value ${getConnectivityClass(gateway.connectivity_status)}`}>
+                      {getConnectivityText(gateway.connectivity_status)}
+                    </span>
+                  </div>
+                  {gateway.connectivity_response_time_ms !== null && (
+                    <div className='connectivity-row'>
+                      <span className='connectivity-label'>Response Time:</span>
+                      <span className='connectivity-value'>
+                        {gateway.connectivity_response_time_ms.toFixed(0)}ms
+                      </span>
+                    </div>
+                  )}
+                  {gateway.connectivity_checked_at && (
+                    <div className='connectivity-row'>
+                      <span className='connectivity-label'>Last Checked:</span>
+                      <span className='connectivity-value'>
+                        {new Date(gateway.connectivity_checked_at).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
+                  {gateway.connectivity_message && (
+                    <div className='connectivity-message'>
+                      <small>{gateway.connectivity_message}</small>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className='gateway-chart'>
                 <div className='progress-bar'>

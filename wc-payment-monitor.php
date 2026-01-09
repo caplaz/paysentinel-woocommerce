@@ -66,6 +66,25 @@ class WC_Payment_Monitor {
 		register_uninstall_hook( __FILE__, array( 'WC_Payment_Monitor', 'uninstall' ) );
 
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
+		
+		// Add custom cron schedules
+		add_filter( 'cron_schedules', array( $this, 'add_custom_cron_schedules' ) );
+	}
+
+	/**
+	 * Add custom cron schedules
+	 *
+	 * @param array $schedules Existing cron schedules.
+	 * @return array Updated schedules.
+	 */
+	public function add_custom_cron_schedules( $schedules ) {
+		if ( ! isset( $schedules['wc_monitor_30min'] ) ) {
+			$schedules['wc_monitor_30min'] = array(
+				'interval' => 30 * 60, // 30 minutes in seconds
+				'display'  => __( 'Every 30 Minutes', 'wc-payment-monitor' ),
+			);
+		}
+		return $schedules;
 	}
 
 	/**
@@ -82,6 +101,13 @@ class WC_Payment_Monitor {
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-alerts.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-retry.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-security.php';
+
+		// Load gateway connector classes
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-gateway-connector.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-stripe-connector.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-paypal-connector.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-wc-payments-connector.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-gateway-connectivity.php';
 
 		// Load API classes
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-base.php';
@@ -143,6 +169,9 @@ class WC_Payment_Monitor {
 		// Initialize retry engine
 		new WC_Payment_Monitor_Retry();
 
+		// Initialize gateway connectivity scheduler
+		$this->init_gateway_connectivity_scheduler();
+
 		// Initialize REST API endpoints
 		new WC_Payment_Monitor_API_Health();
 		new WC_Payment_Monitor_API_Transactions();
@@ -151,6 +180,40 @@ class WC_Payment_Monitor {
 		// Initialize admin pages
 		if ( is_admin() ) {
 			new WC_Payment_Monitor_Admin();
+		}
+	}
+
+	/**
+	 * Initialize gateway connectivity checker scheduler
+	 */
+	private function init_gateway_connectivity_scheduler() {
+		// Schedule the gateway connectivity check cron job
+		if ( ! wp_next_scheduled( 'wc_payment_monitor_gateway_connectivity_check' ) ) {
+			wp_schedule_event( time(), 'wc_monitor_30min', 'wc_payment_monitor_gateway_connectivity_check' );
+		}
+
+		// Hook to run the connectivity check
+		add_action( 'wc_payment_monitor_gateway_connectivity_check', array( $this, 'run_gateway_connectivity_check' ) );
+	}
+
+	/**
+	 * Run gateway connectivity checks
+	 * This is called by WordPress cron every 30 minutes
+	 */
+	public function run_gateway_connectivity_check() {
+		try {
+			$connectivity = new WC_Payment_Monitor_Gateway_Connectivity();
+			$results = $connectivity->check_all_gateways();
+
+			// Log connectivity check results
+			do_action( 'wc_payment_monitor_connectivity_check_complete', $results );
+
+			// Clean up old connectivity records (older than 30 days)
+			$connectivity->cleanup_old_checks( 30 );
+		} catch ( Exception $e ) {
+			error_log(
+				'Payment Monitor: Error during gateway connectivity check: ' . $e->getMessage()
+			);
 		}
 	}
 
@@ -186,6 +249,7 @@ class WC_Payment_Monitor {
 		wp_clear_scheduled_hook( 'wc_payment_monitor_health_calculation' );
 		wp_clear_scheduled_hook( 'wc_payment_monitor_retry_payments' );
 		wp_clear_scheduled_hook( 'wc_payment_monitor_process_retries' );
+		wp_clear_scheduled_hook( 'wc_payment_monitor_gateway_connectivity_check' );
 	}
 
 	/**

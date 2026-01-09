@@ -21,6 +21,7 @@ class WC_Payment_Monitor_Database {
 	private $transactions_table;
 	private $gateway_health_table;
 	private $alerts_table;
+	private $gateway_connectivity_table;
 
 	/**
 	 * Constructor
@@ -28,9 +29,10 @@ class WC_Payment_Monitor_Database {
 	public function __construct() {
 		global $wpdb;
 
-		$this->transactions_table   = $wpdb->prefix . 'payment_monitor_transactions';
-		$this->gateway_health_table = $wpdb->prefix . 'payment_monitor_gateway_health';
-		$this->alerts_table         = $wpdb->prefix . 'payment_monitor_alerts';
+		$this->transactions_table           = $wpdb->prefix . 'payment_monitor_transactions';
+		$this->gateway_health_table         = $wpdb->prefix . 'payment_monitor_gateway_health';
+		$this->alerts_table                 = $wpdb->prefix . 'payment_monitor_alerts';
+		$this->gateway_connectivity_table   = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
 	}
 
 	/**
@@ -40,6 +42,7 @@ class WC_Payment_Monitor_Database {
 		$this->create_transactions_table();
 		$this->create_gateway_health_table();
 		$this->create_alerts_table();
+		$this->create_gateway_connectivity_table();
 
 		// Update database version
 		update_option( 'payment_monitor_db_version', self::DB_VERSION );
@@ -141,6 +144,33 @@ class WC_Payment_Monitor_Database {
 	}
 
 	/**
+	 * Create gateway connectivity table
+	 */
+	private function create_gateway_connectivity_table() {
+		global $wpdb;
+
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE {$this->gateway_connectivity_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            gateway_id VARCHAR(50) NOT NULL,
+            status ENUM('online', 'offline', 'unconfigured') NOT NULL,
+            message TEXT DEFAULT NULL,
+            http_code INT(3) UNSIGNED DEFAULT NULL,
+            response_time_ms DECIMAL(10,2) UNSIGNED DEFAULT NULL,
+            checked_at DATETIME NOT NULL,
+            PRIMARY KEY (id),
+            KEY idx_gateway_id (gateway_id),
+            KEY idx_status (status),
+            KEY idx_checked_at (checked_at),
+            KEY idx_gateway_checked (gateway_id, checked_at)
+        ) $charset_collate;";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
 	 * Drop all database tables
 	 */
 	public function drop_tables() {
@@ -149,6 +179,7 @@ class WC_Payment_Monitor_Database {
 		$wpdb->query( "DROP TABLE IF EXISTS {$this->transactions_table}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$this->gateway_health_table}" );
 		$wpdb->query( "DROP TABLE IF EXISTS {$this->alerts_table}" );
+		$wpdb->query( "DROP TABLE IF EXISTS {$this->gateway_connectivity_table}" );
 
 		// Remove database version
 		delete_option( 'payment_monitor_db_version' );
@@ -173,6 +204,13 @@ class WC_Payment_Monitor_Database {
 	 */
 	public function get_alerts_table() {
 		return $this->alerts_table;
+	}
+
+	/**
+	 * Get gateway connectivity table name
+	 */
+	public function get_gateway_connectivity_table() {
+		return $this->gateway_connectivity_table;
 	}
 
 	/**

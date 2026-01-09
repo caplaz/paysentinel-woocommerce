@@ -493,3 +493,88 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Connectivity Status Styles */
+.gateway-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.connectivity-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.connectivity-badge.connectivity-online {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.connectivity-badge.connectivity-offline {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #fca5a5;
+}
+
+.connectivity-badge.connectivity-unconfigured {
+  background-color: #f3e8ff;
+  color: #5b21b6;
+  border: 1px solid #d8b4fe;
+}
+
+.connectivity-info {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: var(--color-bg-light);
+  border-radius: 6px;
+  border-left: 3px solid var(--color-border);
+}
+
+.connectivity-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.connectivity-row:last-child {
+  margin-bottom: 0;
+}
+
+.connectivity-label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  min-width: 120px;
+}
+
+.connectivity-value {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.connectivity-value.connectivity-online {
+  color: var(--color-excellent);
+}
+
+.connectivity-value.connectivity-offline {
+  color: var(--color-critical);
+}
+
+.connectivity-value.connectivity-unconfigured {
+  color: #a855f7;
+}
+
+.connectivity-message {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-style: italic;
+}

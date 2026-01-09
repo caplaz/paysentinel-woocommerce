@@ -248,6 +248,15 @@
               "table",
               { className: "wp-list-table widefat fixed striped" },
               React.createElement(
+                "colgroup",
+                null,
+                React.createElement("col", { style: { width: "10%" } }),
+                React.createElement("col", { style: { width: "15%" } }),
+                React.createElement("col", { style: { width: "15%" } }),
+                React.createElement("col", { style: { width: "30%" } }),
+                React.createElement("col", { style: { width: "30%" } })
+              ),
+              React.createElement(
                 "thead",
                 null,
                 React.createElement(
@@ -306,21 +315,63 @@
         React.createElement("h3", null, "Recent Alerts"),
         alerts.length > 0
           ? React.createElement(
-              "ul",
-              { className: "alerts-list" },
-              alerts.map((alert) =>
+              "table",
+              { className: "wp-list-table widefat fixed striped" },
+              React.createElement(
+                "colgroup",
+                null,
+                React.createElement("col", { style: { width: "50%" } }),
+                React.createElement("col", { style: { width: "15%" } }),
+                React.createElement("col", { style: { width: "15%" } }),
+                React.createElement("col", { style: { width: "20%" } })
+              ),
+              React.createElement(
+                "thead",
+                null,
                 React.createElement(
-                  "li",
-                  {
-                    key: alert.id,
-                    className: "alert-item alert-" + alert.severity,
-                  },
-                  React.createElement("strong", null, alert.title + ": "),
-                  alert.message,
+                  "tr",
+                  null,
+                  React.createElement("th", null, "Alert"),
+                  React.createElement("th", null, "Gateway"),
+                  React.createElement("th", null, "Severity"),
+                  React.createElement("th", null, "Date")
+                )
+              ),
+              React.createElement(
+                "tbody",
+                null,
+                alerts.map((alert) =>
                   React.createElement(
-                    "small",
-                    null,
-                    " (" + new Date(alert.created_at).toLocaleString() + ")"
+                    "tr",
+                    {
+                      key: alert.id,
+                      className: "alert-row alert-" + alert.severity,
+                    },
+                    React.createElement(
+                      "td",
+                      null,
+                      React.createElement("strong", null, alert.title),
+                      React.createElement("br"),
+                      React.createElement("small", null, alert.message)
+                    ),
+                    React.createElement("td", null, alert.gateway_id || "-"),
+                    React.createElement(
+                      "td",
+                      null,
+                      React.createElement(
+                        "span",
+                        {
+                          className: "severity-badge " + alert.severity,
+                        },
+                        alert.severity.charAt(0).toUpperCase() +
+                          alert.severity.slice(1)
+                      )
+                    ),
+                    React.createElement(
+                      "td",
+                      null,
+                      new Date(alert.created_at).toLocaleString()
+                    )
                   )
                 )
               )
