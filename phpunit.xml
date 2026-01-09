@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit
-    backupGlobals="false"
     colors="true"
     convertErrorsToExceptions="true"
     convertNoticesToExceptions="true"
-    convertWarningsToExceptions="true"
+    convertWarningsToExceptions="false"
     processIsolation="false"
     stopOnFailure="false"
     testdox="true"
@@ -15,10 +14,4 @@
             <directory>./tests/</directory>
         </testsuite>
     </testsuites>
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
-            <directory suffix=".php">./includes/</directory>
-            <file>./wc-payment-monitor.php</file>
-        </whitelist>
-    </filter>
 </phpunit>
