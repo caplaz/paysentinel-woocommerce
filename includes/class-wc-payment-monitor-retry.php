@@ -47,7 +47,7 @@ class WC_Payment_Monitor_Retry {
 		add_action( 'woocommerce_order_status_failed', array( $this, 'schedule_retry_on_failure' ), 20, 2 );
 
 		// Register retry cron action
-		add_action( 'wc_payment_monitor_retry_payment', array( $this, 'attempt_retry' ), 10, 1 );
+		add_action( 'wc_payment_monitor_retry_payment', array( $this, 'attempt_retry_action' ), 10, 1 );
 
 		// Schedule periodic retry processing
 		add_action( 'init', array( $this, 'schedule_retry_processing' ) );
@@ -159,6 +159,15 @@ class WC_Payment_Monitor_Retry {
 	}
 
 	/**
+	 * Action callback for retry payment cron
+	 *
+	 * @param int $transaction_id Transaction ID
+	 */
+	public function attempt_retry_action( $transaction_id ) {
+		$this->attempt_retry( $transaction_id );
+	}
+
+	/**
 	 * Attempt to retry a payment
 	 *
 	 * @param int $transaction_id Transaction ID
@@ -230,7 +239,6 @@ class WC_Payment_Monitor_Retry {
 			if ( $new_retry_count < self::MAX_RETRY_ATTEMPTS ) {
 				$this->schedule_retry( $transaction_id );
 			}
-
 			return false;
 		}
 	}
@@ -477,6 +485,11 @@ class WC_Payment_Monitor_Retry {
 	private function create_retry_success_email_template( $order ) {
 		$order_url   = $order->get_view_order_url();
 		$order_total = $order->get_formatted_order_total();
+		$subject     = sprintf(
+			__( '[%1$s] Payment Successful - Order #%2$s', 'wc-payment-monitor' ),
+			get_bloginfo( 'name' ),
+			$order->get_order_number()
+		);
 
 		ob_start();
 		?>

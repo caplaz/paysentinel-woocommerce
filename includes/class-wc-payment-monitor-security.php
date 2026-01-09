@@ -257,11 +257,10 @@ class WC_Payment_Monitor_Security {
 
 	/**
 	 * Exclude sensitive fields from response data
-	 * Removes or masks sensitive information
+	 * Removes sensitive information
 	 *
 	 * @param array $data Data to filter
-	 * @param bool  $mask Whether to mask instead of remove (default: false)
-	 * @return array Filtered data with sensitive fields removed/masked
+	 * @return array Filtered data with sensitive fields removed
 	 */
 	public static function exclude_sensitive_data( $data ) {
 		if ( ! is_array( $data ) ) {

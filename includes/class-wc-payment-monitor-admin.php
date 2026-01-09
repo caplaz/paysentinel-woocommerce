@@ -47,6 +47,11 @@ class WC_Payment_Monitor_Admin {
 			return;
 		}
 
+		// Ensure constants are defined
+		if ( ! defined( 'WC_PAYMENT_MONITOR_PLUGIN_URL' ) || ! defined( 'WC_PAYMENT_MONITOR_VERSION' ) ) {
+			return;
+		}
+
 		// Enqueue WordPress REST API dependencies
 		wp_enqueue_script( 'wp-api-fetch' );
 		wp_enqueue_script( 'wp-element' );

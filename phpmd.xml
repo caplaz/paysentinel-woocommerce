@@ -12,7 +12,7 @@
     </rule>
 
     <rule ref="rulesets/controversial.xml">
-        <exclude name="Superglobals"/>
+        <exclude name="Superglobals"/> <!-- WordPress uses many superglobals -->
         <exclude name="CamelCaseClassName"/>
         <exclude name="CamelCasePropertyName"/>
         <exclude name="CamelCaseMethodName"/>
@@ -21,17 +21,19 @@
     </rule>
 
     <rule ref="rulesets/design.xml">
-        <exclude name="ExitExpression"/>
+        <exclude name="ExitExpression"/> <!-- WordPress plugins often use exit/die -->
     </rule>
 
     <rule ref="rulesets/naming.xml">
         <exclude name="ShortVariable"/>
         <exclude name="LongVariable"/>
         <exclude name="ShortMethodName"/>
+        <!-- Allow snake_case for WordPress functions/variables -->
+        <property name="allow-underscore" value="true"/>
     </rule>
 
     <rule ref="rulesets/unusedcode.xml">
-        <exclude name="UnusedFormalParameter"/>
+        <exclude name="UnusedFormalParameter"/> <!-- WordPress hooks often have unused params -->
         <exclude name="UnusedPrivateMethod"/>
         <exclude name="UnusedLocalVariable"/>
     </rule>

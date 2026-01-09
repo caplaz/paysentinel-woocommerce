@@ -5,13 +5,19 @@ parameters:
         - wc-payment-monitor.php
     excludePaths:
         - tests/
+    reportUnmatchedIgnoredErrors: false
     ignoreErrors:
-        # WordPress globals
-        - '#Undefined variable: \$wpdb#'
-        - '#Undefined variable: \$wp_version#'
-        - '#Undefined variable: \$wp_actions#'
-        # WooCommerce classes that may not be loaded in static analysis
-        - '#Class WC_.* not found#'
-        # Dynamic method calls on WordPress objects
-        - '#Call to an undefined method WP_Error::.*#'
-        - '#Call to an undefined method wpdb::.*#'
+        # Keep only project-specific ignores
+        - '#Call to an undefined method wpdb::.*#' # Still needed for dynamic wpdb methods
+        # WooCommerce functions and classes
+        - '#Function wc_get_order not found#'
+        - '#Function wc_get_order_notes not found#'
+        - '#Function WC not found#'
+        - '#has invalid type WC_Order#'
+        - '#has invalid type WC_Payment_Gateway#'
+        - '#unknown class WC_Order#'
+        - '#unknown class WC_Payment_Gateway#'
+        - '#unknown class WC_Payment_Gateways#'
+        - '#unknown class WC_Payment_Tokens#'
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon

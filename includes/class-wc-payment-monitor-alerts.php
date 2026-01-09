@@ -331,6 +331,11 @@ class WC_Payment_Monitor_Alerts {
 		$failed_count   = $alert_data['failed_transactions'];
 		$total_count    = $alert_data['total_transactions'];
 		$severity_color = $this->get_severity_color( $alert_data['severity'] );
+		$subject        = sprintf(
+			__( '[%1$s] Payment Gateway Alert - %2$s', 'wc-payment-monitor' ),
+			get_bloginfo( 'name' ),
+			ucfirst( $alert_data['severity'] )
+		);
 
 		$admin_url = admin_url( 'admin.php?page=wc-payment-monitor' );
 
@@ -637,11 +642,7 @@ class WC_Payment_Monitor_Alerts {
 		$sql     .= ' ORDER BY created_at DESC LIMIT %d';
 		$params[] = $limit;
 
-		if ( ! empty( $params ) ) {
-			return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
-		} else {
-			return $wpdb->get_results( $wpdb->prepare( $sql, $limit ), ARRAY_A );
-		}
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 	}
 
 	/**

@@ -12,7 +12,13 @@
     "squizlabs/php_codesniffer": "^3.7",
     "phpmd/phpmd": "^2.13",
     "wp-coding-standards/wpcs": "^3.0",
-    "phpstan/phpstan": "^2.1"
+    "phpstan/phpstan": "^2.1",
+    "php-stubs/wordpress-stubs": "^6.0",
+    "phpcompatibility/php-compatibility": "^9.3",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "sirbrillig/phpcs-variable-analysis": "^2.11",
+    "szepeviktor/phpstan-wordpress": "^2.0",
+    "onepix/woocommerce-stubs": "^9.7"
   },
   "autoload": {
     "psr-4": {
@@ -30,7 +36,7 @@
     "lint": "phpcs",
     "lint-fix": "phpcbf",
     "mess-detector": "phpmd includes/,wc-payment-monitor.php text phpmd.xml",
-    "static-analysis": "phpstan analyse --memory-limit=256M",
+    "static-analysis": "phpstan analyse --memory-limit=1G",
     "quality": [
       "@lint",
       "@mess-detector",
