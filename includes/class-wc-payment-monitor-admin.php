@@ -391,4 +391,253 @@ class WC_Payment_Monitor_Admin {
         $updated = wp_parse_args($settings, $current);
         return update_option('wc_payment_monitor_options', $updated);
     }
+    
+    /**
+     * Validate health check interval setting
+     * 
+     * @param int $interval Health check interval in minutes
+     * @return array Validation result with 'valid' bool and 'message' string
+     */
+    public static function validate_health_check_interval($interval) {
+        $interval = intval($interval);
+        
+        if ($interval < 1) {
+            return array(
+                'valid' => false,
+                'message' => __('Health check interval must be at least 1 minute.', 'wc-payment-monitor'),
+            );
+        }
+        
+        if ($interval > 1440) {
+            return array(
+                'valid' => false,
+                'message' => __('Health check interval cannot exceed 1440 minutes (24 hours).', 'wc-payment-monitor'),
+            );
+        }
+        
+        return array(
+            'valid' => true,
+            'message' => '',
+            'value' => $interval,
+        );
+    }
+    
+    /**
+     * Validate alert threshold setting
+     * 
+     * @param float $threshold Alert threshold percentage
+     * @return array Validation result with 'valid' bool and 'message' string
+     */
+    public static function validate_alert_threshold($threshold) {
+        $threshold = floatval($threshold);
+        
+        if ($threshold < 0.1) {
+            return array(
+                'valid' => false,
+                'message' => __('Alert threshold must be at least 0.1%.', 'wc-payment-monitor'),
+            );
+        }
+        
+        if ($threshold > 100) {
+            return array(
+                'valid' => false,
+                'message' => __('Alert threshold cannot exceed 100%.', 'wc-payment-monitor'),
+            );
+        }
+        
+        return array(
+            'valid' => true,
+            'message' => '',
+            'value' => $threshold,
+        );
+    }
+    
+    /**
+     * Validate retry configuration
+     * 
+     * @param array $retry_config Retry configuration array
+     * @return array Validation result with 'valid' bool and 'message' string
+     */
+    public static function validate_retry_configuration($retry_config) {
+        if (!is_array($retry_config)) {
+            return array(
+                'valid' => false,
+                'message' => __('Retry configuration must be an array.', 'wc-payment-monitor'),
+            );
+        }
+        
+        // Check if array is empty or missing required key
+        if (empty($retry_config) || !isset($retry_config['max_retry_attempts'])) {
+            return array(
+                'valid' => false,
+                'message' => __('Retry configuration must contain max_retry_attempts.', 'wc-payment-monitor'),
+                'errors' => array(__('Retry configuration must contain max_retry_attempts.', 'wc-payment-monitor')),
+            );
+        }
+        
+        $errors = array();
+        $max_attempts = intval($retry_config['max_retry_attempts']);
+        
+        if ($max_attempts < 1) {
+            $errors[] = __('Max retry attempts must be at least 1.', 'wc-payment-monitor');
+        }
+        
+        if ($max_attempts > 10) {
+            $errors[] = __('Max retry attempts cannot exceed 10.', 'wc-payment-monitor');
+        }
+        
+        if (!empty($errors)) {
+            return array(
+                'valid' => false,
+                'message' => implode(' ', $errors),
+                'errors' => $errors,
+            );
+        }
+        
+        return array(
+            'valid' => true,
+            'message' => '',
+            'value' => $retry_config,
+        );
+    }
+    
+    /**
+     * Validate license key
+     * 
+     * @param string $license_key License key to validate
+     * @return array Validation result with 'valid' bool and 'message' string
+     */
+    public static function validate_license_key($license_key) {
+        $license_key = sanitize_text_field($license_key);
+        
+        // Empty license key is valid (may be free tier)
+        if (empty($license_key)) {
+            return array(
+                'valid' => true,
+                'message' => '',
+                'tier' => 'free',
+            );
+        }
+        
+        // License key format validation (alphanumeric and hyphens, 20-50 chars)
+        if (!preg_match('/^[A-Za-z0-9\-]{20,50}$/', $license_key)) {
+            return array(
+                'valid' => false,
+                'message' => __('License key format is invalid. Should be 20-50 alphanumeric characters with optional hyphens.', 'wc-payment-monitor'),
+            );
+        }
+        
+        // Check if license is active (simulate license validation)
+        // In production, this would call a remote license server
+        $is_premium = apply_filters('wc_payment_monitor_validate_license', false, $license_key);
+        
+        if ($is_premium) {
+            return array(
+                'valid' => true,
+                'message' => '',
+                'tier' => 'premium',
+                'value' => $license_key,
+            );
+        } else {
+            return array(
+                'valid' => false,
+                'message' => __('License key is invalid or inactive. Please check and try again.', 'wc-payment-monitor'),
+            );
+        }
+    }
+    
+    /**
+     * Get current license tier
+     * 
+     * @return string License tier ('free' or 'premium')
+     */
+    public static function get_license_tier() {
+        $settings = self::get_settings();
+        $license_key = isset($settings['license_key']) ? $settings['license_key'] : '';
+        
+        if (empty($license_key)) {
+            return 'free';
+        }
+        
+        // Check if license is premium
+        $is_premium = apply_filters('wc_payment_monitor_validate_license', false, $license_key);
+        return $is_premium ? 'premium' : 'free';
+    }
+    
+    /**
+     * Check if premium features are available
+     * 
+     * @return bool True if premium tier
+     */
+    public static function is_premium() {
+        return self::get_license_tier() === 'premium';
+    }
+    
+    /**
+     * Validate all settings together
+     * 
+     * @param array $settings Settings array to validate
+     * @return array Validation result with 'valid' bool, 'errors' array, and 'validated_settings'
+     */
+    public static function validate_all_settings($settings) {
+        $errors = array();
+        $validated_settings = array();
+        
+        // Validate enable monitoring
+        if (isset($settings['enable_monitoring'])) {
+            $validated_settings['enable_monitoring'] = intval($settings['enable_monitoring']);
+        }
+        
+        // Validate health check interval
+        if (isset($settings['health_check_interval'])) {
+            $interval_validation = self::validate_health_check_interval($settings['health_check_interval']);
+            if ($interval_validation['valid']) {
+                $validated_settings['health_check_interval'] = $interval_validation['value'];
+            } else {
+                $errors[] = 'health_check_interval: ' . $interval_validation['message'];
+            }
+        }
+        
+        // Validate alert threshold
+        if (isset($settings['alert_threshold'])) {
+            $threshold_validation = self::validate_alert_threshold($settings['alert_threshold']);
+            if ($threshold_validation['valid']) {
+                $validated_settings['alert_threshold'] = $threshold_validation['value'];
+            } else {
+                $errors[] = 'alert_threshold: ' . $threshold_validation['message'];
+            }
+        }
+        
+        // Validate retry enabled
+        if (isset($settings['retry_enabled'])) {
+            $validated_settings['retry_enabled'] = intval($settings['retry_enabled']);
+        }
+        
+        // Validate max retry attempts
+        if (isset($settings['max_retry_attempts'])) {
+            $retry_config = array('max_retry_attempts' => $settings['max_retry_attempts']);
+            $retry_validation = self::validate_retry_configuration($retry_config);
+            if ($retry_validation['valid']) {
+                $validated_settings['max_retry_attempts'] = $retry_config['max_retry_attempts'];
+            } else {
+                $errors[] = 'max_retry_attempts: ' . $retry_validation['message'];
+            }
+        }
+        
+        // Validate license key
+        if (isset($settings['license_key'])) {
+            $license_validation = self::validate_license_key($settings['license_key']);
+            if ($license_validation['valid']) {
+                $validated_settings['license_key'] = sanitize_text_field($settings['license_key']);
+            } else {
+                $errors[] = 'license_key: ' . $license_validation['message'];
+            }
+        }
+        
+        return array(
+            'valid' => empty($errors),
+            'errors' => $errors,
+            'validated_settings' => $validated_settings,
+        );
+    }
 }

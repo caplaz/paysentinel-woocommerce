@@ -210,4 +210,222 @@ class WC_Payment_Monitor_Database {
     public function needs_update() {
         return version_compare($this->get_db_version(), self::DB_VERSION, '<');
     }
+    
+    /**
+     * Run database migrations
+     * 
+     * @return bool True on success, false on failure
+     */
+    public function run_migrations() {
+        $current_version = $this->get_db_version();
+        
+        // Migrations array: version => callable
+        $migrations = array(
+            '0.0.0' => array($this, 'migrate_to_v1_0_0'),
+        );
+        
+        foreach ($migrations as $version => $migration) {
+            if (version_compare($current_version, $version, '<=')) {
+                if (!call_user_func($migration)) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Migrate to version 1.0.0
+     * 
+     * @return bool True on success
+     */
+    private function migrate_to_v1_0_0() {
+        // Create all tables from scratch or update existing ones
+        $this->create_tables();
+        return true;
+    }
+    
+    /**
+     * Verify table structure and integrity
+     * 
+     * @return array Verification result with 'valid' bool and 'errors' array
+     */
+    public function verify_table_structure() {
+        global $wpdb;
+        
+        $errors = array();
+        $tables_info = array(
+            $this->transactions_table => array(
+                'required_columns' => array('id', 'order_id', 'gateway_id', 'status', 'created_at'),
+                'required_indexes' => array('id', 'gateway_id', 'status'),
+            ),
+            $this->gateway_health_table => array(
+                'required_columns' => array('id', 'gateway_id', 'period', 'success_rate', 'calculated_at'),
+                'required_indexes' => array('id', 'gateway_id'),
+            ),
+            $this->alerts_table => array(
+                'required_columns' => array('id', 'alert_type', 'gateway_id', 'severity', 'created_at'),
+                'required_indexes' => array('id', 'gateway_id'),
+            ),
+        );
+        
+        foreach ($tables_info as $table => $info) {
+            // Check if table exists
+            $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
+            if (!$table_exists) {
+                $errors[] = "Table $table does not exist";
+                continue;
+            }
+            
+            // Check required columns
+            $columns = $wpdb->get_col("SHOW COLUMNS FROM {$table}");
+            foreach ($info['required_columns'] as $column) {
+                if (!in_array($column, $columns, true)) {
+                    $errors[] = "Missing column '$column' in table '$table'";
+                }
+            }
+            
+            // Check required indexes
+            $indexes = $wpdb->get_col("SHOW INDEX FROM {$table}");
+            foreach ($info['required_indexes'] as $index) {
+                if (!in_array($index, $indexes, true)) {
+                    $errors[] = "Missing index for column '$index' in table '$table'";
+                }
+            }
+        }
+        
+        return array(
+            'valid' => empty($errors),
+            'errors' => $errors,
+            'tables_checked' => count($tables_info),
+        );
+    }
+    
+    /**
+     * Get database statistics
+     * 
+     * @return array Statistics for all tables
+     */
+    public function get_database_stats() {
+        global $wpdb;
+        
+        $stats = array();
+        
+        // Transactions statistics
+        $trans_count = $wpdb->get_var("SELECT COUNT(*) FROM {$this->transactions_table}");
+        $stats['transactions'] = array(
+            'total_records' => intval($trans_count),
+            'table_size' => $wpdb->get_var("SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->transactions_table}'"),
+        );
+        
+        // Gateway health statistics
+        $health_count = $wpdb->get_var("SELECT COUNT(*) FROM {$this->gateway_health_table}");
+        $stats['gateway_health'] = array(
+            'total_records' => intval($health_count),
+            'table_size' => $wpdb->get_var("SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->gateway_health_table}'"),
+        );
+        
+        // Alerts statistics
+        $alerts_count = $wpdb->get_var("SELECT COUNT(*) FROM {$this->alerts_table}");
+        $stats['alerts'] = array(
+            'total_records' => intval($alerts_count),
+            'table_size' => $wpdb->get_var("SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->alerts_table}'"),
+        );
+        
+        return $stats;
+    }
+    
+    /**
+     * Clean up old transaction records
+     * 
+     * @param int $days Number of days to keep (default: 90)
+     * @return int Number of records deleted
+     */
+    public function cleanup_old_transactions($days = 90) {
+        global $wpdb;
+        
+        if ($days < 1 || $days > 365) {
+            return 0;
+        }
+        
+        $cutoff_date = date('Y-m-d H:i:s', strtotime("-$days days"));
+        
+        $deleted = $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$this->transactions_table} WHERE created_at < %s",
+                $cutoff_date
+            )
+        );
+        
+        return intval($deleted);
+    }
+    
+    /**
+     * Clean up old alert records
+     * 
+     * @param int $days Number of days to keep (default: 30)
+     * @return int Number of records deleted
+     */
+    public function cleanup_old_alerts($days = 30) {
+        global $wpdb;
+        
+        if ($days < 1 || $days > 365) {
+            return 0;
+        }
+        
+        $cutoff_date = date('Y-m-d H:i:s', strtotime("-$days days"));
+        
+        $deleted = $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$this->alerts_table} WHERE is_resolved = 1 AND resolved_at < %s",
+                $cutoff_date
+            )
+        );
+        
+        return intval($deleted);
+    }
+    
+    /**
+     * Optimize all database tables
+     * 
+     * @return array Optimization results
+     */
+    public function optimize_tables() {
+        global $wpdb;
+        
+        $tables = array(
+            $this->transactions_table,
+            $this->gateway_health_table,
+            $this->alerts_table,
+        );
+        
+        $results = array();
+        
+        foreach ($tables as $table) {
+            $result = $wpdb->query("OPTIMIZE TABLE {$table}");
+            $results[$table] = $result !== false;
+        }
+        
+        return $results;
+    }
+    
+    /**
+     * Get last database maintenance time
+     * 
+     * @return string Last maintenance timestamp or 'never'
+     */
+    public function get_last_maintenance() {
+        $time = get_option('payment_monitor_last_maintenance', false);
+        return $time ? date('Y-m-d H:i:s', intval($time)) : 'never';
+    }
+    
+    /**
+     * Record database maintenance
+     * 
+     * @return bool True on success
+     */
+    public function record_maintenance() {
+        return update_option('payment_monitor_last_maintenance', time());
+    }
 }

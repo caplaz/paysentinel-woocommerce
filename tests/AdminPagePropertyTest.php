@@ -362,4 +362,150 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
             $this->assertEquals('TEST_KEY_123', $partial['license_key'], 'license_key should be preserved');
         }
     }
+    
+    /**
+     * Property 25: Configuration Management
+     * Validates Requirements 8.1, 8.2, 8.4
+     * 
+     * Tests that configuration settings are properly validated and sanitized
+     */
+    public function test_configuration_management() {
+        // Test 1: Health check interval validation
+        for ($i = 0; $i < 50; $i++) {
+            $interval = mt_rand(1, 1440);
+            $result = WC_Payment_Monitor_Admin::validate_health_check_interval($interval);
+            $this->assertTrue($result['valid'], "Interval $interval should be valid");
+            $this->assertEquals($interval, $result['value'], "Validated interval should match input");
+        }
+        
+        // Test 2: Health check interval lower bound validation
+        $result = WC_Payment_Monitor_Admin::validate_health_check_interval(0);
+        $this->assertFalse($result['valid'], 'Interval 0 should be invalid');
+        $this->assertNotEmpty($result['message'], 'Should have error message');
+        
+        // Test 3: Health check interval upper bound validation
+        $result = WC_Payment_Monitor_Admin::validate_health_check_interval(1441);
+        $this->assertFalse($result['valid'], 'Interval > 1440 should be invalid');
+        
+        // Test 4: Alert threshold validation
+        for ($i = 0; $i < 50; $i++) {
+            $threshold = (mt_rand(1, 10000) / 100);
+            if ($threshold >= 0.1 && $threshold <= 100) {
+                $result = WC_Payment_Monitor_Admin::validate_alert_threshold($threshold);
+                $this->assertTrue($result['valid'], "Threshold $threshold should be valid");
+                $this->assertEquals($threshold, $result['value'], "Validated threshold should match input");
+            }
+        }
+        
+        // Test 5: Alert threshold boundary validation
+        $result = WC_Payment_Monitor_Admin::validate_alert_threshold(0.05);
+        $this->assertFalse($result['valid'], 'Threshold < 0.1 should be invalid');
+        
+        $result = WC_Payment_Monitor_Admin::validate_alert_threshold(100.5);
+        $this->assertFalse($result['valid'], 'Threshold > 100 should be invalid');
+        
+        // Test 6: Validate all settings together
+        $test_settings = array(
+            'enable_monitoring' => 1,
+            'health_check_interval' => 10,
+            'alert_threshold' => 25.5,
+            'retry_enabled' => 1,
+            'max_retry_attempts' => 3,
+            'license_key' => '',
+        );
+        
+        $result = WC_Payment_Monitor_Admin::validate_all_settings($test_settings);
+        $this->assertTrue($result['valid'], 'Valid settings should pass validation');
+        $this->assertEmpty($result['errors'], 'Valid settings should have no errors');
+        
+        // Test 7: Invalid settings should fail validation
+        $invalid_settings = array(
+            'health_check_interval' => -5,
+            'alert_threshold' => 150,
+            'max_retry_attempts' => 20,
+        );
+        
+        $result = WC_Payment_Monitor_Admin::validate_all_settings($invalid_settings);
+        $this->assertFalse($result['valid'], 'Invalid settings should fail validation');
+        $this->assertNotEmpty($result['errors'], 'Should have error messages');
+        $this->assertGreaterThan(0, count($result['errors']), 'Should have multiple errors');
+        
+        // Test 8: Mixed valid and invalid settings
+        $mixed_settings = array(
+            'enable_monitoring' => 1,
+            'health_check_interval' => 999,  // Valid
+            'alert_threshold' => 200,        // Invalid
+        );
+        
+        $result = WC_Payment_Monitor_Admin::validate_all_settings($mixed_settings);
+        $this->assertFalse($result['valid'], 'Mixed settings with errors should fail');
+        $this->assertArrayHasKey('health_check_interval', $result['validated_settings'], 'Valid settings should be included');
+    }
+    
+    /**
+     * Property 26: Retry Configuration Validation
+     * Validates Requirements 8.3
+     * 
+     * Tests that retry configuration is properly validated
+     */
+    public function test_retry_configuration_validation() {
+        // Test 1: Valid retry configurations
+        for ($i = 1; $i <= 10; $i++) {
+            $config = array('max_retry_attempts' => $i);
+            $result = WC_Payment_Monitor_Admin::validate_retry_configuration($config);
+            $this->assertTrue($result['valid'], "Config with $i attempts should be valid");
+            $this->assertEquals($i, $result['value']['max_retry_attempts'], 'Should return same config');
+        }
+        
+        // Test 2: Retry attempts lower bound validation
+        $config = array('max_retry_attempts' => 0);
+        $result = WC_Payment_Monitor_Admin::validate_retry_configuration($config);
+        $this->assertFalse($result['valid'], 'Zero retry attempts should be invalid');
+        $this->assertNotEmpty($result['message'], 'Should have error message');
+        
+        // Test 3: Retry attempts upper bound validation
+        $config = array('max_retry_attempts' => 11);
+        $result = WC_Payment_Monitor_Admin::validate_retry_configuration($config);
+        $this->assertFalse($result['valid'], 'More than 10 retry attempts should be invalid');
+        
+        // Test 4: Negative retry attempts validation
+        $config = array('max_retry_attempts' => -5);
+        $result = WC_Payment_Monitor_Admin::validate_retry_configuration($config);
+        $this->assertFalse($result['valid'], 'Negative retry attempts should be invalid');
+        
+        // Test 5: Non-array configuration should fail
+        $result = WC_Payment_Monitor_Admin::validate_retry_configuration('invalid');
+        $this->assertFalse($result['valid'], 'Non-array config should be invalid');
+        
+        // Test 6: Empty configuration should fail
+        $result = WC_Payment_Monitor_Admin::validate_retry_configuration(array());
+        $this->assertFalse($result['valid'], 'Empty config should be invalid');
+        
+        // Test 7: Large number validation
+        $config = array('max_retry_attempts' => 999);
+        $result = WC_Payment_Monitor_Admin::validate_retry_configuration($config);
+        $this->assertFalse($result['valid'], 'Very large retry attempts should be invalid');
+        
+        // Test 8: Type coercion test - numeric string should work
+        $config = array('max_retry_attempts' => '5');
+        $result = WC_Payment_Monitor_Admin::validate_retry_configuration($config);
+        $this->assertTrue($result['valid'], 'Numeric string should be accepted and coerced');
+        $this->assertEquals(5, $result['value']['max_retry_attempts'], 'Should coerce string to int');
+        
+        // Test 9: Error arrays in invalid configs
+        $invalid_config = array('max_retry_attempts' => 15);
+        $result = WC_Payment_Monitor_Admin::validate_retry_configuration($invalid_config);
+        $this->assertFalse($result['valid'], 'Invalid config should have errors');
+        $this->assertIsArray($result['errors'], 'Should return errors array');
+        $this->assertGreaterThan(0, count($result['errors']), 'Should have error messages');
+        
+        // Test 10: License tier check after validation
+        WC_Payment_Monitor_Admin::update_settings(array(
+            'max_retry_attempts' => 5,
+            'license_key' => '',
+        ));
+        
+        $tier = WC_Payment_Monitor_Admin::get_license_tier();
+        $this->assertEquals('free', $tier, 'Empty license key should be free tier');
+    }
 }
