@@ -25,9 +25,9 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				'args'                => array(
 					'period' => array(
 						'type'        => 'string',
-						'description' => 'Health calculation period (1hour, 24hour, 7day)',
-						'enum'        => array( '1hour', '24hour', '7day' ),
-						'default'     => '24hour',
+						'description' => 'Health calculation period (24h, 7d, 30d)',
+						'enum'        => array( '24h', '7d', '30d' ),
+						'default'     => '24h',
 					),
 				),
 			)
@@ -103,14 +103,22 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 	 * @return WP_REST_Response
 	 */
 	public function get_all_gateway_health( $request ) {
-		$period = $this->get_string_param( $request, 'period', '24hour' );
+		$period = $this->get_string_param( $request, 'period', '24h' );
+
+		// Map frontend period format (24h, 7d, 30d) to backend format (1hour, 24hour, 7day)
+		$period_map = array(
+			'24h' => '24hour',
+			'7d'  => '7day',
+			'30d' => '7day', // Use 7day for 30d as we calculate historical trends
+		);
+		$backend_period = isset( $period_map[ $period ] ) ? $period_map[ $period ] : '24hour';
 
 		// Validate period
 		$valid_periods = array( '1hour', '24hour', '7day' );
-		if ( ! in_array( $period, $valid_periods, true ) ) {
+		if ( ! in_array( $backend_period, $valid_periods, true ) ) {
 			return $this->get_error_response(
 				'invalid_period',
-				__( 'Invalid health period. Must be one of: 1hour, 24hour, 7day', 'wc-payment-monitor' ),
+				__( 'Invalid health period. Must be one of: 24h, 7d, 30d', 'wc-payment-monitor' ),
 				400
 			);
 		}
@@ -120,7 +128,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			$gateways = WC()->payment_gateways()->get_available_payment_gateways();
 
 			if ( empty( $gateways ) ) {
-				return new WP_REST_Response( array() );
+				return $this->get_success_response( array() );
 			}
 
 			$health_data = array();
@@ -129,24 +137,26 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				$gateway_id = $gateway->id;
 
 				// Get health metrics for this gateway
-				$health = $this->get_gateway_health_data( $gateway_id, $period );
+				$health = $this->get_gateway_health_data( $gateway_id, $backend_period );
 
 				if ( $health ) {
+					// Get historical trend data
+					$trend_data = $this->get_gateway_trend_data( $gateway_id, $period );
+
 					$health_data[] = array(
 						'gateway_id'              => $gateway_id,
 						'gateway_name'            => $gateway->title,
-						'period'                  => $period,
-						'success_rate'            => floatval( $health->success_rate ),
-						'total_transactions'      => intval( $health->total_transactions ),
-						'successful_transactions' => intval( $health->successful_transactions ),
-						'failed_transactions'     => intval( $health->failed_transactions ),
-						'avg_response_time'       => intval( $health->avg_response_time ),
-						'last_updated'            => $health->calculated_at,
+						'health_percentage'       => floatval( $health->success_rate ),
+						'success_rate_24h'        => floatval( $health->success_rate ),
+						'transaction_count'       => intval( $health->total_transactions ),
+						'failed_count_24h'        => intval( $health->failed_transactions ),
+						'last_checked'            => $health->calculated_at,
+						'trend_data'              => $trend_data,
 					);
 				}
 			}
 
-			return new WP_REST_Response( $health_data );
+			return $this->get_success_response( $health_data );
 		} catch ( Exception $e ) {
 			return $this->get_error_response(
 				'health_retrieval_failed',
@@ -369,5 +379,84 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 		);
 
 		return $result;
+	}
+
+	/**
+	 * Get gateway health trend data for historical visualization
+	 *
+	 * @param string $gateway_id Payment gateway ID
+	 * @param string $period Time period (24h, 7d, 30d)
+	 * @return array Array of trend data points with timestamp and health score
+	 */
+	private function get_gateway_trend_data( $gateway_id, $period ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'payment_monitor_gateway_health';
+
+		// Check if table exists
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
+			return array();
+		}
+
+		// Determine date range and aggregation based on period
+		$end_date   = current_time( 'mysql' );
+		$data_limit = 24; // Default to 24 points
+		$date_format = '%Y-%m-%d %H:00:00'; // Hourly grouping
+
+		switch ( $period ) {
+			case '24h':
+				$start_date = date_create( current_time( 'mysql' ) )->modify( '-24 hours' )->format( 'Y-m-d H:i:s' );
+				$data_limit = 24;
+				$date_format = '%Y-%m-%d %H:00:00';
+				break;
+			case '7d':
+				$start_date = date_create( current_time( 'mysql' ) )->modify( '-7 days' )->format( 'Y-m-d H:i:s' );
+				$data_limit = 7;
+				$date_format = '%Y-%m-%d 00:00:00';
+				break;
+			case '30d':
+				$start_date = date_create( current_time( 'mysql' ) )->modify( '-30 days' )->format( 'Y-m-d H:i:s' );
+				$data_limit = 30;
+				$date_format = '%Y-%m-%d 00:00:00';
+				break;
+			default:
+				$start_date = date_create( current_time( 'mysql' ) )->modify( '-24 hours' )->format( 'Y-m-d H:i:s' );
+		}
+
+		// Get aggregated health data for the period
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT 
+                    DATE_FORMAT(calculated_at, %s) as timestamp,
+                    AVG(success_rate) as avg_health_score
+                 FROM $table_name 
+                 WHERE gateway_id = %s 
+                 AND calculated_at >= %s 
+                 AND calculated_at <= %s
+                 GROUP BY DATE_FORMAT(calculated_at, %s)
+                 ORDER BY calculated_at ASC
+                 LIMIT %d",
+				$date_format,
+				$gateway_id,
+				$start_date,
+				$end_date,
+				$date_format,
+				$data_limit
+			)
+		);
+
+		if ( ! $results ) {
+			return array();
+		}
+
+		// Format results for frontend
+		return array_map(
+			function ( $row ) {
+				return array(
+					'timestamp'   => $row->timestamp,
+					'health_score' => floatval( $row->avg_health_score ),
+				);
+			},
+			$results
+		);
 	}
 }

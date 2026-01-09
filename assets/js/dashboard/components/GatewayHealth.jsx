@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from "react";
  * Gateway Health Component
  *
  * Displays real-time health metrics for all payment gateways
- * including success rates, transaction counts, and status indicators
+ * including success rates, transaction counts, status indicators,
+ * and historical trend charts
  */
 function GatewayHealthComponent({
   refreshInterval,
@@ -14,6 +15,8 @@ function GatewayHealthComponent({
   const [gateways, setGateways] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [timePeriod, setTimePeriod] = useState("24h");
+  const [expandedGateway, setExpandedGateway] = useState(null);
 
   /**
    * Fetch gateway health data from REST API
@@ -25,7 +28,7 @@ function GatewayHealthComponent({
 
     try {
       const response = await fetch(
-        "/wp-json/wc-payment-monitor/v1/health/gateways",
+        `/wp-json/wc-payment-monitor/v1/health/gateways?period=${timePeriod}`,
         {
           method: "GET",
           headers: {
@@ -53,7 +56,7 @@ function GatewayHealthComponent({
       setIsLoading(false);
       onLoadingChange(false);
     }
-  }, [onLoadingChange]);
+  }, [onLoadingChange, timePeriod]);
 
   /**
    * Auto-refresh effect
@@ -90,9 +93,43 @@ function GatewayHealthComponent({
     return "Critical";
   };
 
+  /**
+   * Get time period label
+   */
+  const getTimePeriodLabel = () => {
+    const periods = {
+      "24h": "Last 24 Hours",
+      "7d": "Last 7 Days",
+      "30d": "Last 30 Days",
+    };
+    return periods[timePeriod] || "Last 24 Hours";
+  };
+
   return (
     <div className='gateway-health-component'>
-      <h2>Gateway Health Status</h2>
+      <div className='section-header'>
+        <div>
+          <h2>Gateway Health Status</h2>
+          <p className='section-subtitle'>
+            Real-time health metrics for all payment gateways
+          </p>
+        </div>
+        <div className='time-period-selector'>
+          <label htmlFor='time-period'>View:</label>
+          <select
+            id='time-period'
+            value={timePeriod}
+            onChange={(e) => setTimePeriod(e.target.value)}>
+            <option value='24h'>Last 24 Hours</option>
+            <option value='7d'>Last 7 Days</option>
+            <option value='30d'>Last 30 Days</option>
+          </select>
+        </div>
+      </div>
+
+      <div className='trend-info'>
+        <small>Showing {getTimePeriodLabel()}</small>
+      </div>
 
       {error && <div className='error-message'>{error}</div>}
 
@@ -107,67 +144,147 @@ function GatewayHealthComponent({
       )}
 
       <div className='gateways-grid'>
-        {gateways.map((gateway) => (
-          <div key={gateway.gateway_id} className='gateway-card'>
-            <div className='gateway-header'>
-              <h3>{gateway.gateway_name || gateway.gateway_id}</h3>
-              <span
-                className={`status-badge ${getStatusClass(
-                  gateway.health_percentage
-                )}`}>
-                {getStatusText(gateway.health_percentage)}
-              </span>
-            </div>
+        {gateways.map((gateway) => {
+          const isExpanded = expandedGateway === gateway.gateway_id;
+          const trendData = gateway.trend_data || [];
 
-            <div className='gateway-stats'>
-              <div className='stat'>
-                <span className='stat-label'>Health Score</span>
-                <span className='stat-value'>
-                  {gateway.health_percentage.toFixed(1)}%
-                </span>
-              </div>
-
-              <div className='stat'>
-                <span className='stat-label'>Success Rate (24h)</span>
-                <span className='stat-value'>
-                  {gateway.success_rate_24h.toFixed(1)}%
-                </span>
-              </div>
-
-              <div className='stat'>
-                <span className='stat-label'>Total Transactions</span>
-                <span className='stat-value'>{gateway.transaction_count}</span>
-              </div>
-
-              <div className='stat'>
-                <span className='stat-label'>Failed (24h)</span>
-                <span className='stat-value error'>
-                  {gateway.failed_count_24h}
-                </span>
-              </div>
-            </div>
-
-            <div className='gateway-chart'>
-              <div className='progress-bar'>
-                <div
-                  className={`progress-fill ${getStatusClass(
+          return (
+            <div
+              key={gateway.gateway_id}
+              className={`gateway-card ${isExpanded ? "expanded" : ""}`}>
+              <div className='gateway-header'>
+                <h3>{gateway.gateway_name || gateway.gateway_id}</h3>
+                <span
+                  className={`status-badge ${getStatusClass(
                     gateway.health_percentage
-                  )}`}
-                  style={{ width: `${gateway.health_percentage}%` }}
-                />
+                  )}`}>
+                  {getStatusText(gateway.health_percentage)}
+                </span>
               </div>
-            </div>
 
-            {gateway.last_checked && (
-              <div className='gateway-footer'>
-                <small>
-                  Last checked:{" "}
-                  {new Date(gateway.last_checked).toLocaleTimeString()}
-                </small>
+              <div className='gateway-stats'>
+                <div className='stat'>
+                  <span className='stat-label'>Health Score</span>
+                  <span className='stat-value'>
+                    {gateway.health_percentage.toFixed(1)}%
+                  </span>
+                </div>
+
+                <div className='stat'>
+                  <span className='stat-label'>Success Rate (24h)</span>
+                  <span className='stat-value'>
+                    {gateway.success_rate_24h.toFixed(1)}%
+                  </span>
+                </div>
+
+                <div className='stat'>
+                  <span className='stat-label'>Total Transactions</span>
+                  <span className='stat-value'>
+                    {gateway.transaction_count}
+                  </span>
+                </div>
+
+                <div className='stat'>
+                  <span className='stat-label'>Failed (24h)</span>
+                  <span className='stat-value error'>
+                    {gateway.failed_count_24h}
+                  </span>
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+
+              <div className='gateway-chart'>
+                <div className='progress-bar'>
+                  <div
+                    className={`progress-fill ${getStatusClass(
+                      gateway.health_percentage
+                    )}`}
+                    style={{ width: `${gateway.health_percentage}%` }}
+                  />
+                </div>
+              </div>
+
+              {trendData.length > 0 && (
+                <div className='trend-section'>
+                  <button
+                    className='expand-trend-btn'
+                    onClick={() =>
+                      setExpandedGateway(isExpanded ? null : gateway.gateway_id)
+                    }>
+                    {isExpanded ? "Hide" : "Show"} Historical Trend
+                  </button>
+
+                  {isExpanded && (
+                    <div className='trend-chart'>
+                      <div className='trend-header'>
+                        Historical Trend - {getTimePeriodLabel()}
+                      </div>
+                      <div className='sparkline-container'>
+                        <div className='sparkline'>
+                          {trendData.map((point, idx) => (
+                            <div
+                              key={idx}
+                              className='sparkline-bar'
+                              style={{
+                                height: `${Math.max(20, point.health_score)}%`,
+                                opacity: 0.6 + (idx / trendData.length) * 0.4,
+                              }}
+                              title={`${point.health_score.toFixed(
+                                1
+                              )}% - ${new Date(
+                                point.timestamp
+                              ).toLocaleString()}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className='trend-stats'>
+                        <div className='trend-stat'>
+                          <span>
+                            Highest:{" "}
+                            {Math.max(
+                              ...trendData.map((p) => p.health_score)
+                            ).toFixed(1)}
+                            %
+                          </span>
+                        </div>
+                        <div className='trend-stat'>
+                          <span>
+                            Average:{" "}
+                            {(
+                              trendData.reduce(
+                                (sum, p) => sum + p.health_score,
+                                0
+                              ) / trendData.length
+                            ).toFixed(1)}
+                            %
+                          </span>
+                        </div>
+                        <div className='trend-stat'>
+                          <span>
+                            Lowest:{" "}
+                            {Math.min(
+                              ...trendData.map((p) => p.health_score)
+                            ).toFixed(1)}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {gateway.last_checked && (
+                <div className='gateway-footer'>
+                  <small>
+                    Last checked:{" "}
+                    {new Date(gateway.last_checked).toLocaleTimeString()}
+                  </small>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

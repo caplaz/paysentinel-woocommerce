@@ -8,7 +8,7 @@
 (function (wp, React, ReactDOM) {
   "use strict";
 
-  const { useState, useEffect } = React;
+  const { useState, useEffect, useCallback } = React;
   const { apiFetch } = wp;
 
   /**
@@ -335,5 +335,403 @@
       const root = ReactDOM.createRoot(container);
       root.render(React.createElement(Dashboard));
     }
+
+    // Mount GatewayHealth component if on health page
+    const healthContainer = document.getElementById(
+      "wc-payment-monitor-health-container"
+    );
+    if (healthContainer && React && ReactDOM) {
+      const root = ReactDOM.createRoot(healthContainer);
+      root.render(React.createElement(GatewayHealth));
+    }
   });
+
+  /**
+   * Gateway Health Component
+   * Displays real-time health metrics for all payment gateways with historical trends
+   */
+  function GatewayHealth() {
+    const [gateways, setGateways] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [timePeriod, setTimePeriod] = useState("24h");
+    const [expandedGateway, setExpandedGateway] = useState(null);
+
+    // Fetch gateway health data
+    const fetchGatewayHealth = useCallback(async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const nonce = window.wcPaymentMonitor?.nonce || "";
+        const headers = {
+          "Content-Type": "application/json",
+        };
+
+        if (nonce) {
+          headers["X-WP-Nonce"] = nonce;
+        }
+
+        console.log("Fetching gateway health with period:", timePeriod);
+
+        const response = await fetch(
+          `/wp-json/wc-payment-monitor/v1/health/gateways?period=${timePeriod}`,
+          {
+            method: "GET",
+            headers,
+            credentials: "same-origin",
+          }
+        );
+
+        console.log("Response status:", response.status, response.statusText);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Response error body:", errorText);
+          throw new Error(
+            `HTTP error! status: ${response.status} - ${errorText}`
+          );
+        }
+
+        const data = await response.json();
+        console.log("Gateway health data:", data);
+
+        if (data.success && data.data) {
+          setGateways(data.data);
+        } else if (data.success && Array.isArray(data.data)) {
+          // Handle empty array response
+          setGateways(data.data);
+        } else {
+          setError(data.message || "Failed to fetch gateway health");
+        }
+      } catch (err) {
+        setError(err.message || "Failed to fetch gateway health");
+        console.error("Gateway health fetch error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }, [timePeriod]);
+
+    // Auto-refresh effect
+    useEffect(() => {
+      fetchGatewayHealth();
+
+      const intervalId = setInterval(() => {
+        fetchGatewayHealth();
+      }, 30000); // Refresh every 30 seconds
+
+      return () => clearInterval(intervalId);
+    }, [fetchGatewayHealth]);
+
+    // Get status class based on health percentage
+    const getStatusClass = (health) => {
+      if (health >= 95) return "status-excellent";
+      if (health >= 90) return "status-good";
+      if (health >= 75) return "status-warning";
+      return "status-critical";
+    };
+
+    // Get status text
+    const getStatusText = (health) => {
+      if (health >= 95) return "Excellent";
+      if (health >= 90) return "Good";
+      if (health >= 75) return "Warning";
+      return "Critical";
+    };
+
+    // Get time period label
+    const getTimePeriodLabel = () => {
+      const periods = {
+        "24h": "Last 24 Hours",
+        "7d": "Last 7 Days",
+        "30d": "Last 30 Days",
+      };
+      return periods[timePeriod] || "Last 24 Hours";
+    };
+
+    return React.createElement(
+      "div",
+      { className: "gateway-health-component" },
+
+      // Header with time period selector
+      React.createElement(
+        "div",
+        { className: "section-header" },
+        React.createElement(
+          "div",
+          null,
+          React.createElement("h2", null, "Gateway Health Status"),
+          React.createElement(
+            "p",
+            { className: "section-subtitle" },
+            "Real-time health metrics for all payment gateways"
+          )
+        ),
+        React.createElement(
+          "div",
+          { className: "time-period-selector" },
+          React.createElement("label", { htmlFor: "time-period" }, "View:"),
+          React.createElement(
+            "select",
+            {
+              id: "time-period",
+              value: timePeriod,
+              onChange: (e) => setTimePeriod(e.target.value),
+            },
+            React.createElement("option", { value: "24h" }, "Last 24 Hours"),
+            React.createElement("option", { value: "7d" }, "Last 7 Days"),
+            React.createElement("option", { value: "30d" }, "Last 30 Days")
+          )
+        )
+      ),
+
+      // Trend info
+      React.createElement(
+        "div",
+        { className: "trend-info" },
+        React.createElement("small", null, "Showing " + getTimePeriodLabel())
+      ),
+
+      // Error message
+      error
+        ? React.createElement("div", { className: "error-message" }, error)
+        : null,
+
+      // Loading state
+      isLoading && gateways.length === 0
+        ? React.createElement(
+            "div",
+            { className: "loading-state" },
+            "Loading gateway health data..."
+          )
+        : null,
+
+      // Empty state
+      gateways.length === 0 && !isLoading && !error
+        ? React.createElement(
+            "div",
+            { className: "empty-state" },
+            "No gateway data available yet. Please check back soon."
+          )
+        : null,
+
+      // Gateways grid
+      React.createElement(
+        "div",
+        { className: "gateways-grid" },
+        gateways.map((gateway) => {
+          const isExpanded = expandedGateway === gateway.gateway_id;
+          const trendData = gateway.trend_data || [];
+
+          return React.createElement(
+            "div",
+            {
+              key: gateway.gateway_id,
+              className: "gateway-card " + (isExpanded ? "expanded" : ""),
+            },
+
+            // Gateway header with status
+            React.createElement(
+              "div",
+              { className: "gateway-header" },
+              React.createElement(
+                "h3",
+                null,
+                gateway.gateway_name || gateway.gateway_id
+              ),
+              React.createElement(
+                "span",
+                {
+                  className:
+                    "status-badge " + getStatusClass(gateway.health_percentage),
+                },
+                getStatusText(gateway.health_percentage)
+              )
+            ),
+
+            // Gateway stats
+            React.createElement(
+              "div",
+              { className: "gateway-stats" },
+              React.createElement(
+                "div",
+                { className: "stat" },
+                React.createElement(
+                  "span",
+                  { className: "stat-label" },
+                  "Health Score"
+                ),
+                React.createElement(
+                  "span",
+                  { className: "stat-value" },
+                  gateway.health_percentage.toFixed(1) + "%"
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "stat" },
+                React.createElement(
+                  "span",
+                  { className: "stat-label" },
+                  "Success Rate (24h)"
+                ),
+                React.createElement(
+                  "span",
+                  { className: "stat-value" },
+                  gateway.success_rate_24h.toFixed(1) + "%"
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "stat" },
+                React.createElement(
+                  "span",
+                  { className: "stat-label" },
+                  "Total Transactions"
+                ),
+                React.createElement(
+                  "span",
+                  { className: "stat-value" },
+                  gateway.transaction_count
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "stat" },
+                React.createElement(
+                  "span",
+                  { className: "stat-label" },
+                  "Failed (24h)"
+                ),
+                React.createElement(
+                  "span",
+                  { className: "stat-value error" },
+                  gateway.failed_count_24h
+                )
+              )
+            ),
+
+            // Progress bar
+            React.createElement(
+              "div",
+              { className: "gateway-chart" },
+              React.createElement(
+                "div",
+                { className: "progress-bar" },
+                React.createElement("div", {
+                  className:
+                    "progress-fill " +
+                    getStatusClass(gateway.health_percentage),
+                  style: {
+                    width: gateway.health_percentage + "%",
+                  },
+                })
+              )
+            ),
+
+            // Trend section (if data available)
+            trendData.length > 0
+              ? React.createElement(
+                  "div",
+                  { className: "trend-section" },
+                  React.createElement(
+                    "button",
+                    {
+                      className: "expand-trend-btn",
+                      onClick: () =>
+                        setExpandedGateway(
+                          isExpanded ? null : gateway.gateway_id
+                        ),
+                    },
+                    (isExpanded ? "Hide" : "Show") + " Historical Trend"
+                  ),
+
+                  // Expanded trend chart
+                  isExpanded
+                    ? React.createElement(
+                        "div",
+                        { className: "trend-chart" },
+                        React.createElement(
+                          "div",
+                          { className: "trend-header" },
+                          "Historical Trend - " + getTimePeriodLabel()
+                        ),
+                        React.createElement(
+                          "div",
+                          { className: "sparkline-container" },
+                          React.createElement(
+                            "div",
+                            { className: "sparkline" },
+                            trendData.map((point, idx) =>
+                              React.createElement("div", {
+                                key: idx,
+                                className: "sparkline-bar",
+                                style: {
+                                  height:
+                                    Math.max(20, point.health_score) + "%",
+                                  opacity: 0.6 + (idx / trendData.length) * 0.4,
+                                },
+                                title:
+                                  point.health_score.toFixed(1) +
+                                  "% - " +
+                                  new Date(point.timestamp).toLocaleString(),
+                              })
+                            )
+                          )
+                        ),
+                        React.createElement(
+                          "div",
+                          { className: "trend-stats" },
+                          React.createElement(
+                            "div",
+                            { className: "trend-stat" },
+                            React.createElement(
+                              "span",
+                              null,
+                              "Highest: " +
+                                Math.max(
+                                  ...trendData.map((p) => p.health_score)
+                                ).toFixed(1) +
+                                "%"
+                            )
+                          ),
+                          React.createElement(
+                            "div",
+                            { className: "trend-stat" },
+                            React.createElement(
+                              "span",
+                              null,
+                              "Average: " +
+                                (
+                                  trendData.reduce(
+                                    (a, p) => a + p.health_score,
+                                    0
+                                  ) / trendData.length
+                                ).toFixed(1) +
+                                "%"
+                            )
+                          ),
+                          React.createElement(
+                            "div",
+                            { className: "trend-stat" },
+                            React.createElement(
+                              "span",
+                              null,
+                              "Lowest: " +
+                                Math.min(
+                                  ...trendData.map((p) => p.health_score)
+                                ).toFixed(1) +
+                                "%"
+                            )
+                          )
+                        )
+                      )
+                    : null
+                )
+              : null
+          );
+        })
+      )
+    );
+  }
 })(window.wp, window.React, window.ReactDOM);
