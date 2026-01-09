@@ -117,6 +117,36 @@ if (!function_exists('wp_parse_args')) {
     }
 }
 
+if (!function_exists('add_action')) {
+    function add_action($tag, $function_to_add, $priority = 10, $accepted_args = 1) {
+        global $wp_actions;
+        if (!isset($wp_actions)) {
+            $wp_actions = array();
+        }
+        if (!isset($wp_actions[$tag])) {
+            $wp_actions[$tag] = array();
+        }
+        $wp_actions[$tag][] = array(
+            'function' => $function_to_add,
+            'priority' => $priority,
+            'accepted_args' => $accepted_args,
+        );
+        return true;
+    }
+}
+
+if (!function_exists('register_rest_route')) {
+    function register_rest_route($namespace, $route, $args = array()) {
+        global $wp_rest_routes;
+        if (!isset($wp_rest_routes)) {
+            $wp_rest_routes = array();
+        }
+        $key = $namespace . $route;
+        $wp_rest_routes[$key] = $args;
+        return true;
+    }
+}
+
 // Load test base class and all plugin classes
 require_once __DIR__ . '/includes/class-wc-payment-monitor-test-case.php';
 require_once dirname(__DIR__) . '/includes/class-wc-payment-monitor-database.php';
