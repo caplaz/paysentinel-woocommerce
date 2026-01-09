@@ -344,6 +344,15 @@
       const root = ReactDOM.createRoot(healthContainer);
       root.render(React.createElement(GatewayHealth));
     }
+
+    // Mount Transactions component if on transactions page
+    const transactionsContainer = document.getElementById(
+      "wc-payment-monitor-transactions-container"
+    );
+    if (transactionsContainer && React && ReactDOM) {
+      const root = ReactDOM.createRoot(transactionsContainer);
+      root.render(React.createElement(Transactions));
+    }
   });
 
   /**
@@ -732,6 +741,248 @@
           );
         })
       )
+    );
+  }
+
+  /**
+   * Transactions Component
+   * Displays transaction log with filtering and pagination
+   */
+  function Transactions() {
+    const [transactions, setTransactions] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(20);
+    const [totalCount, setTotalCount] = useState(0);
+    const [statusFilter, setStatusFilter] = useState("");
+
+    // Fetch transactions
+    const fetchTransactions = useCallback(async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const nonce = window.wcPaymentMonitor?.nonce || "";
+        const headers = {
+          "Content-Type": "application/json",
+        };
+
+        if (nonce) {
+          headers["X-WP-Nonce"] = nonce;
+        }
+
+        let url = `/wp-json/wc-payment-monitor/v1/transactions?page=${page}&per_page=${perPage}`;
+
+        if (statusFilter) {
+          url += `&status=${statusFilter}`;
+        }
+
+        console.log("Fetching transactions from:", url);
+
+        const response = await fetch(url, {
+          method: "GET",
+          headers,
+          credentials: "same-origin",
+        });
+
+        console.log("Transactions response status:", response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Response error body:", errorText);
+          throw new Error(
+            `HTTP error! status: ${response.status} - ${errorText}`
+          );
+        }
+
+        const data = await response.json();
+        console.log("Transactions data:", data);
+
+        if (data.items && Array.isArray(data.items)) {
+          setTransactions(data.items);
+          setTotalCount(data.pagination?.total || 0);
+        } else if (data.success && data.data) {
+          setTransactions(data.data);
+          setTotalCount(data.total || 0);
+        } else {
+          setError(data.message || "Failed to fetch transactions");
+        }
+      } catch (err) {
+        setError(err.message || "Failed to fetch transactions");
+        console.error("Transaction fetch error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }, [page, perPage, statusFilter]);
+
+    // Auto-refresh effect
+    useEffect(() => {
+      fetchTransactions();
+
+      const intervalId = setInterval(() => {
+        fetchTransactions();
+      }, 30000); // Refresh every 30 seconds
+
+      return () => clearInterval(intervalId);
+    }, [fetchTransactions]);
+
+    const totalPages = Math.ceil(totalCount / perPage);
+
+    return React.createElement(
+      "div",
+      { className: "transactions-component" },
+
+      // Header and filters
+      React.createElement(
+        "div",
+        { className: "section-header" },
+        React.createElement(
+          "div",
+          null,
+          React.createElement("h2", null, "Transaction Log"),
+          React.createElement(
+            "p",
+            { className: "section-subtitle" },
+            "View all monitored payment transactions"
+          )
+        ),
+        React.createElement(
+          "div",
+          { className: "filters" },
+          React.createElement(
+            "select",
+            {
+              value: statusFilter,
+              onChange: (e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              },
+            },
+            React.createElement("option", { value: "" }, "All Statuses"),
+            React.createElement("option", { value: "success" }, "Success"),
+            React.createElement("option", { value: "failed" }, "Failed"),
+            React.createElement("option", { value: "pending" }, "Pending"),
+            React.createElement("option", { value: "retry" }, "Retry")
+          )
+        )
+      ),
+
+      // Error message
+      error
+        ? React.createElement("div", { className: "error-message" }, error)
+        : null,
+
+      // Loading state
+      isLoading && transactions.length === 0
+        ? React.createElement(
+            "div",
+            { className: "loading-state" },
+            "Loading transactions..."
+          )
+        : null,
+
+      // Empty state
+      transactions.length === 0 && !isLoading && !error
+        ? React.createElement(
+            "div",
+            { className: "empty-state" },
+            "No transactions found."
+          )
+        : null,
+
+      // Transactions table
+      transactions.length > 0
+        ? React.createElement(
+            "div",
+            { className: "transactions-table-container" },
+            React.createElement(
+              "table",
+              { className: "wp-list-table widefat fixed striped" },
+              React.createElement(
+                "thead",
+                null,
+                React.createElement(
+                  "tr",
+                  null,
+                  React.createElement("th", null, "ID"),
+                  React.createElement("th", null, "Order"),
+                  React.createElement("th", null, "Gateway"),
+                  React.createElement("th", null, "Amount"),
+                  React.createElement("th", null, "Status"),
+                  React.createElement("th", null, "Date")
+                )
+              ),
+              React.createElement(
+                "tbody",
+                null,
+                transactions.map((tx) =>
+                  React.createElement(
+                    "tr",
+                    { key: tx.id },
+                    React.createElement("td", null, tx.id),
+                    React.createElement("td", null, tx.order_id || "N/A"),
+                    React.createElement("td", null, tx.gateway_id),
+                    React.createElement(
+                      "td",
+                      null,
+                      tx.currency
+                        ? tx.currency + " " + parseFloat(tx.amount).toFixed(2)
+                        : "$" + parseFloat(tx.amount || 0).toFixed(2)
+                    ),
+                    React.createElement(
+                      "td",
+                      null,
+                      React.createElement(
+                        "span",
+                        {
+                          className: "status-badge status-" + (tx.status || ""),
+                        },
+                        tx.status || "unknown"
+                      )
+                    ),
+                    React.createElement(
+                      "td",
+                      null,
+                      tx.created_at
+                        ? new Date(tx.created_at).toLocaleString()
+                        : "N/A"
+                    )
+                  )
+                )
+              )
+            )
+          )
+        : null,
+
+      // Pagination
+      transactions.length > 0 && totalPages > 1
+        ? React.createElement(
+            "div",
+            { className: "pagination" },
+            React.createElement(
+              "button",
+              {
+                disabled: page <= 1,
+                onClick: () => setPage(page - 1),
+              },
+              "Previous"
+            ),
+            React.createElement(
+              "span",
+              { className: "page-info" },
+              "Page " + page + " of " + totalPages
+            ),
+            React.createElement(
+              "button",
+              {
+                disabled: page >= totalPages,
+                onClick: () => setPage(page + 1),
+              },
+              "Next"
+            )
+          )
+        : null
     );
   }
 })(window.wp, window.React, window.ReactDOM);
