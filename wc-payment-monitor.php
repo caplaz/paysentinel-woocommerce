@@ -87,6 +87,9 @@ class WC_Payment_Monitor {
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-base.php';
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-health.php';
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-transactions.php';
+        
+        // Load admin classes
+        require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-admin.php';
     }
     
     /**
@@ -142,6 +145,11 @@ class WC_Payment_Monitor {
         // Initialize REST API endpoints
         new WC_Payment_Monitor_API_Health();
         new WC_Payment_Monitor_API_Transactions();
+        
+        // Initialize admin pages
+        if (is_admin()) {
+            new WC_Payment_Monitor_Admin();
+        }
     }
     
     /**

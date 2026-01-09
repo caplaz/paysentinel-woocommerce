@@ -54,3 +54,4 @@ require_once dirname(__DIR__) . '/includes/class-wc-payment-monitor-security.php
 require_once dirname(__DIR__) . '/includes/class-wc-payment-monitor-api-base.php';
 require_once dirname(__DIR__) . '/includes/class-wc-payment-monitor-api-health.php';
 require_once dirname(__DIR__) . '/includes/class-wc-payment-monitor-api-transactions.php';
+require_once dirname(__DIR__) . '/includes/class-wc-payment-monitor-admin.php';
