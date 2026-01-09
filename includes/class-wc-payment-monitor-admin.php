@@ -35,6 +35,58 @@ class WC_Payment_Monitor_Admin {
     private function init_hooks() {
         add_action('admin_menu', array($this, 'register_menu_pages'));
         add_action('admin_init', array($this, 'register_settings'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+    }
+    
+    /**
+     * Enqueue admin scripts and styles
+     */
+    public function enqueue_admin_scripts($hook) {
+        // Only load on our plugin pages
+        if (strpos($hook, 'wc-payment-monitor') === false) {
+            return;
+        }
+        
+        // Enqueue WordPress REST API dependencies
+        wp_enqueue_script('wp-api-fetch');
+        wp_enqueue_script('wp-element');
+        wp_enqueue_script('wp-components');
+        wp_enqueue_script('wp-i18n');
+        
+        // Enqueue our dashboard script
+        wp_enqueue_script(
+            'wc-payment-monitor-dashboard',
+            WC_PAYMENT_MONITOR_PLUGIN_URL . 'assets/js/dashboard/index.js',
+            array('wp-api-fetch', 'wp-element'),
+            WC_PAYMENT_MONITOR_VERSION,
+            true
+        );
+        
+        // Enqueue our dashboard styles
+        wp_enqueue_style(
+            'wc-payment-monitor-dashboard',
+            WC_PAYMENT_MONITOR_PLUGIN_URL . 'assets/js/dashboard/index.css',
+            array(),
+            WC_PAYMENT_MONITOR_VERSION
+        );
+        
+        // Use wp_set_script_translations for REST API nonce
+        wp_set_script_translations(
+            'wc-payment-monitor-dashboard',
+            'wc-payment-monitor'
+        );
+        
+        // Localize script with API data
+        wp_localize_script(
+            'wc-payment-monitor-dashboard',
+            'wcPaymentMonitor',
+            array(
+                'apiUrl' => rest_url('wc-payment-monitor/v1/'),
+                'nonce' => wp_create_nonce('wp_rest'),
+                'currentUser' => get_current_user_id(),
+                'restNonce' => sanitize_text_field( wp_create_nonce( 'wp_rest' ) ),
+            )
+        );
     }
     
     /**

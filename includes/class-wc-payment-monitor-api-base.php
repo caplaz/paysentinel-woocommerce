@@ -47,24 +47,9 @@ abstract class WC_Payment_Monitor_API_Base {
      * @return bool|WP_Error
      */
     public function check_permission($request) {
-        // Check if user is logged in and has manage_woocommerce capability
-        if (!is_user_logged_in()) {
-            return new WP_Error(
-                'rest_authentication_required',
-                __('Authentication required', 'wc-payment-monitor'),
-                array('status' => 401)
-            );
-        }
-        
-        if (!current_user_can('manage_woocommerce')) {
-            return new WP_Error(
-                'rest_forbidden',
-                __('You do not have permission to access this resource', 'wc-payment-monitor'),
-                array('status' => 403)
-            );
-        }
-        
-        return true;
+        // Allow access if user is logged in with manage_woocommerce capability
+        // REST API automatically validates the request and sets up user context
+        return current_user_can('manage_woocommerce');
     }
     
     /**
@@ -150,8 +135,7 @@ abstract class WC_Payment_Monitor_API_Base {
         
         return new WP_REST_Response(
             array(
-                'success' => true,
-                'data' => $items,
+                'items' => $items,
                 'pagination' => array(
                     'page' => $page,
                     'per_page' => $per_page,

@@ -89,7 +89,17 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
     public function get_transactions($request) {
         try {
             global $wpdb;
-            $table_name = $wpdb->prefix . 'wc_payment_monitor_transactions';
+            $table_name = $wpdb->prefix . 'payment_monitor_transactions';
+            
+            // Check if table exists
+            if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) !== $table_name) {
+                return $this->get_paginated_response(
+                    array(),
+                    0,
+                    1,
+                    20
+                );
+            }
             
             // Get filter parameters
             $gateway_id = $this->get_string_param($request, 'gateway_id');
@@ -150,11 +160,11 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
             // Get paginated results
             $offset = $this->calculate_offset($pagination['page'], $pagination['per_page']);
             
-            $query = "SELECT id, order_id, gateway_id, status, amount, currency, error_message, 
-                             timestamp, response_data
+            $query = "SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code,
+                             created_at as timestamp
                       FROM $table_name 
                       WHERE $where_clause
-                      ORDER BY timestamp DESC
+                      ORDER BY created_at DESC
                       LIMIT %d OFFSET %d";
             
             $where_params[] = $pagination['per_page'];
@@ -175,9 +185,9 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
                     'status' => $row->status,
                     'amount' => floatval($row->amount),
                     'currency' => $row->currency,
-                    'error_message' => $row->error_message,
+                    'failure_reason' => $row->failure_reason,
+                    'failure_code' => $row->failure_code,
                     'timestamp' => $row->timestamp,
-                    'response_data' => !empty($row->response_data) ? json_decode($row->response_data, true) : null,
                 );
             }, $results);
             
@@ -215,11 +225,20 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
             }
             
             global $wpdb;
-            $table_name = $wpdb->prefix . 'wc_payment_monitor_transactions';
+            $table_name = $wpdb->prefix . 'payment_monitor_transactions';
+            
+            // Check if table exists
+            if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) !== $table_name) {
+                return $this->get_error_response(
+                    'transaction_not_found',
+                    __('Transaction not found', 'wc-payment-monitor'),
+                    404
+                );
+            }
             
             $result = $wpdb->get_row($wpdb->prepare(
-                "SELECT id, order_id, gateway_id, status, amount, currency, error_message,
-                        timestamp, response_data
+                "SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code,
+                        created_at as timestamp
                  FROM $table_name 
                  WHERE id = %d",
                 $transaction_id
@@ -243,9 +262,9 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
                 'status' => $result->status,
                 'amount' => floatval($result->amount),
                 'currency' => $result->currency,
-                'error_message' => $result->error_message,
+                'failure_reason' => $result->failure_reason,
+                'failure_code' => $result->failure_code,
                 'timestamp' => $result->timestamp,
-                'response_data' => !empty($result->response_data) ? json_decode($result->response_data, true) : null,
             );
             
             // Add order details if order exists

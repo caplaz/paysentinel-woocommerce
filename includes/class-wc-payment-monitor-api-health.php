@@ -120,7 +120,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
             $gateways = WC()->payment_gateways()->get_available_payment_gateways();
             
             if (empty($gateways)) {
-                return $this->get_success_response(array());
+                return new WP_REST_Response(array());
             }
             
             $health_data = array();
@@ -140,13 +140,13 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
                         'total_transactions' => intval($health->total_transactions),
                         'successful_transactions' => intval($health->successful_transactions),
                         'failed_transactions' => intval($health->failed_transactions),
-                        'status' => $health->status,
-                        'last_updated' => $health->last_updated,
+                        'avg_response_time' => intval($health->avg_response_time),
+                        'last_updated' => $health->calculated_at,
                     );
                 }
             }
             
-            return $this->get_success_response($health_data);
+            return new WP_REST_Response($health_data);
         } catch (Exception $e) {
             return $this->get_error_response(
                 'health_retrieval_failed',
@@ -212,11 +212,11 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
                 'total_transactions' => intval($health->total_transactions),
                 'successful_transactions' => intval($health->successful_transactions),
                 'failed_transactions' => intval($health->failed_transactions),
-                'status' => $health->status,
-                'last_updated' => $health->last_updated,
+                'avg_response_time' => intval($health->avg_response_time),
+                'last_updated' => $health->calculated_at,
             );
             
-            return $this->get_success_response($response_data);
+            return new WP_REST_Response($response_data);
         } catch (Exception $e) {
             return $this->get_error_response(
                 'health_retrieval_failed',
@@ -258,7 +258,17 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
             }
             
             global $wpdb;
-            $table_name = $wpdb->prefix . 'wc_payment_monitor_gateway_health';
+            $table_name = $wpdb->prefix . 'payment_monitor_gateway_health';
+            
+            // Check if table exists
+            if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) !== $table_name) {
+                return $this->get_paginated_response(
+                    array(),
+                    0,
+                    $pagination['page'],
+                    $pagination['per_page']
+                );
+            }
             
             // Calculate date range
             $end_date = current_time('mysql');
@@ -331,11 +341,16 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
      */
     private function get_gateway_health_data($gateway_id, $period) {
         global $wpdb;
-        $table_name = $wpdb->prefix . 'wc_payment_monitor_gateway_health';
+        $table_name = $wpdb->prefix . 'payment_monitor_gateway_health';
+        
+        // Check if table exists
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) !== $table_name) {
+            return null;
+        }
         
         $result = $wpdb->get_row($wpdb->prepare(
             "SELECT id, gateway_id, success_rate, total_transactions, successful_transactions,
-                    failed_transactions, status, timestamp as last_updated
+                    failed_transactions, avg_response_time, status, timestamp as last_updated
              FROM $table_name 
              WHERE gateway_id = %s AND period = %s
              ORDER BY timestamp DESC
