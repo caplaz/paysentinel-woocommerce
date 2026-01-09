@@ -29,6 +29,9 @@ node_modules/
 vendor/
 composer.lock
 
+# PHPUnit
+.phpunit.result.cache
+
 # NPM
 package-lock.json
 yarn.lock
