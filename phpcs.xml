@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<ruleset name="WC Payment Monitor">
+    <description>PHP CodeSniffer configuration for WC Payment Monitor WordPress plugin</description>
+
+    <!-- Use WordPress coding standards -->
+    <rule ref="WordPress">
+        <!-- Exclude some rules that are too strict for this project -->
+        <exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+        <exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+        <exclude name="WordPress.PHP.YodaConditions.NotYoda"/>
+    </rule>
+
+    <!-- Exclude vendor directory -->
+    <exclude-pattern>vendor/*</exclude-pattern>
+
+    <!-- Exclude test files from some rules -->
+    <rule ref="WordPress.Files.FileName">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <!-- Set PHP version compatibility -->
+    <config name="testVersion" value="7.4-"/>
+
+    <!-- Files to check -->
+    <file>wc-payment-monitor.php</file>
+    <file>includes/</file>
+    <file>tests/</file>
+</ruleset>
