@@ -28,9 +28,9 @@ class WC_Payment_Monitor_Database {
     public function __construct() {
         global $wpdb;
         
-        $this->transactions_table = $wpdb->prefix . 'wc_payment_monitor_transactions';
-        $this->gateway_health_table = $wpdb->prefix . 'wc_payment_monitor_gateway_health';
-        $this->alerts_table = $wpdb->prefix . 'wc_payment_monitor_alerts';
+        $this->transactions_table = $wpdb->prefix . 'payment_monitor_transactions';
+        $this->gateway_health_table = $wpdb->prefix . 'payment_monitor_gateway_health';
+        $this->alerts_table = $wpdb->prefix . 'payment_monitor_alerts';
     }
     
     /**
@@ -42,7 +42,7 @@ class WC_Payment_Monitor_Database {
         $this->create_alerts_table();
         
         // Update database version
-        update_option('wc_payment_monitor_db_version', self::DB_VERSION);
+        update_option('payment_monitor_db_version', self::DB_VERSION);
     }
     
     /**
@@ -151,7 +151,7 @@ class WC_Payment_Monitor_Database {
         $wpdb->query("DROP TABLE IF EXISTS {$this->alerts_table}");
         
         // Remove database version
-        delete_option('wc_payment_monitor_db_version');
+        delete_option('payment_monitor_db_version');
     }
     
     /**
@@ -201,7 +201,7 @@ class WC_Payment_Monitor_Database {
      * Get database version
      */
     public function get_db_version() {
-        return get_option('wc_payment_monitor_db_version', '0.0.0');
+        return get_option('payment_monitor_db_version', '0.0.0');
     }
     
     /**

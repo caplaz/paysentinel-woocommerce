@@ -35,9 +35,9 @@ wc-payment-monitor/
 
 The plugin creates three custom database tables:
 
-1. `wp_wc_payment_monitor_transactions` - Stores all payment transaction data
-2. `wp_wc_payment_monitor_gateway_health` - Stores gateway performance metrics
-3. `wp_wc_payment_monitor_alerts` - Stores alert history and status
+1. `wp_payment_monitor_transactions` - Stores all payment transaction data
+2. `wp_payment_monitor_gateway_health` - Stores gateway performance metrics
+3. `wp_payment_monitor_alerts` - Stores alert history and status
 
 ## Development
 

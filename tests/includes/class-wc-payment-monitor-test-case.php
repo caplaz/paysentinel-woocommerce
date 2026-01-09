@@ -44,9 +44,9 @@ class WC_Payment_Monitor_Test_Case extends TestCase {
         }
         
         $tables = [
-            $wpdb->prefix . 'wc_payment_monitor_transactions',
-            $wpdb->prefix . 'wc_payment_monitor_gateway_health',
-            $wpdb->prefix . 'wc_payment_monitor_alerts'
+            $wpdb->prefix . 'payment_monitor_transactions',
+            $wpdb->prefix . 'payment_monitor_gateway_health',
+            $wpdb->prefix . 'payment_monitor_alerts'
         ];
         
         foreach ($tables as $table) {
@@ -54,7 +54,7 @@ class WC_Payment_Monitor_Test_Case extends TestCase {
         }
         
         // Clean up options
-        delete_option('wc_payment_monitor_db_version');
+        delete_option('payment_monitor_db_version');
         delete_option('wc_payment_monitor_version');
         delete_option('wc_payment_monitor_settings');
     }

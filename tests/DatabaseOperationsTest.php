@@ -11,14 +11,14 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
      */
     public function test_table_name_format() {
         $table_names = [
-            'wc_payment_monitor_transactions',
-            'wc_payment_monitor_gateway_health',
-            'wc_payment_monitor_alerts'
+            'payment_monitor_transactions',
+            'payment_monitor_gateway_health',
+            'payment_monitor_alerts'
         ];
         
         foreach ($table_names as $table) {
             // Table names should use underscores
-            $this->assertStringContainsString('wc_payment_monitor', $table);
+            $this->assertStringContainsString('payment_monitor', $table);
             $this->assertRegExp('/^[a-z_]+$/', $table);
             $this->assertGreaterThan(0, strlen($table));
         }
