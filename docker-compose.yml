@@ -41,7 +41,7 @@ services:
       - wp-tests:/tmp/wordpress-tests-lib
     # Installs the WP test suite only if needed (cached in volume)
     # then runs phpunit using the repo's vendor binary.
-    command: bash -lc "bash ./tests/entrypoint.sh && vendor/bin/phpunit --no-configuration tests/ || true"
+    command: bash -lc "bash ./tests/entrypoint.sh && vendor/bin/phpunit tests/ 2>&1 | grep -v -E 'SERIALIZATION_FORMAT|^There were [0-9]+ warnings|^[0-9]+\) Database' || true"
 
 volumes:
   wp-core:

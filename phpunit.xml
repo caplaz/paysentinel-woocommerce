@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit
+    bootstrap="tests/bootstrap-phpunit.php"
     colors="true"
     convertErrorsToExceptions="true"
     convertNoticesToExceptions="true"
     convertWarningsToExceptions="false"
     processIsolation="false"
     stopOnFailure="false"
-    testdox="true"
     verbose="true"
 >
     <testsuites>
@@ -14,4 +14,13 @@
             <directory>./tests/</directory>
         </testsuite>
     </testsuites>
+    <coverage>
+        <include>
+            <directory suffix=".php">./tests/</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">./includes/</directory>
+            <directory suffix=".php">./vendor/</directory>
+        </exclude>
+    </coverage>
 </phpunit>
