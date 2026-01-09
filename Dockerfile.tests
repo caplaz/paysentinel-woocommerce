@@ -1,0 +1,22 @@
+FROM php:8.2-cli
+
+# System deps required by install-wp-tests.sh and PHPUnit
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    default-mysql-client \
+    subversion \
+    unzip \
+    git \
+    curl \
+    zip \
+    libzip-dev \
+    libxml2-dev \
+    zlib1g-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+# PHP extensions needed by WP + PHPUnit
+RUN docker-php-ext-install mysqli zip dom xml
+
+WORKDIR /workspace
+
+# Default command can be overridden by docker-compose
+CMD ["bash"]

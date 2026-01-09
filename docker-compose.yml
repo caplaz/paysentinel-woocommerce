@@ -1,0 +1,43 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: sentinel-wp-db
+    environment:
+      MYSQL_DATABASE: wordpress_test
+      MYSQL_USER: wp
+      MYSQL_PASSWORD: wp
+      MYSQL_ROOT_PASSWORD: root
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    ports:
+      - "3307:3306" # optional: expose if you want to inspect DB locally
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u$$MYSQL_USER -p$$MYSQL_PASSWORD || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    container_name: sentinel-wp-tests
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_NAME: wordpress_test
+      DB_USER: wp
+      DB_PASS: wp
+      DB_HOST: db
+      WP_VERSION: trunk
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    # Installs the WP test suite (skipping DB creation as the DB is created by the MySQL container)
+    # then runs phpunit using the repo's vendor binary.
+    command: >-
+      bash -lc "bash install-wp-tests.sh $${DB_NAME} $${DB_USER} $${DB_PASS} $${DB_HOST} $${WP_VERSION} true && vendor/bin/phpunit --testdox"
