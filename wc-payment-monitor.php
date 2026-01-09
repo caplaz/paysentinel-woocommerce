@@ -81,6 +81,11 @@ class WC_Payment_Monitor {
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-health.php';
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-alerts.php';
         require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-retry.php';
+        
+        // Load API classes
+        require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-base.php';
+        require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-health.php';
+        require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-transactions.php';
     }
     
     /**
@@ -132,6 +137,10 @@ class WC_Payment_Monitor {
         
         // Initialize retry engine
         new WC_Payment_Monitor_Retry();
+        
+        // Initialize REST API endpoints
+        new WC_Payment_Monitor_API_Health();
+        new WC_Payment_Monitor_API_Transactions();
     }
     
     /**
