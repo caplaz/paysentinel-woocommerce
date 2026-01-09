@@ -69,17 +69,36 @@ abstract class WC_Payment_Monitor_API_Base {
 	}
 
 	/**
-	 * Get success response with consistent format
+	 * Get success response with consistent format (direct/unwrapped)
 	 *
 	 * @param mixed $data Response data
 	 * @param int   $status HTTP status code
 	 * @return WP_REST_Response
 	 */
 	protected function get_success_response( $data, $status = 200 ) {
+		return new WP_REST_Response( $data, $status );
+	}
+
+	/**
+	 * Get paginated response (direct/unwrapped format)
+	 *
+	 * @param array $items Array of items
+	 * @param int   $total Total count
+	 * @param int   $page Current page
+	 * @param int   $per_page Items per page
+	 * @param int   $status HTTP status code
+	 * @return WP_REST_Response
+	 */
+	protected function get_paginated_response( $items, $total, $page, $per_page, $status = 200 ) {
 		return new WP_REST_Response(
 			array(
-				'success' => true,
-				'data'    => $data,
+				'items'      => $items,
+				'pagination' => array(
+					'page'        => intval( $page ),
+					'per_page'    => intval( $per_page ),
+					'total'       => intval( $total ),
+					'total_pages' => intval( ceil( $total / $per_page ) ),
+				),
 			),
 			$status
 		);
@@ -118,33 +137,6 @@ abstract class WC_Payment_Monitor_API_Base {
 	 */
 	protected function calculate_offset( $page, $per_page ) {
 		return ( $page - 1 ) * $per_page;
-	}
-
-	/**
-	 * Get paginated response with metadata
-	 *
-	 * @param array $items Array of items
-	 * @param int   $total_count Total number of items
-	 * @param int   $page Current page
-	 * @param int   $per_page Items per page
-	 * @param int   $status HTTP status code
-	 * @return WP_REST_Response
-	 */
-	protected function get_paginated_response( $items, $total_count, $page, $per_page, $status = 200 ) {
-		$total_pages = ceil( $total_count / $per_page );
-
-		return new WP_REST_Response(
-			array(
-				'items'      => $items,
-				'pagination' => array(
-					'page'        => $page,
-					'per_page'    => $per_page,
-					'total'       => intval( $total_count ),
-					'total_pages' => intval( $total_pages ),
-				),
-			),
-			$status
-		);
 	}
 
 	/**

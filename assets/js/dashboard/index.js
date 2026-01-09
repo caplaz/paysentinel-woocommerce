@@ -116,7 +116,9 @@
 
         const alertsData = await alertsResponse.json();
         console.log("Alerts response:", alertsData);
-        setAlerts(Array.isArray(alertsData?.alerts) ? alertsData.alerts : []);
+        // Handle new direct response format (items in pagination) or legacy format (alerts)
+        const alertsList = alertsData?.items || alertsData?.alerts || [];
+        setAlerts(Array.isArray(alertsList) ? alertsList : []);
 
         setLoading(false);
       } catch (err) {
@@ -353,6 +355,15 @@
       const root = ReactDOM.createRoot(transactionsContainer);
       root.render(React.createElement(Transactions));
     }
+
+    // Mount Alerts component if on alerts page
+    const alertsContainer = document.getElementById(
+      "wc-payment-monitor-alerts-container"
+    );
+    if (alertsContainer && React && ReactDOM) {
+      const root = ReactDOM.createRoot(alertsContainer);
+      root.render(React.createElement(Alerts));
+    }
   });
 
   /**
@@ -405,10 +416,10 @@
         const data = await response.json();
         console.log("Gateway health data:", data);
 
-        if (data.success && data.data) {
-          setGateways(data.data);
-        } else if (data.success && Array.isArray(data.data)) {
-          // Handle empty array response
+        // Handle new direct response format (array) or legacy wrapped format
+        if (Array.isArray(data)) {
+          setGateways(data);
+        } else if (data.success && data.data) {
           setGateways(data.data);
         } else {
           setError(data.message || "Failed to fetch gateway health");
@@ -980,6 +991,348 @@
                 onClick: () => setPage(page + 1),
               },
               "Next"
+            )
+          )
+        : null
+    );
+  }
+
+  /**
+   * Alerts Component
+   * Displays payment monitoring alerts with filtering and actions
+   */
+  function Alerts() {
+    const [alerts, setAlerts] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(20);
+    const [severityFilter, setSeverityFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [totalCount, setTotalCount] = useState(0);
+
+    const totalPages = Math.ceil(totalCount / perPage);
+
+    const fetchAlerts = useCallback(() => {
+      const nonce = window.wcPaymentMonitor?.nonce || "";
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (nonce) {
+        headers["X-WP-Nonce"] = nonce;
+      }
+
+      const params = new URLSearchParams();
+      params.append("page", page);
+      params.append("per_page", perPage);
+
+      if (severityFilter !== "all") {
+        params.append("severity", severityFilter);
+      }
+
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter);
+      }
+
+      const url = "/wp-json/wc-payment-monitor/v1/alerts?" + params.toString();
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        console.log("Fetching alerts from:", url);
+
+        fetch(url, {
+          method: "GET",
+          headers,
+          credentials: "same-origin",
+        })
+          .then((response) => {
+            console.log("Alerts response status:", response.status);
+
+            if (!response.ok) {
+              const errorText = response.text();
+              console.error("Response error body:", errorText);
+              throw new Error(
+                `HTTP error! status: ${response.status} - ${errorText}`
+              );
+            }
+
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Alerts data:", data);
+
+            if (data.items && Array.isArray(data.items)) {
+              setAlerts(data.items);
+              setTotalCount(data.pagination?.total || 0);
+            } else if (data.success && data.data) {
+              setAlerts(data.data);
+              setTotalCount(data.total || 0);
+            } else {
+              setError(data.message || "Failed to fetch alerts");
+            }
+          })
+          .catch((err) => {
+            setError(err.message || "Failed to fetch alerts");
+            console.error("Alerts fetch error:", err);
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      } catch (err) {
+        setError(err.message || "Failed to fetch alerts");
+        console.error("Alerts fetch error:", err);
+        setIsLoading(false);
+      }
+    }, [page, perPage, severityFilter, statusFilter]);
+
+    // Auto-refresh effect
+    useEffect(() => {
+      fetchAlerts();
+
+      const intervalId = setInterval(() => {
+        fetchAlerts();
+      }, 30000); // Refresh every 30 seconds
+
+      return () => clearInterval(intervalId);
+    }, [page, perPage, severityFilter, statusFilter, fetchAlerts]);
+
+    const handleResolveAlert = (alertId) => {
+      const nonce = window.wcPaymentMonitor?.nonce || "";
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (nonce) {
+        headers["X-WP-Nonce"] = nonce;
+      }
+
+      fetch(`/wp-json/wc-payment-monitor/v1/alerts/${alertId}/resolve`, {
+        method: "POST",
+        headers,
+        credentials: "same-origin",
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to resolve alert");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          console.log("Alert resolved:", data);
+          // Refresh alerts after resolving
+          fetchAlerts();
+        })
+        .catch((err) => {
+          console.error("Error resolving alert:", err);
+          setError("Failed to resolve alert");
+        });
+    };
+
+    if (isLoading) {
+      return React.createElement("p", null, "Loading alerts...");
+    }
+
+    if (error) {
+      return React.createElement(
+        "div",
+        { className: "alert alert-error" },
+        "Error: " + error
+      );
+    }
+
+    return React.createElement(
+      "div",
+      { className: "alerts-component" },
+
+      // Section Header with filters
+      React.createElement(
+        "div",
+        { className: "section-header" },
+
+        React.createElement(
+          "div",
+          null,
+          React.createElement("h2", null, "Alerts"),
+          React.createElement(
+            "p",
+            { className: "section-subtitle" },
+            "View all payment monitoring alerts"
+          )
+        ),
+
+        React.createElement(
+          "div",
+          { className: "filters" },
+
+          React.createElement(
+            "select",
+            {
+              value: severityFilter,
+              onChange: (e) => {
+                setSeverityFilter(e.target.value);
+                setPage(1);
+              },
+            },
+            React.createElement("option", { value: "all" }, "All Severity"),
+            React.createElement("option", { value: "info" }, "Info"),
+            React.createElement("option", { value: "warning" }, "Warning"),
+            React.createElement("option", { value: "critical" }, "Critical")
+          ),
+
+          React.createElement(
+            "select",
+            {
+              value: statusFilter,
+              onChange: (e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              },
+            },
+            React.createElement("option", { value: "all" }, "All Status"),
+            React.createElement("option", { value: "active" }, "Active"),
+            React.createElement("option", { value: "resolved" }, "Resolved")
+          )
+        )
+      ),
+
+      // Error message
+      error
+        ? React.createElement("div", { className: "error-message" }, error)
+        : null,
+
+      // Loading state
+      isLoading && alerts.length === 0
+        ? React.createElement(
+            "div",
+            { className: "loading-state" },
+            "Loading alerts..."
+          )
+        : null,
+
+      // Empty state
+      alerts.length === 0 && !isLoading && !error
+        ? React.createElement(
+            "div",
+            { className: "empty-state" },
+            "No alerts found."
+          )
+        : null,
+
+      // Alerts list
+      alerts.length > 0
+        ? React.createElement(
+            "div",
+            { className: "alerts-list-container" },
+            alerts.map((alert) =>
+              React.createElement(
+                "div",
+                {
+                  key: alert.id,
+                  className: "alert-row status-" + (alert.severity || "info"),
+                },
+
+                React.createElement(
+                  "div",
+                  { className: "alert-cell alert-title-cell" },
+                  React.createElement("strong", null, alert.title),
+                  React.createElement(
+                    "div",
+                    { className: "alert-message-text" },
+                    alert.message
+                  )
+                ),
+
+                React.createElement(
+                  "div",
+                  { className: "alert-cell alert-gateway-cell" },
+                  alert.gateway_id || "—"
+                ),
+
+                React.createElement(
+                  "div",
+                  { className: "alert-cell alert-severity-cell" },
+                  React.createElement(
+                    "span",
+                    {
+                      className: "severity-badge " + (alert.severity || "info"),
+                    },
+                    alert.severity?.toUpperCase() || "INFO"
+                  )
+                ),
+
+                React.createElement(
+                  "div",
+                  { className: "alert-cell alert-status-cell" },
+                  React.createElement(
+                    "span",
+                    {
+                      className: "status-badge " + (alert.status || "active"),
+                    },
+                    alert.status?.toUpperCase() || "ACTIVE"
+                  )
+                ),
+
+                React.createElement(
+                  "div",
+                  { className: "alert-cell alert-date-cell" },
+                  alert.created_at
+                    ? new Date(alert.created_at).toLocaleDateString() +
+                        " " +
+                        new Date(alert.created_at).toLocaleTimeString()
+                    : "—"
+                ),
+
+                alert.status === "active"
+                  ? React.createElement(
+                      "div",
+                      { className: "alert-cell alert-action-cell" },
+                      React.createElement(
+                        "button",
+                        {
+                          className: "button button-small",
+                          onClick: () => handleResolveAlert(alert.id),
+                        },
+                        "Resolve"
+                      )
+                    )
+                  : null
+              )
+            )
+          )
+        : null,
+
+      // Pagination
+      alerts.length > 0 && totalPages > 1
+        ? React.createElement(
+            "div",
+            { className: "pagination" },
+            React.createElement(
+              "button",
+              {
+                className: "button",
+                disabled: page <= 1,
+                onClick: () => setPage(page - 1),
+              },
+              "← Previous"
+            ),
+            React.createElement(
+              "span",
+              { className: "page-info" },
+              "Page " + page + " of " + totalPages
+            ),
+            React.createElement(
+              "button",
+              {
+                className: "button",
+                disabled: page >= totalPages,
+                onClick: () => setPage(page + 1),
+              },
+              "Next →"
             )
           )
         : null

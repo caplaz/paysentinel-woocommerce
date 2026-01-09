@@ -130,13 +130,7 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 
 		// Check if table exists
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
-			return array(
-				'alerts'      => array(),
-				'total'       => 0,
-				'page'        => intval( $page ),
-				'per_page'    => intval( $per_page ),
-				'total_pages' => 0,
-			);
+			return $this->get_paginated_response( array(), 0, intval( $page ), intval( $per_page ) );
 		}
 
 		// Get total count
@@ -160,12 +154,11 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 			$formatted_alerts[] = $this->format_alert( $alert );
 		}
 
-		return array(
-			'alerts'      => $formatted_alerts,
-			'total'       => intval( $total ),
-			'page'        => intval( $page ),
-			'per_page'    => intval( $per_page ),
-			'total_pages' => ceil( $total / $per_page ),
+		return $this->get_paginated_response(
+			$formatted_alerts,
+			intval( $total ),
+			intval( $page ),
+			intval( $per_page )
 		);
 	}
 
@@ -193,7 +186,7 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 			return new WP_Error( 'alert_not_found', 'Alert not found', array( 'status' => 404 ) );
 		}
 
-		return $this->format_alert( $alert );
+		return $this->get_success_response( $this->format_alert( $alert ) );
 	}
 
 	/**
@@ -243,7 +236,7 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 			ARRAY_A
 		);
 
-		return $this->format_alert( $updated_alert );
+		return $this->get_success_response( $this->format_alert( $updated_alert ) );
 	}
 
 	/**

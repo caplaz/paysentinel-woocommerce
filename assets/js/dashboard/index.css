@@ -429,43 +429,142 @@
   font-weight: 500;
 }
 
-/* Recent Alerts */
-.alerts-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* Alerts Page Styles */
+.alerts-component {
+  margin-top: 20px;
 }
 
-.alert-item {
-  padding: 15px 20px;
+.alerts-list-container {
+  background: #fff;
+  border: 1px solid #ccd0d4;
+  border-radius: 4px;
+  margin-top: 20px;
+}
+
+.alert-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 100px 100px 180px 80px;
+  gap: 15px;
+  padding: 12px 15px;
   border-bottom: 1px solid #f0f0f1;
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  line-height: 1.5;
 }
 
-.alert-item:last-child {
+.alert-row:last-child {
   border-bottom: none;
 }
 
-.alert-critical {
+.alert-row:hover {
+  background: #f9f9f9;
+}
+
+.alert-row.status-critical {
   border-left: 4px solid #d63638;
-  background: #fef7f7;
 }
 
-.alert-warning {
+.alert-row.status-warning {
   border-left: 4px solid #dba617;
-  background: #fefdf7;
 }
 
-.alert-info {
+.alert-row.status-info {
   border-left: 4px solid #72aee6;
-  background: #f7f9fe;
 }
 
-.alert-item small {
+.alert-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alert-title-cell {
+  white-space: normal;
+  overflow: visible;
+  grid-column: 1 / 2;
+}
+
+.alert-title-cell strong {
+  display: block;
+  color: #1d2327;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.alert-message-text {
   color: #646970;
-  font-size: 12px;
+  font-size: 13px;
+  white-space: normal;
+  overflow: visible;
+}
+
+.alert-gateway-cell {
+  color: #646970;
+  font-size: 13px;
+  text-align: center;
+}
+
+.alert-severity-cell {
+  text-align: center;
+}
+
+.alert-status-cell {
+  text-align: center;
+}
+
+.alert-date-cell {
+  color: #646970;
+  font-size: 13px;
+  text-align: right;
+  white-space: normal;
+}
+
+.alert-action-cell {
+  text-align: center;
+}
+
+.severity-badge {
+  display: inline-block;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.severity-badge.critical {
+  background: #d63638;
+  color: #fff;
+}
+
+.severity-badge.warning {
+  background: #dba617;
+  color: #fff;
+}
+
+.severity-badge.info {
+  background: #72aee6;
+  color: #fff;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.status-badge.active {
+  background: #f6b700;
+  color: #1d2327;
+}
+
+.status-badge.resolved {
+  background: #6e7f75;
+  color: #fff;
 }
 
 /* Responsive Design */
