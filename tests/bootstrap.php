@@ -34,7 +34,7 @@ function _manually_load_plugin() {
     }
     
     // Load our plugin
-    require WC_PAYMENT_MONITOR_PLUGIN_FILE;
+    // require WC_PAYMENT_MONITOR_PLUGIN_FILE; // Temporarily commented out
 }
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');
 

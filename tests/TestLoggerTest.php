@@ -12,7 +12,7 @@
 
 require_once __DIR__ . '/includes/class-wc-payment-monitor-test-case.php';
 
-class TestLogger extends WC_Payment_Monitor_Test_Case {
+class TestLoggerTest extends WC_Payment_Monitor_Test_Case {
     
     /**
      * Logger instance
@@ -575,11 +575,6 @@ class TestLogger extends WC_Payment_Monitor_Test_Case {
             return vsprintf(str_replace(['%s', '%d', '%f'], ['\'%s\'', '%d', '%f'], $query), $args);
         };
         
-        // Mock dbDelta function
-        if (!function_exists('dbDelta')) {
-            function dbDelta($sql) {
-                return ['created' => 1];
-            }
-        }
+        // dbDelta is provided by WordPress
     }
 }

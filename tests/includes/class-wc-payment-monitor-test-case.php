@@ -3,7 +3,7 @@
  * Base test case class for WC Payment Monitor tests
  */
 
-use Yoast\PHPUnitPolyfills\TestCases\TestCase;
+use PHPUnit\Framework\TestCase;
 
 class WC_Payment_Monitor_Test_Case extends TestCase {
     

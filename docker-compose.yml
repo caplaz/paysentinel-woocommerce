@@ -33,11 +33,17 @@ services:
       DB_USER: wp
       DB_PASS: wp
       DB_HOST: db
-      WP_VERSION: 6.6
+      WP_VERSION: 6.4
     working_dir: /workspace
     volumes:
       - ./:/workspace
-    # Installs the WP test suite (skipping DB creation as the DB is created by the MySQL container)
+      - wp-core:/tmp/wordpress
+      - wp-tests:/tmp/wordpress-tests-lib
+    # Installs the WP test suite only if needed (cached in volume)
     # then runs phpunit using the repo's vendor binary.
     command: >-
-      bash -lc "bash install-wp-tests.sh $${DB_NAME} $${DB_USER} $${DB_PASS} $${DB_HOST} $${WP_VERSION} true && vendor/bin/phpunit --testdox"
+      bash -lc "bash ./tests/entrypoint.sh && vendor/bin/phpunit --testdox"
+
+volumes:
+  wp-core:
+  wp-tests:
