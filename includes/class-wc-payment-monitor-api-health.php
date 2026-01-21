@@ -29,6 +29,12 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 						'enum'        => array( '24h', '7d', '30d' ),
 						'default'     => '24h',
 					),
+					'scope' => array(
+						'type'        => 'string',
+						'description' => 'Which gateways to include (enabled or all)',
+						'enum'        => array( 'enabled', 'all' ),
+						'default'     => 'enabled',
+					),
 				),
 			)
 		);
@@ -94,6 +100,80 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				),
 			)
 		);
+
+		// Trigger on-demand health recalculation for all gateways
+		register_rest_route(
+			$this->namespace,
+			'/health/recalculate',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'recalculate_all_health' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+	}
+
+	/**
+	 * Get WooCommerce gateways with compatibility for stubs/tests.
+	 *
+	 * Prefers all registered gateways when available; falls back to available (enabled) gateways.
+	 *
+	 * @return array<string,object> Map of gateway_id => gateway object
+	 */
+	private function get_wc_gateways_all() {
+		if ( ! function_exists( 'WC' ) || ! WC() || ! method_exists( WC(), 'payment_gateways' ) ) {
+			return array();
+		}
+
+		$manager = WC()->payment_gateways();
+		if ( ! $manager ) {
+			return array();
+		}
+
+		// WooCommerce core provides payment_gateways() in runtime; test stubs may not.
+		if ( method_exists( $manager, 'payment_gateways' ) ) {
+			$all = $manager->payment_gateways();
+			if ( is_array( $all ) ) {
+				return $all;
+			}
+		}
+
+		// Fallback: enabled/available gateways only
+		if ( method_exists( $manager, 'get_available_payment_gateways' ) ) {
+			$available = $manager->get_available_payment_gateways();
+			return is_array( $available ) ? $available : array();
+		}
+
+		return array();
+	}
+
+	/**
+	 * Get enabled (available) WooCommerce gateways with stub-safe fallback.
+	 *
+	 * @return array<string,object>
+	 */
+	private function get_wc_gateways_enabled() {
+		if ( ! function_exists( 'WC' ) || ! WC() || ! method_exists( WC(), 'payment_gateways' ) ) {
+			return array();
+		}
+
+		$manager = WC()->payment_gateways();
+		if ( ! $manager ) {
+			return array();
+		}
+
+		if ( method_exists( $manager, 'get_available_payment_gateways' ) ) {
+			$available = $manager->get_available_payment_gateways();
+			return is_array( $available ) ? $available : array();
+		}
+
+		// Fallback: if only full list is available, return that
+		if ( method_exists( $manager, 'payment_gateways' ) ) {
+			$all = $manager->payment_gateways();
+			return is_array( $all ) ? $all : array();
+		}
+
+		return array();
 	}
 
 	/**
@@ -124,8 +204,9 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 		}
 
 		try {
-			// Get all WooCommerce payment gateways
-			$gateways = WC()->payment_gateways()->get_available_payment_gateways();
+			// Get WooCommerce gateways based on requested scope (default: enabled)
+			$scope = $this->get_string_param( $request, 'scope', 'enabled' );
+			$gateways = ( 'all' === $scope ) ? $this->get_wc_gateways_all() : $this->get_wc_gateways_enabled();
 
 			if ( empty( $gateways ) ) {
 				return $this->get_paginated_response( array(), 0, 1, 1 );
@@ -141,6 +222,9 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 
 				// Get health metrics for this gateway
 				$health = $this->get_gateway_health_data( $gateway_id, $backend_period );
+				if ( ! $health ) {
+					$health = $this->ensure_health_row( $gateway_id, $backend_period );
+				}
 
 				// Get last connectivity check
 				$last_check = $connectivity->get_last_check( $gateway_id );
@@ -221,8 +305,9 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 		}
 
 		try {
-			// Get gateway
-			$gateways = WC()->payment_gateways()->get_available_payment_gateways();
+			// Get gateway (enabled by default unless scope=all)
+			$scope = $this->get_string_param( $request, 'scope', 'enabled' );
+			$gateways = ( 'all' === $scope ) ? $this->get_wc_gateways_all() : $this->get_wc_gateways_enabled();
 
 			if ( ! isset( $gateways[ $gateway_id ] ) ) {
 				return $this->get_error_response(
@@ -236,6 +321,9 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 
 			// Get health metrics
 			$health = $this->get_gateway_health_data( $gateway_id, $period );
+			if ( ! $health ) {
+				$health = $this->ensure_health_row( $gateway_id, $period );
+			}
 
 			if ( ! $health ) {
 				return $this->get_error_response(
@@ -341,7 +429,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			// Get total count
 			$total_count = $wpdb->get_var(
 				$wpdb->prepare(
-					"SELECT COUNT(*) FROM $table_name WHERE gateway_id = %s AND timestamp >= %s AND timestamp <= %s",
+					"SELECT COUNT(*) FROM $table_name WHERE gateway_id = %s AND calculated_at >= %s AND calculated_at <= %s",
 					$gateway_id,
 					$start_date,
 					$end_date
@@ -354,11 +442,11 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			$results = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT id, gateway_id, success_rate, total_transactions, successful_transactions, 
-                        failed_transactions, status, timestamp as last_updated
-                 FROM $table_name 
-                 WHERE gateway_id = %s AND timestamp >= %s AND timestamp <= %s
-                 ORDER BY timestamp DESC
-                 LIMIT %d OFFSET %d",
+						failed_transactions, calculated_at
+				 FROM $table_name 
+				 WHERE gateway_id = %s AND calculated_at >= %s AND calculated_at <= %s
+				 ORDER BY calculated_at DESC
+				 LIMIT %d OFFSET %d",
 					$gateway_id,
 					$start_date,
 					$end_date,
@@ -374,6 +462,19 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			// Format results
 			$history_data = array_map(
 				function ( $row ) {
+					// Derive a simple status from success_rate for history presentation
+					$status = 'unknown';
+					if ( isset( $row->success_rate ) ) {
+						$rate = floatval( $row->success_rate );
+						if ( $rate >= 95 ) {
+							$status = 'healthy';
+						} elseif ( $rate >= 75 ) {
+							$status = 'degraded';
+						} else {
+							$status = 'critical';
+						}
+					}
+
 					return array(
 						'id'                      => intval( $row->id ),
 						'gateway_id'              => $row->gateway_id,
@@ -381,8 +482,8 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 						'total_transactions'      => intval( $row->total_transactions ),
 						'successful_transactions' => intval( $row->successful_transactions ),
 						'failed_transactions'     => intval( $row->failed_transactions ),
-						'status'                  => $row->status,
-						'timestamp'               => $row->last_updated,
+						'status'                  => $status,
+						'timestamp'               => $row->calculated_at,
 					);
 				},
 				$results
@@ -422,10 +523,10 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT id, gateway_id, success_rate, total_transactions, successful_transactions,
-                    failed_transactions, avg_response_time, status, timestamp as last_updated
+					failed_transactions, avg_response_time, calculated_at as last_updated
              FROM $table_name 
              WHERE gateway_id = %s AND period = %s
-             ORDER BY timestamp DESC
+			 ORDER BY calculated_at DESC
              LIMIT 1",
 				$gateway_id,
 				$period
@@ -502,6 +603,8 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			return array();
 		}
 
+
+
 		// Format results for frontend
 		return array_map(
 			function ( $row ) {
@@ -513,4 +616,76 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			$results
 		);
 	}
-}
+
+	/**
+	 * Attempt to calculate and persist health data on-demand when missing
+	 *
+	 * @param string $gateway_id Gateway ID
+	 * @param string $period Backend health period (1hour, 24hour, 7day)
+	 * @return object|null Newly fetched health row or null
+	 */
+	private function ensure_health_row( $gateway_id, $period ) {
+		try {
+			$health_engine = new WC_Payment_Monitor_Health();
+			$health_engine->calculate_health( $gateway_id );
+
+			// Re-fetch the row after calculation
+			return $this->get_gateway_health_data( $gateway_id, $period );
+		} catch ( Exception $e ) {
+			return null;
+		}
+	}
+
+	/**
+	 * Trigger on-demand health recalculation for all gateways
+	 *
+	 * @param WP_REST_Request $request Request object
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function recalculate_all_health( $request ) {
+		try {
+			$health_engine = new WC_Payment_Monitor_Health();
+			$gateways = $this->get_wc_gateways_enabled();
+
+			$recalculated = 0;
+			foreach ( $gateways as $gateway ) {
+				try {
+					$health_engine->calculate_health( $gateway->id );
+					$recalculated++;
+				} catch ( Exception $e ) {
+					// Log but continue with other gateways
+					error_log(
+						'Payment Monitor: Error recalculating health for gateway ' . $gateway->id . ': ' . $e->getMessage()
+					);
+				}
+			}
+
+			// Also trigger connectivity checks for enabled gateways
+			try {
+				$connectivity = new WC_Payment_Monitor_Gateway_Connectivity();
+				$connectivity->check_all_gateways();
+			} catch ( Exception $e ) {
+				error_log(
+					'Payment Monitor: Error during connectivity checks: ' . $e->getMessage()
+				);
+			}
+
+			return $this->get_success_response(
+				array(
+					'success'        => true,
+					'message'        => sprintf(
+						/* translators: %d: number of gateways */
+						__( 'Recalculated health for %d gateway(s)', 'wc-payment-monitor' ),
+						$recalculated
+					),
+					'gateways_count' => $recalculated,
+				)
+			);
+		} catch ( Exception $e ) {
+			return $this->get_error_response(
+				'recalculation_failed',
+				__( 'Failed to recalculate gateway health', 'wc-payment-monitor' ),
+				500
+			);
+		}
+	}}

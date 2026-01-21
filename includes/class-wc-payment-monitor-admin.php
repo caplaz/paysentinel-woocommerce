@@ -66,11 +66,16 @@ class WC_Payment_Monitor_Admin {
 		wp_enqueue_script( 'wp-i18n' );
 
 		// Enqueue our dashboard script
+		$dashboard_js_path  = WC_PAYMENT_MONITOR_PLUGIN_DIR . 'assets/js/dashboard/index.js';
+		$dashboard_css_path = WC_PAYMENT_MONITOR_PLUGIN_DIR . 'assets/js/dashboard/index.css';
+		$js_ver  = file_exists( $dashboard_js_path ) ? filemtime( $dashboard_js_path ) : WC_PAYMENT_MONITOR_VERSION;
+		$css_ver = file_exists( $dashboard_css_path ) ? filemtime( $dashboard_css_path ) : WC_PAYMENT_MONITOR_VERSION;
+
 		wp_enqueue_script(
 			'wc-payment-monitor-dashboard',
 			WC_PAYMENT_MONITOR_PLUGIN_URL . 'assets/js/dashboard/index.js',
 			array( 'wp-api-fetch', 'wp-element' ),
-			WC_PAYMENT_MONITOR_VERSION,
+			$js_ver,
 			true
 		);
 
@@ -79,7 +84,7 @@ class WC_Payment_Monitor_Admin {
 			'wc-payment-monitor-dashboard',
 			WC_PAYMENT_MONITOR_PLUGIN_URL . 'assets/js/dashboard/index.css',
 			array(),
-			WC_PAYMENT_MONITOR_VERSION
+			$css_ver
 		);
 
 		// Use wp_set_script_translations for REST API nonce

@@ -139,12 +139,12 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 			}
 
 			if ( $start_date ) {
-				$where_conditions[] = 'timestamp >= %s';
+				$where_conditions[] = 'created_at >= %s';
 				$where_params[]     = $start_date;
 			}
 
 			if ( $end_date ) {
-				$where_conditions[] = 'timestamp <= %s';
+				$where_conditions[] = 'created_at <= %s';
 				$where_params[]     = $end_date;
 			}
 

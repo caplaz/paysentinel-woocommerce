@@ -49,6 +49,8 @@
         ),
         total_transactions:
           gateway.total_transactions ?? gateway.transaction_count ?? 0,
+        transaction_count:
+          gateway.transaction_count ?? gateway.total_transactions ?? 0,
         failed_transactions: failed24h,
         failed_count_24h: failed24h,
         avg_response_time:
@@ -516,7 +518,9 @@
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [timePeriod, setTimePeriod] = useState("24h");
+    const [scope, setScope] = useState("enabled");
     const [expandedGateway, setExpandedGateway] = useState(null);
+    const [isRecalculating, setIsRecalculating] = useState(false);
 
     // Fetch gateway health data
     const fetchGatewayHealth = useCallback(async () => {
@@ -536,7 +540,7 @@
         console.log("Fetching gateway health with period:", timePeriod);
 
         const response = await fetch(
-          `/wp-json/wc-payment-monitor/v1/health/gateways?period=${timePeriod}`,
+          `/wp-json/wc-payment-monitor/v1/health/gateways?period=${timePeriod}&scope=${scope}`,
           {
             method: "GET",
             headers,
@@ -565,6 +569,8 @@
           setError(data.message || "Failed to fetch gateway health");
         } else {
           setGateways(normalized);
+          // Clear any prior error once we have valid data
+          setError(null);
         }
       } catch (err) {
         setError(err.message || "Failed to fetch gateway health");
@@ -572,9 +578,48 @@
       } finally {
         setIsLoading(false);
       }
-    }, [timePeriod]);
+    }, [timePeriod, scope]);
 
-    // Auto-refresh effect
+    // Recalculate health data on-demand
+    const handleRecalculateNow = async () => {
+      setIsRecalculating(true);
+      try {
+        const nonce = window.wcPaymentMonitor?.nonce || "";
+        const headers = {
+          "Content-Type": "application/json",
+        };
+        if (nonce) {
+          headers["X-WP-Nonce"] = nonce;
+        }
+
+        console.log("Triggering health recalculation...");
+        const response = await fetch(
+          "/wp-json/wc-payment-monitor/v1/health/recalculate",
+          {
+            method: "POST",
+            headers,
+            credentials: "same-origin",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to recalculate: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        const result = await response.json();
+        console.log("Recalculation result:", result);
+
+        // Re-fetch health data after recalc
+        await fetchGatewayHealth();
+      } catch (err) {
+        console.error("Recalculation error:", err);
+        setError(err.message || "Failed to recalculate gateway health");
+      } finally {
+        setIsRecalculating(false);
+      }
+    };
     useEffect(() => {
       fetchGatewayHealth();
 
@@ -583,10 +628,14 @@
       }, 30000); // Refresh every 30 seconds
 
       return () => clearInterval(intervalId);
-    }, [fetchGatewayHealth]);
+    }, [timePeriod, scope]);
 
     // Get status class based on health percentage
-    const getStatusClass = (health) => {
+    const getStatusClass = (gateway) => {
+      const txCount =
+        gateway?.transaction_count ?? gateway?.total_transactions ?? 0;
+      if (!txCount) return "status-unknown";
+      const health = gateway?.health_percentage ?? 0;
       if (health >= 95) return "status-excellent";
       if (health >= 90) return "status-good";
       if (health >= 75) return "status-warning";
@@ -594,7 +643,11 @@
     };
 
     // Get status text
-    const getStatusText = (health) => {
+    const getStatusText = (gateway) => {
+      const txCount =
+        gateway?.transaction_count ?? gateway?.total_transactions ?? 0;
+      if (!txCount) return "No Data";
+      const health = gateway?.health_percentage ?? 0;
       if (health >= 95) return "Excellent";
       if (health >= 90) return "Good";
       if (health >= 75) return "Warning";
@@ -643,6 +696,35 @@
             React.createElement("option", { value: "24h" }, "Last 24 Hours"),
             React.createElement("option", { value: "7d" }, "Last 7 Days"),
             React.createElement("option", { value: "30d" }, "Last 30 Days"),
+          ),
+        ),
+        React.createElement(
+          "div",
+          null,
+          React.createElement(
+            "label",
+            { htmlFor: "gateway-scope", style: { marginLeft: "20px" } },
+            "Gateways:",
+          ),
+          React.createElement(
+            "select",
+            {
+              id: "gateway-scope",
+              value: scope,
+              onChange: (e) => setScope(e.target.value),
+            },
+            React.createElement("option", { value: "enabled" }, "Enabled Only"),
+            React.createElement("option", { value: "all" }, "All Registered"),
+          ),
+          React.createElement(
+            "button",
+            {
+              className: "button button-secondary",
+              onClick: handleRecalculateNow,
+              disabled: isRecalculating,
+              style: { marginLeft: "20px" },
+            },
+            isRecalculating ? "Recalculating..." : "Recalculate Now",
           ),
         ),
       ),
@@ -704,10 +786,9 @@
               React.createElement(
                 "span",
                 {
-                  className:
-                    "status-badge " + getStatusClass(gateway.health_percentage),
+                  className: "status-badge " + getStatusClass(gateway),
                 },
-                getStatusText(gateway.health_percentage),
+                getStatusText(gateway),
               ),
             ),
 
@@ -781,9 +862,7 @@
                 "div",
                 { className: "progress-bar" },
                 React.createElement("div", {
-                  className:
-                    "progress-fill " +
-                    getStatusClass(gateway.health_percentage),
+                  className: "progress-fill " + getStatusClass(gateway),
                   style: {
                     width: gateway.health_percentage + "%",
                   },
