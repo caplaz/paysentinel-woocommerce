@@ -664,6 +664,16 @@
       return periods[timePeriod] || "Last 24 Hours";
     };
 
+    // Get short period label for stats
+    const getPeriodShortLabel = () => {
+      const periods = {
+        "24h": "24h",
+        "7d": "7d",
+        "30d": "30d",
+      };
+      return periods[timePeriod] || "24h";
+    };
+
     return React.createElement(
       "div",
       { className: "gateway-health-component" },
@@ -692,15 +702,12 @@
               id: "time-period",
               value: timePeriod,
               onChange: (e) => setTimePeriod(e.target.value),
+              style: { height: "32px", padding: "0 8px", lineHeight: "32px" },
             },
             React.createElement("option", { value: "24h" }, "Last 24 Hours"),
             React.createElement("option", { value: "7d" }, "Last 7 Days"),
             React.createElement("option", { value: "30d" }, "Last 30 Days"),
           ),
-        ),
-        React.createElement(
-          "div",
-          null,
           React.createElement(
             "label",
             { htmlFor: "gateway-scope", style: { marginLeft: "20px" } },
@@ -712,6 +719,7 @@
               id: "gateway-scope",
               value: scope,
               onChange: (e) => setScope(e.target.value),
+              style: { height: "32px", padding: "0 8px", lineHeight: "32px" },
             },
             React.createElement("option", { value: "enabled" }, "Enabled Only"),
             React.createElement("option", { value: "all" }, "All Registered"),
@@ -722,7 +730,7 @@
               className: "button button-secondary",
               onClick: handleRecalculateNow,
               disabled: isRecalculating,
-              style: { marginLeft: "20px" },
+              style: { marginLeft: "20px", height: "32px", padding: "0 12px" },
             },
             isRecalculating ? "Recalculating..." : "Recalculate Now",
           ),
@@ -816,12 +824,12 @@
                 React.createElement(
                   "span",
                   { className: "stat-label" },
-                  "Success Rate (24h)",
+                  "Success Rate (" + getPeriodShortLabel() + ")",
                 ),
                 React.createElement(
                   "span",
                   { className: "stat-value" },
-                  gateway.success_rate_24h.toFixed(1) + "%",
+                  gateway.success_rate.toFixed(1) + "%",
                 ),
               ),
               React.createElement(
@@ -844,12 +852,12 @@
                 React.createElement(
                   "span",
                   { className: "stat-label" },
-                  "Failed (24h)",
+                  "Failed (" + getPeriodShortLabel() + ")",
                 ),
                 React.createElement(
                   "span",
                   { className: "stat-value error" },
-                  gateway.failed_count_24h,
+                  gateway.failed_transactions,
                 ),
               ),
             ),
