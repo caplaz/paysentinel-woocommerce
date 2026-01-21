@@ -21,11 +21,17 @@ class WC_Payment_Monitor_Admin {
 	private $security;
 
 	/**
+	 * License instance
+	 */
+	private $license;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->database = new WC_Payment_Monitor_Database();
 		$this->security = new WC_Payment_Monitor_Security();
+		$this->license  = new WC_Payment_Monitor_License();
 		$this->init_hooks();
 	}
 
@@ -36,6 +42,7 @@ class WC_Payment_Monitor_Admin {
 		add_action( 'admin_menu', array( $this, 'register_menu_pages' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+		add_action( 'update_option_wc_payment_monitor_options', array( $this, 'validate_license_on_save' ), 10, 2 );
 	}
 
 	/**
@@ -309,11 +316,41 @@ class WC_Payment_Monitor_Admin {
 	 * Render license key field
 	 */
 	public function render_field_license_key() {
-		$options     = get_option( 'wc_payment_monitor_options', array() );
-		$license_key = isset( $options['license_key'] ) ? sanitize_text_field( $options['license_key'] ) : '';
+		$options       = get_option( 'wc_payment_monitor_options', array() );
+		$license_key   = isset( $options['license_key'] ) ? sanitize_text_field( $options['license_key'] ) : '';
+		$license_status = $this->license->get_license_status();
+		$license_data  = $this->license->get_license_data();
 		?>
-		<input type="password" name="wc_payment_monitor_options[license_key]" value="<?php echo esc_attr( $license_key ); ?>" class="regular-text" />
+		<div style="display: flex; align-items: center; gap: 10px;">
+			<input type="password" id="wc_payment_monitor_license_key" name="wc_payment_monitor_options[license_key]" value="<?php echo esc_attr( $license_key ); ?>" class="regular-text" />
+			<button type="button" class="button" onclick="var field = document.getElementById('wc_payment_monitor_license_key'); var type = field.type === 'password' ? 'text' : 'password'; field.type = type; this.textContent = type === 'password' ? 'Show' : 'Hide';" style="min-width: 60px;">
+				<?php esc_html_e( 'Show', 'wc-payment-monitor' ); ?>
+			</button>
+		</div>
 		<p class="description"><?php esc_html_e( 'Enter your license key to enable premium features.', 'wc-payment-monitor' ); ?></p>
+		<?php if ( 'valid' === $license_status ) : ?>
+			<p style="color: #46b450;">
+				<span class="dashicons dashicons-yes-alt" style="color: #46b450;"></span>
+				<?php esc_html_e( 'License is active and valid', 'wc-payment-monitor' ); ?>
+			</p>
+			<?php if ( $license_data ) : ?>
+				<?php if ( isset( $license_data['plan'] ) ) : ?>
+					<p style="margin: 10px 0; font-size: 16px; font-weight: bold; color: #0073aa;">
+					<?php echo esc_html( ucwords( $license_data['plan'] ) ); ?> Plan
+					</p>
+				<?php endif; ?>
+				<?php if ( isset( $license_data['expiration_ts'] ) ) : ?>
+					<p style="margin: 5px 0; font-size: 14px;">
+						<?php echo esc_html( sprintf( __( 'Expires: %s', 'wc-payment-monitor' ), date_i18n( get_option( 'date_format' ), strtotime( $license_data['expiration_ts'] ) ) ) ); ?>
+					</p>
+				<?php endif; ?>
+			<?php endif; ?>
+		<?php elseif ( 'invalid' === $license_status ) : ?>
+			<p style="color: #dc3232;">
+				<span class="dashicons dashicons-warning" style="color: #dc3232;"></span>
+				<?php esc_html_e( 'License is invalid or expired', 'wc-payment-monitor' ); ?>
+			</p>
+		<?php endif; ?>
 		<?php
 	}
 
@@ -395,6 +432,7 @@ class WC_Payment_Monitor_Admin {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Payment Monitor Settings', 'wc-payment-monitor' ); ?></h1>
+			<?php settings_errors( 'wc_payment_monitor_options' ); ?>
 			<form method="post" action="options.php">
 				<?php
 				settings_fields( 'wc_payment_monitor_settings' );
@@ -681,14 +719,9 @@ class WC_Payment_Monitor_Admin {
 			}
 		}
 
-		// Validate license key
+		// License key - sanitize only, validation happens in validate_license_on_save
 		if ( isset( $settings['license_key'] ) ) {
-			$license_validation = self::validate_license_key( $settings['license_key'] );
-			if ( $license_validation['valid'] ) {
-				$validated_settings['license_key'] = sanitize_text_field( $settings['license_key'] );
-			} else {
-				$errors[] = 'license_key: ' . $license_validation['message'];
-			}
+			$validated_settings['license_key'] = sanitize_text_field( $settings['license_key'] );
 		}
 
 		return array(
@@ -696,5 +729,45 @@ class WC_Payment_Monitor_Admin {
 			'errors'             => $errors,
 			'validated_settings' => $validated_settings,
 		);
+	}
+
+	/**
+	 * Validate license when settings are saved
+	 *
+	 * @param array $old_value Old settings value
+	 * @param array $new_value New settings value
+	 */
+	public function validate_license_on_save( $old_value, $new_value ) {
+		// Check if license key has changed
+		$old_key = isset( $old_value['license_key'] ) ? $old_value['license_key'] : '';
+		$new_key = isset( $new_value['license_key'] ) ? $new_value['license_key'] : '';
+
+		if ( $old_key !== $new_key && ! empty( $new_key ) ) {
+			// Validate new license key
+			$result = $this->license->save_and_validate_license( $new_key );
+
+			if ( $result['valid'] ) {
+				add_settings_error(
+					'wc_payment_monitor_options',
+					'license_valid',
+					__( 'License key validated successfully!', 'wc-payment-monitor' ),
+					'success'
+				);
+			} else {
+				// Build error message without debug info
+				$error_msg = sprintf(
+					/* translators: %s: error message */
+					__( 'License validation failed: %s', 'wc-payment-monitor' ),
+					$result['message']
+				);
+				
+				add_settings_error(
+					'wc_payment_monitor_options',
+					'license_invalid',
+					$error_msg,
+					'error'
+				);
+			}
+		}
 	}
 }
