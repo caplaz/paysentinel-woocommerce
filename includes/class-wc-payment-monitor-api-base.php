@@ -58,13 +58,16 @@ abstract class WC_Payment_Monitor_API_Base {
 	 * @param string $error_code Error code
 	 * @param string $message Error message
 	 * @param int    $status HTTP status code
-	 * @return WP_Error
+	 * @return WP_REST_Response
 	 */
 	protected function get_error_response( $error_code, $message, $status = 400 ) {
-		return new WP_Error(
-			$error_code,
-			$message,
-			array( 'status' => $status )
+		return new WP_REST_Response(
+			array(
+				'success' => false,
+				'code'    => $error_code,
+				'message' => $message,
+			),
+			$status
 		);
 	}
 
@@ -143,7 +146,7 @@ abstract class WC_Payment_Monitor_API_Base {
 	 * Sanitize and validate date parameters
 	 *
 	 * @param string $date_string Date string to validate (Y-m-d format)
-	 * @return string|WP_Error Validated date or error
+	 * @return string|WP_REST_Response Validated date or error
 	 */
 	protected function validate_date( $date_string ) {
 		if ( empty( $date_string ) ) {

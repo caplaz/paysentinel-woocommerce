@@ -94,6 +94,9 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 
 	/**
 	 * Get alerts
+	 *
+	 * @param WP_REST_Request $request Request object
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_alerts( $request ) {
 		global $wpdb;
@@ -126,7 +129,8 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 			$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
 		}
 
-		$table_name = $wpdb->prefix . 'payment_monitor_alerts';
+		$prefix     = ( is_object( $wpdb ) && property_exists( $wpdb, 'prefix' ) ) ? $wpdb->prefix : 'wp_';
+		$table_name = $prefix . 'payment_monitor_alerts';
 
 		// Check if table exists
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
@@ -164,17 +168,21 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 
 	/**
 	 * Get specific alert
+	 *
+	 * @param WP_REST_Request $request Request object
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_alert( $request ) {
 		global $wpdb;
 
 		$id = $request->get_param( 'id' );
 
-		$table_name = $wpdb->prefix . 'payment_monitor_alerts';
+		$prefix     = ( is_object( $wpdb ) && property_exists( $wpdb, 'prefix' ) ) ? $wpdb->prefix : 'wp_';
+		$table_name = $prefix . 'payment_monitor_alerts';
 
 		// Check if table exists
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
-			return new WP_Error( 'alert_not_found', 'Alert not found', array( 'status' => 404 ) );
+			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
 		}
 
 		$alert = $wpdb->get_row(
@@ -183,7 +191,7 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 		);
 
 		if ( ! $alert ) {
-			return new WP_Error( 'alert_not_found', 'Alert not found', array( 'status' => 404 ) );
+			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
 		}
 
 		return $this->get_success_response( $this->format_alert( $alert ) );
@@ -197,11 +205,12 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 
 		$id = $request->get_param( 'id' );
 
-		$table_name = $wpdb->prefix . 'payment_monitor_alerts';
+		$prefix     = ( is_object( $wpdb ) && property_exists( $wpdb, 'prefix' ) ) ? $wpdb->prefix : 'wp_';
+		$table_name = $prefix . 'payment_monitor_alerts';
 
 		// Check if table exists
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
-			return new WP_Error( 'alert_not_found', 'Alert not found', array( 'status' => 404 ) );
+			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
 		}
 
 		// Check if alert exists
@@ -211,7 +220,7 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 		);
 
 		if ( ! $alert ) {
-			return new WP_Error( 'alert_not_found', 'Alert not found', array( 'status' => 404 ) );
+			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
 		}
 
 		// Update alert status
@@ -227,7 +236,7 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 		);
 
 		if ( $result === false ) {
-			return new WP_Error( 'update_failed', 'Failed to resolve alert', array( 'status' => 500 ) );
+			return $this->get_error_response( 'update_failed', 'Failed to resolve alert', 500 );
 		}
 
 		// Get updated alert

@@ -159,3 +159,30 @@ require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-base.p
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-health.php';
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-transactions.php';
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-admin.php';
+
+// Minimal WooCommerce stubs for tests when WooCommerce isn't loaded
+if ( ! function_exists( 'WC' ) ) {
+	class WC_Payment_Gateways_Stub {
+		public function get_available_payment_gateways() {
+			// Return empty array to simulate no gateways when WooCommerce isn't available
+			return array();
+		}
+	}
+
+	class WC_Main_Stub {
+		public function payment_gateways() {
+			return new WC_Payment_Gateways_Stub();
+		}
+	}
+
+	function WC() {
+		return new WC_Main_Stub();
+	}
+}
+
+if ( ! function_exists( 'wc_get_order' ) ) {
+	function wc_get_order( $order_id ) {
+		// No WooCommerce in unit tests; return null to skip order augmentation
+		return null;
+	}
+}

@@ -84,7 +84,7 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 	 * Get transactions with filtering and pagination
 	 *
 	 * @param WP_REST_Request $request Request object
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_transactions( $request ) {
 		try {
@@ -161,7 +161,7 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 			$offset = $this->calculate_offset( $pagination['page'], $pagination['per_page'] );
 
 			$query = "SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code,
-                             created_at as timestamp
+				 created_at as created_at
                       FROM $table_name 
                       WHERE $where_clause
                       ORDER BY created_at DESC
@@ -188,7 +188,7 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 						'currency'       => $row->currency,
 						'failure_reason' => $row->failure_reason,
 						'failure_code'   => $row->failure_code,
-						'timestamp'      => $row->timestamp,
+						'created_at'     => $row->created_at,
 					);
 				},
 				$results
@@ -213,7 +213,7 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 	 * Get single transaction details
 	 *
 	 * @param WP_REST_Request $request Request object
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_transaction( $request ) {
 		try {
@@ -242,7 +242,7 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 			$result = $wpdb->get_row(
 				$wpdb->prepare(
 					"SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code,
-                        created_at as timestamp
+                        created_at as created_at
                  FROM $table_name 
                  WHERE id = %d",
 					$transaction_id
@@ -269,7 +269,7 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 				'currency'       => $result->currency,
 				'failure_reason' => $result->failure_reason,
 				'failure_code'   => $result->failure_code,
-				'timestamp'      => $result->timestamp,
+				'created_at'     => $result->created_at,
 			);
 
 			// Add order details if order exists

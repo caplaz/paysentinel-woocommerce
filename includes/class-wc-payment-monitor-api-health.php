@@ -100,7 +100,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 	 * Get all gateway health data
 	 *
 	 * @param WP_REST_Request $request Request object
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_all_gateway_health( $request ) {
 		$period = $this->get_string_param( $request, 'period', '24h' );
@@ -128,7 +128,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			$gateways = WC()->payment_gateways()->get_available_payment_gateways();
 
 			if ( empty( $gateways ) ) {
-				return $this->get_success_response( array() );
+				return $this->get_paginated_response( array(), 0, 1, 1 );
 			}
 
 			// Initialize connectivity checker
@@ -150,26 +150,31 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 					$trend_data = $this->get_gateway_trend_data( $gateway_id, $period );
 
 					$item = array(
-						'gateway_id'              => $gateway_id,
-						'gateway_name'            => $gateway->title,
-						'health_percentage'       => floatval( $health->success_rate ),
-						'success_rate_24h'        => floatval( $health->success_rate ),
-						'transaction_count'       => intval( $health->total_transactions ),
-						'failed_count_24h'        => intval( $health->failed_transactions ),
-						'last_checked'            => $health->calculated_at,
-						'trend_data'              => $trend_data,
+						'gateway_id'                 => $gateway_id,
+						'gateway_name'               => $gateway->title,
+						'health_percentage'          => floatval( $health->success_rate ),
+						'success_rate'               => floatval( $health->success_rate ),
+						'success_rate_24h'           => floatval( $health->success_rate ),
+						'transaction_count'          => intval( $health->total_transactions ),
+						'successful_transactions'    => intval( $health->successful_transactions ),
+						'failed_transactions'        => intval( $health->failed_transactions ),
+						'failed_count_24h'           => intval( $health->failed_transactions ),
+						'avg_response_time'          => isset( $health->avg_response_time ) ? intval( $health->avg_response_time ) : null,
+						'last_checked'               => $health->calculated_at,
+						'last_failure'               => null,
+						'trend_data'                 => $trend_data,
 					);
 
 					// Add connectivity status if available
 					if ( $last_check ) {
-						$item['connectivity_status'] = $last_check->status;
-						$item['connectivity_message'] = $last_check->message;
-						$item['connectivity_checked_at'] = $last_check->checked_at;
+						$item['connectivity_status']           = $last_check->status;
+						$item['connectivity_message']          = $last_check->message;
+						$item['connectivity_checked_at']       = $last_check->checked_at;
 						$item['connectivity_response_time_ms'] = floatval( $last_check->response_time_ms );
 					} else {
-						$item['connectivity_status'] = null;
-						$item['connectivity_message'] = 'No connectivity check performed yet';
-						$item['connectivity_checked_at'] = null;
+						$item['connectivity_status']           = null;
+						$item['connectivity_message']          = 'No connectivity check performed yet';
+						$item['connectivity_checked_at']       = null;
 						$item['connectivity_response_time_ms'] = null;
 					}
 
@@ -177,7 +182,12 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				}
 			}
 
-			return $this->get_success_response( $health_data );
+			return $this->get_paginated_response(
+				$health_data,
+				count( $health_data ),
+				1,
+				max( 1, count( $health_data ) )
+			);
 		} catch ( Exception $e ) {
 			return $this->get_error_response(
 				'health_retrieval_failed',
@@ -191,7 +201,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 	 * Get specific gateway health data
 	 *
 	 * @param WP_REST_Request $request Request object
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_gateway_health( $request ) {
 		$gateway_id = $request->get_param( 'gateway_id' );
@@ -240,15 +250,21 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			$last_check = $connectivity->get_last_check( $gateway_id );
 
 			$response_data = array(
-				'gateway_id'              => $gateway_id,
-				'gateway_name'            => $gateway->title,
-				'period'                  => $period,
-				'success_rate'            => floatval( $health->success_rate ),
-				'total_transactions'      => intval( $health->total_transactions ),
-				'successful_transactions' => intval( $health->successful_transactions ),
-				'failed_transactions'     => intval( $health->failed_transactions ),
-				'avg_response_time'       => intval( $health->avg_response_time ),
-				'last_updated'            => $health->calculated_at,
+				'gateway_id'                 => $gateway_id,
+				'gateway_name'               => $gateway->title,
+				'period'                     => $period,
+				'health_percentage'          => floatval( $health->success_rate ),
+				'success_rate'               => floatval( $health->success_rate ),
+				'success_rate_24h'           => floatval( $health->success_rate ),
+				'transaction_count'          => intval( $health->total_transactions ),
+				'successful_transactions'    => intval( $health->successful_transactions ),
+				'failed_transactions'        => intval( $health->failed_transactions ),
+				'failed_count_24h'           => intval( $health->failed_transactions ),
+				'avg_response_time'          => intval( $health->avg_response_time ),
+				'last_checked'               => $health->calculated_at,
+				'last_updated'               => $health->calculated_at,
+				'last_failure'               => null,
+				'trend_data'                 => $this->get_gateway_trend_data( $gateway_id, '24h' ),
 			);
 
 			// Add connectivity status
@@ -264,7 +280,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				$response_data['connectivity_response_time_ms'] = null;
 			}
 
-			return new WP_REST_Response( $response_data );
+			return $this->get_success_response( $response_data );
 		} catch ( Exception $e ) {
 			return $this->get_error_response(
 				'health_retrieval_failed',
@@ -278,7 +294,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 	 * Get gateway health history
 	 *
 	 * @param WP_REST_Request $request Request object
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_gateway_health_history( $request ) {
 		$gateway_id = $request->get_param( 'gateway_id' );

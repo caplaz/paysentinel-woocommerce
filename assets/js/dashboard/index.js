@@ -12,6 +12,92 @@
   const { apiFetch } = wp;
 
   /**
+   * Normalize gateway health payloads into a consistent shape
+   */
+  function normalizeGateways(data) {
+    if (!Array.isArray(data)) return [];
+
+    return data.map((gateway) => {
+      const successRate = parseFloat(
+        gateway.success_rate ??
+          gateway.success_rate_24h ??
+          gateway.health_percentage ??
+          0,
+      );
+
+      const failed24h =
+        gateway.failed_transactions ??
+        gateway.failed_count_24h ??
+        gateway.failed ??
+        gateway.failed_transactions_24h ??
+        0;
+
+      return {
+        gateway_id:
+          gateway.gateway_id || gateway.id || gateway.slug || "unknown",
+        gateway_name:
+          gateway.gateway_name ||
+          gateway.name ||
+          gateway.title ||
+          gateway.gateway_id,
+        success_rate: successRate,
+        success_rate_24h: parseFloat(
+          gateway.success_rate_24h ?? gateway.success_rate ?? successRate,
+        ),
+        health_percentage: parseFloat(
+          gateway.health_percentage ?? gateway.success_rate ?? successRate,
+        ),
+        total_transactions:
+          gateway.total_transactions ?? gateway.transaction_count ?? 0,
+        failed_transactions: failed24h,
+        failed_count_24h: failed24h,
+        avg_response_time:
+          gateway.avg_response_time ??
+          gateway.connectivity_response_time_ms ??
+          0,
+        connectivity_status: gateway.connectivity_status ?? null,
+        connectivity_message: gateway.connectivity_message ?? "",
+        connectivity_response_time_ms:
+          gateway.connectivity_response_time_ms ??
+          gateway.avg_response_time ??
+          null,
+        connectivity_checked_at: gateway.connectivity_checked_at ?? null,
+        last_failure: gateway.last_failure || gateway.last_failure_at || null,
+        last_checked: gateway.last_checked || gateway.calculated_at || null,
+        trend_data: gateway.trend_data || gateway.history || [],
+      };
+    });
+  }
+
+  /**
+   * Normalize paginated or direct array responses into { items, total }
+   */
+  function normalizeCollectionResponse(payload) {
+    if (!payload) return { items: [], total: 0 };
+
+    if (Array.isArray(payload)) {
+      return { items: payload, total: payload.length };
+    }
+
+    if (payload.items) {
+      return {
+        items: Array.isArray(payload.items) ? payload.items : [],
+        total: payload.pagination?.total || payload.items.length || 0,
+      };
+    }
+
+    if (payload.data) {
+      const dataItems = Array.isArray(payload.data) ? payload.data : [];
+      return {
+        items: dataItems,
+        total: payload.total || dataItems.length || 0,
+      };
+    }
+
+    return { items: [], total: 0 };
+  }
+
+  /**
    * Dashboard Component
    */
   function Dashboard() {
@@ -44,7 +130,7 @@
         // Load gateway health data
         console.log(
           "Loading health data from:",
-          "/wp-json/wc-payment-monitor/v1/health/gateways"
+          "/wp-json/wc-payment-monitor/v1/health/gateways",
         );
 
         const healthResponse = await fetch(
@@ -53,20 +139,25 @@
             method: "GET",
             headers,
             credentials: "same-origin",
-          }
+          },
         );
 
         if (!healthResponse.ok) {
           console.error(
             "Health API error:",
             healthResponse.status,
-            healthResponse.statusText
+            healthResponse.statusText,
           );
         }
 
         const healthData = await healthResponse.json();
         console.log("Health response:", healthData);
-        setHealthData(Array.isArray(healthData) ? healthData : []);
+        const normalizedHealth = normalizeGateways(
+          Array.isArray(healthData)
+            ? healthData
+            : healthData?.data || healthData?.items || [],
+        );
+        setHealthData(normalizedHealth);
 
         // Load recent transactions
         console.log("Loading transactions...");
@@ -77,22 +168,22 @@
             method: "GET",
             headers,
             credentials: "same-origin",
-          }
+          },
         );
 
         if (!transactionsResponse.ok) {
           console.error(
             "Transactions API error:",
             transactionsResponse.status,
-            transactionsResponse.statusText
+            transactionsResponse.statusText,
           );
         }
 
         const transactionsData = await transactionsResponse.json();
         console.log("Transactions response:", transactionsData);
-        setTransactions(
-          Array.isArray(transactionsData?.items) ? transactionsData.items : []
-        );
+        const normalizedTransactions =
+          normalizeCollectionResponse(transactionsData);
+        setTransactions(normalizedTransactions.items);
 
         // Load recent alerts
         console.log("Loading alerts...");
@@ -103,22 +194,21 @@
             method: "GET",
             headers,
             credentials: "same-origin",
-          }
+          },
         );
 
         if (!alertsResponse.ok) {
           console.error(
             "Alerts API error:",
             alertsResponse.status,
-            alertsResponse.statusText
+            alertsResponse.statusText,
           );
         }
 
         const alertsData = await alertsResponse.json();
         console.log("Alerts response:", alertsData);
-        // Handle new direct response format (items in pagination) or legacy format (alerts)
-        const alertsList = alertsData?.items || alertsData?.alerts || [];
-        setAlerts(Array.isArray(alertsList) ? alertsList : []);
+        const normalizedAlerts = normalizeCollectionResponse(alertsData);
+        setAlerts(normalizedAlerts.items);
 
         setLoading(false);
       } catch (err) {
@@ -132,7 +222,7 @@
         setError(
           `Failed to load dashboard data. ${
             err.message || "Check browser console for details."
-          }`
+          }`,
         );
         setLoading(false);
       }
@@ -142,7 +232,7 @@
       return React.createElement(
         "div",
         { className: "wc-payment-monitor-loading" },
-        React.createElement("p", null, "Loading dashboard data...")
+        React.createElement("p", null, "Loading dashboard data..."),
       );
     }
 
@@ -150,7 +240,7 @@
       return React.createElement(
         "div",
         { className: "wc-payment-monitor-error" },
-        React.createElement("p", { style: { color: "red" } }, error)
+        React.createElement("p", { style: { color: "red" } }, error),
       );
     }
 
@@ -168,8 +258,8 @@
             className: "button button-primary",
             onClick: loadDashboardData,
           },
-          "Refresh Data"
-        )
+          "Refresh Data",
+        ),
       ),
 
       // Gateway Health Cards
@@ -187,8 +277,8 @@
                     (gateway.success_rate >= 95
                       ? "healthy"
                       : gateway.success_rate >= 85
-                      ? "warning"
-                      : "critical"),
+                        ? "warning"
+                        : "critical"),
                 },
                 React.createElement("h3", null, gateway.gateway_id),
                 React.createElement(
@@ -197,13 +287,13 @@
                   React.createElement(
                     "span",
                     { className: "label" },
-                    "Success Rate:"
+                    "Success Rate:",
                   ),
                   React.createElement(
                     "span",
                     { className: "value" },
-                    gateway.success_rate + "%"
-                  )
+                    gateway.success_rate + "%",
+                  ),
                 ),
                 React.createElement(
                   "div",
@@ -211,13 +301,13 @@
                   React.createElement(
                     "span",
                     { className: "label" },
-                    "Total Transactions:"
+                    "Total Transactions:",
                   ),
                   React.createElement(
                     "span",
                     { className: "value" },
-                    gateway.total_transactions
-                  )
+                    gateway.total_transactions,
+                  ),
                 ),
                 React.createElement(
                   "div",
@@ -225,17 +315,17 @@
                   React.createElement(
                     "span",
                     { className: "label" },
-                    "Avg Response Time:"
+                    "Avg Response Time:",
                   ),
                   React.createElement(
                     "span",
                     { className: "value" },
-                    gateway.avg_response_time + "ms"
-                  )
-                )
-              )
+                    gateway.avg_response_time + "ms",
+                  ),
+                ),
+              ),
             )
-          : React.createElement("p", null, "No gateway health data available.")
+          : React.createElement("p", null, "No gateway health data available."),
       ),
 
       // Recent Transactions
@@ -254,7 +344,7 @@
                 React.createElement("col", { style: { width: "15%" } }),
                 React.createElement("col", { style: { width: "15%" } }),
                 React.createElement("col", { style: { width: "30%" } }),
-                React.createElement("col", { style: { width: "30%" } })
+                React.createElement("col", { style: { width: "30%" } }),
               ),
               React.createElement(
                 "thead",
@@ -266,8 +356,8 @@
                   React.createElement("th", null, "Gateway"),
                   React.createElement("th", null, "Status"),
                   React.createElement("th", null, "Amount"),
-                  React.createElement("th", null, "Time")
-                )
+                  React.createElement("th", null, "Time"),
+                ),
               ),
               React.createElement(
                 "tbody",
@@ -286,26 +376,26 @@
                         {
                           className: "status-" + tx.status,
                         },
-                        tx.status
-                      )
+                        tx.status,
+                      ),
                     ),
                     React.createElement(
                       "td",
                       null,
-                      tx.amount ? "$" + tx.amount : "N/A"
+                      tx.amount ? "$" + tx.amount : "N/A",
                     ),
                     React.createElement(
                       "td",
                       null,
                       tx.created_at
                         ? new Date(tx.created_at).toLocaleString()
-                        : "N/A"
-                    )
-                  )
-                )
-              )
+                        : "N/A",
+                    ),
+                  ),
+                ),
+              ),
             )
-          : React.createElement("p", null, "No recent transactions.")
+          : React.createElement("p", null, "No recent transactions."),
       ),
 
       // Recent Alerts
@@ -323,7 +413,7 @@
                 React.createElement("col", { style: { width: "50%" } }),
                 React.createElement("col", { style: { width: "15%" } }),
                 React.createElement("col", { style: { width: "15%" } }),
-                React.createElement("col", { style: { width: "20%" } })
+                React.createElement("col", { style: { width: "20%" } }),
               ),
               React.createElement(
                 "thead",
@@ -334,8 +424,8 @@
                   React.createElement("th", null, "Alert"),
                   React.createElement("th", null, "Gateway"),
                   React.createElement("th", null, "Severity"),
-                  React.createElement("th", null, "Date")
-                )
+                  React.createElement("th", null, "Date"),
+                ),
               ),
               React.createElement(
                 "tbody",
@@ -352,7 +442,7 @@
                       null,
                       React.createElement("strong", null, alert.title),
                       React.createElement("br"),
-                      React.createElement("small", null, alert.message)
+                      React.createElement("small", null, alert.message),
                     ),
                     React.createElement("td", null, alert.gateway_id || "-"),
                     React.createElement(
@@ -364,20 +454,20 @@
                           className: "severity-badge " + alert.severity,
                         },
                         alert.severity.charAt(0).toUpperCase() +
-                          alert.severity.slice(1)
-                      )
+                          alert.severity.slice(1),
+                      ),
                     ),
                     React.createElement(
                       "td",
                       null,
-                      new Date(alert.created_at).toLocaleString()
-                    )
-                  )
-                )
-              )
+                      new Date(alert.created_at).toLocaleString(),
+                    ),
+                  ),
+                ),
+              ),
             )
-          : React.createElement("p", null, "No recent alerts.")
-      )
+          : React.createElement("p", null, "No recent alerts."),
+      ),
     );
   }
 
@@ -391,7 +481,7 @@
 
     // Mount GatewayHealth component if on health page
     const healthContainer = document.getElementById(
-      "wc-payment-monitor-health-container"
+      "wc-payment-monitor-health-container",
     );
     if (healthContainer && React && ReactDOM) {
       const root = ReactDOM.createRoot(healthContainer);
@@ -400,7 +490,7 @@
 
     // Mount Transactions component if on transactions page
     const transactionsContainer = document.getElementById(
-      "wc-payment-monitor-transactions-container"
+      "wc-payment-monitor-transactions-container",
     );
     if (transactionsContainer && React && ReactDOM) {
       const root = ReactDOM.createRoot(transactionsContainer);
@@ -409,7 +499,7 @@
 
     // Mount Alerts component if on alerts page
     const alertsContainer = document.getElementById(
-      "wc-payment-monitor-alerts-container"
+      "wc-payment-monitor-alerts-container",
     );
     if (alertsContainer && React && ReactDOM) {
       const root = ReactDOM.createRoot(alertsContainer);
@@ -451,7 +541,7 @@
             method: "GET",
             headers,
             credentials: "same-origin",
-          }
+          },
         );
 
         console.log("Response status:", response.status, response.statusText);
@@ -460,20 +550,21 @@
           const errorText = await response.text();
           console.error("Response error body:", errorText);
           throw new Error(
-            `HTTP error! status: ${response.status} - ${errorText}`
+            `HTTP error! status: ${response.status} - ${errorText}`,
           );
         }
 
         const data = await response.json();
         console.log("Gateway health data:", data);
 
-        // Handle new direct response format (array) or legacy wrapped format
-        if (Array.isArray(data)) {
-          setGateways(data);
-        } else if (data.success && data.data) {
-          setGateways(data.data);
-        } else {
+        const normalized = normalizeGateways(
+          Array.isArray(data) ? data : data?.data || data?.items || [],
+        );
+
+        if (normalized.length === 0 && data?.message) {
           setError(data.message || "Failed to fetch gateway health");
+        } else {
+          setGateways(normalized);
         }
       } catch (err) {
         setError(err.message || "Failed to fetch gateway health");
@@ -535,8 +626,8 @@
           React.createElement(
             "p",
             { className: "section-subtitle" },
-            "Real-time health metrics for all payment gateways"
-          )
+            "Real-time health metrics for all payment gateways",
+          ),
         ),
         React.createElement(
           "div",
@@ -551,16 +642,16 @@
             },
             React.createElement("option", { value: "24h" }, "Last 24 Hours"),
             React.createElement("option", { value: "7d" }, "Last 7 Days"),
-            React.createElement("option", { value: "30d" }, "Last 30 Days")
-          )
-        )
+            React.createElement("option", { value: "30d" }, "Last 30 Days"),
+          ),
+        ),
       ),
 
       // Trend info
       React.createElement(
         "div",
         { className: "trend-info" },
-        React.createElement("small", null, "Showing " + getTimePeriodLabel())
+        React.createElement("small", null, "Showing " + getTimePeriodLabel()),
       ),
 
       // Error message
@@ -573,7 +664,7 @@
         ? React.createElement(
             "div",
             { className: "loading-state" },
-            "Loading gateway health data..."
+            "Loading gateway health data...",
           )
         : null,
 
@@ -582,7 +673,7 @@
         ? React.createElement(
             "div",
             { className: "empty-state" },
-            "No gateway data available yet. Please check back soon."
+            "No gateway data available yet. Please check back soon.",
           )
         : null,
 
@@ -608,7 +699,7 @@
               React.createElement(
                 "h3",
                 null,
-                gateway.gateway_name || gateway.gateway_id
+                gateway.gateway_name || gateway.gateway_id,
               ),
               React.createElement(
                 "span",
@@ -616,8 +707,8 @@
                   className:
                     "status-badge " + getStatusClass(gateway.health_percentage),
                 },
-                getStatusText(gateway.health_percentage)
-              )
+                getStatusText(gateway.health_percentage),
+              ),
             ),
 
             // Gateway stats
@@ -630,13 +721,13 @@
                 React.createElement(
                   "span",
                   { className: "stat-label" },
-                  "Health Score"
+                  "Health Score",
                 ),
                 React.createElement(
                   "span",
                   { className: "stat-value" },
-                  gateway.health_percentage.toFixed(1) + "%"
-                )
+                  gateway.health_percentage.toFixed(1) + "%",
+                ),
               ),
               React.createElement(
                 "div",
@@ -644,13 +735,13 @@
                 React.createElement(
                   "span",
                   { className: "stat-label" },
-                  "Success Rate (24h)"
+                  "Success Rate (24h)",
                 ),
                 React.createElement(
                   "span",
                   { className: "stat-value" },
-                  gateway.success_rate_24h.toFixed(1) + "%"
-                )
+                  gateway.success_rate_24h.toFixed(1) + "%",
+                ),
               ),
               React.createElement(
                 "div",
@@ -658,13 +749,13 @@
                 React.createElement(
                   "span",
                   { className: "stat-label" },
-                  "Total Transactions"
+                  "Total Transactions",
                 ),
                 React.createElement(
                   "span",
                   { className: "stat-value" },
-                  gateway.transaction_count
-                )
+                  gateway.transaction_count,
+                ),
               ),
               React.createElement(
                 "div",
@@ -672,14 +763,14 @@
                 React.createElement(
                   "span",
                   { className: "stat-label" },
-                  "Failed (24h)"
+                  "Failed (24h)",
                 ),
                 React.createElement(
                   "span",
                   { className: "stat-value error" },
-                  gateway.failed_count_24h
-                )
-              )
+                  gateway.failed_count_24h,
+                ),
+              ),
             ),
 
             // Progress bar
@@ -696,8 +787,8 @@
                   style: {
                     width: gateway.health_percentage + "%",
                   },
-                })
-              )
+                }),
+              ),
             ),
 
             // Trend section (if data available)
@@ -711,10 +802,10 @@
                       className: "expand-trend-btn",
                       onClick: () =>
                         setExpandedGateway(
-                          isExpanded ? null : gateway.gateway_id
+                          isExpanded ? null : gateway.gateway_id,
                         ),
                     },
-                    (isExpanded ? "Hide" : "Show") + " Historical Trend"
+                    (isExpanded ? "Hide" : "Show") + " Historical Trend",
                   ),
 
                   // Expanded trend chart
@@ -725,7 +816,7 @@
                         React.createElement(
                           "div",
                           { className: "trend-header" },
-                          "Historical Trend - " + getTimePeriodLabel()
+                          "Historical Trend - " + getTimePeriodLabel(),
                         ),
                         React.createElement(
                           "div",
@@ -746,9 +837,9 @@
                                   point.health_score.toFixed(1) +
                                   "% - " +
                                   new Date(point.timestamp).toLocaleString(),
-                              })
-                            )
-                          )
+                              }),
+                            ),
+                          ),
                         ),
                         React.createElement(
                           "div",
@@ -761,10 +852,10 @@
                               null,
                               "Highest: " +
                                 Math.max(
-                                  ...trendData.map((p) => p.health_score)
+                                  ...trendData.map((p) => p.health_score),
                                 ).toFixed(1) +
-                                "%"
-                            )
+                                "%",
+                            ),
                           ),
                           React.createElement(
                             "div",
@@ -776,11 +867,11 @@
                                 (
                                   trendData.reduce(
                                     (a, p) => a + p.health_score,
-                                    0
+                                    0,
                                   ) / trendData.length
                                 ).toFixed(1) +
-                                "%"
-                            )
+                                "%",
+                            ),
                           ),
                           React.createElement(
                             "div",
@@ -790,19 +881,19 @@
                               null,
                               "Lowest: " +
                                 Math.min(
-                                  ...trendData.map((p) => p.health_score)
+                                  ...trendData.map((p) => p.health_score),
                                 ).toFixed(1) +
-                                "%"
-                            )
-                          )
-                        )
+                                "%",
+                            ),
+                          ),
+                        ),
                       )
-                    : null
+                    : null,
                 )
-              : null
+              : null,
           );
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -854,7 +945,7 @@
           const errorText = await response.text();
           console.error("Response error body:", errorText);
           throw new Error(
-            `HTTP error! status: ${response.status} - ${errorText}`
+            `HTTP error! status: ${response.status} - ${errorText}`,
           );
         }
 
@@ -863,10 +954,13 @@
 
         if (data.items && Array.isArray(data.items)) {
           setTransactions(data.items);
-          setTotalCount(data.pagination?.total || 0);
+          setTotalCount(data.pagination?.total || data.items.length || 0);
         } else if (data.success && data.data) {
           setTransactions(data.data);
-          setTotalCount(data.total || 0);
+          setTotalCount(data.total || data.data.length || 0);
+        } else if (Array.isArray(data)) {
+          setTransactions(data);
+          setTotalCount(data.length);
         } else {
           setError(data.message || "Failed to fetch transactions");
         }
@@ -906,8 +1000,8 @@
           React.createElement(
             "p",
             { className: "section-subtitle" },
-            "View all monitored payment transactions"
-          )
+            "View all monitored payment transactions",
+          ),
         ),
         React.createElement(
           "div",
@@ -925,9 +1019,9 @@
             React.createElement("option", { value: "success" }, "Success"),
             React.createElement("option", { value: "failed" }, "Failed"),
             React.createElement("option", { value: "pending" }, "Pending"),
-            React.createElement("option", { value: "retry" }, "Retry")
-          )
-        )
+            React.createElement("option", { value: "retry" }, "Retry"),
+          ),
+        ),
       ),
 
       // Error message
@@ -940,7 +1034,7 @@
         ? React.createElement(
             "div",
             { className: "loading-state" },
-            "Loading transactions..."
+            "Loading transactions...",
           )
         : null,
 
@@ -949,7 +1043,7 @@
         ? React.createElement(
             "div",
             { className: "empty-state" },
-            "No transactions found."
+            "No transactions found.",
           )
         : null,
 
@@ -972,8 +1066,8 @@
                   React.createElement("th", null, "Gateway"),
                   React.createElement("th", null, "Amount"),
                   React.createElement("th", null, "Status"),
-                  React.createElement("th", null, "Date")
-                )
+                  React.createElement("th", null, "Date"),
+                ),
               ),
               React.createElement(
                 "tbody",
@@ -990,7 +1084,7 @@
                       null,
                       tx.currency
                         ? tx.currency + " " + parseFloat(tx.amount).toFixed(2)
-                        : "$" + parseFloat(tx.amount || 0).toFixed(2)
+                        : "$" + parseFloat(tx.amount || 0).toFixed(2),
                     ),
                     React.createElement(
                       "td",
@@ -1000,20 +1094,20 @@
                         {
                           className: "status-badge status-" + (tx.status || ""),
                         },
-                        tx.status || "unknown"
-                      )
+                        tx.status || "unknown",
+                      ),
                     ),
                     React.createElement(
                       "td",
                       null,
                       tx.created_at
                         ? new Date(tx.created_at).toLocaleString()
-                        : "N/A"
-                    )
-                  )
-                )
-              )
-            )
+                        : "N/A",
+                    ),
+                  ),
+                ),
+              ),
+            ),
           )
         : null,
 
@@ -1028,12 +1122,12 @@
                 disabled: page <= 1,
                 onClick: () => setPage(page - 1),
               },
-              "Previous"
+              "Previous",
             ),
             React.createElement(
               "span",
               { className: "page-info" },
-              "Page " + page + " of " + totalPages
+              "Page " + page + " of " + totalPages,
             ),
             React.createElement(
               "button",
@@ -1041,10 +1135,10 @@
                 disabled: page >= totalPages,
                 onClick: () => setPage(page + 1),
               },
-              "Next"
-            )
+              "Next",
+            ),
           )
-        : null
+        : null,
     );
   }
 
@@ -1107,7 +1201,7 @@
               const errorText = response.text();
               console.error("Response error body:", errorText);
               throw new Error(
-                `HTTP error! status: ${response.status} - ${errorText}`
+                `HTTP error! status: ${response.status} - ${errorText}`,
               );
             }
 
@@ -1118,10 +1212,13 @@
 
             if (data.items && Array.isArray(data.items)) {
               setAlerts(data.items);
-              setTotalCount(data.pagination?.total || 0);
+              setTotalCount(data.pagination?.total || data.items.length || 0);
             } else if (data.success && data.data) {
               setAlerts(data.data);
-              setTotalCount(data.total || 0);
+              setTotalCount(data.total || data.data.length || 0);
+            } else if (Array.isArray(data)) {
+              setAlerts(data);
+              setTotalCount(data.length);
             } else {
               setError(data.message || "Failed to fetch alerts");
             }
@@ -1192,7 +1289,7 @@
       return React.createElement(
         "div",
         { className: "alert alert-error" },
-        "Error: " + error
+        "Error: " + error,
       );
     }
 
@@ -1212,8 +1309,8 @@
           React.createElement(
             "p",
             { className: "section-subtitle" },
-            "View all payment monitoring alerts"
-          )
+            "View all payment monitoring alerts",
+          ),
         ),
 
         React.createElement(
@@ -1232,7 +1329,7 @@
             React.createElement("option", { value: "all" }, "All Severity"),
             React.createElement("option", { value: "info" }, "Info"),
             React.createElement("option", { value: "warning" }, "Warning"),
-            React.createElement("option", { value: "critical" }, "Critical")
+            React.createElement("option", { value: "critical" }, "Critical"),
           ),
 
           React.createElement(
@@ -1246,9 +1343,9 @@
             },
             React.createElement("option", { value: "all" }, "All Status"),
             React.createElement("option", { value: "active" }, "Active"),
-            React.createElement("option", { value: "resolved" }, "Resolved")
-          )
-        )
+            React.createElement("option", { value: "resolved" }, "Resolved"),
+          ),
+        ),
       ),
 
       // Error message
@@ -1261,7 +1358,7 @@
         ? React.createElement(
             "div",
             { className: "loading-state" },
-            "Loading alerts..."
+            "Loading alerts...",
           )
         : null,
 
@@ -1270,7 +1367,7 @@
         ? React.createElement(
             "div",
             { className: "empty-state" },
-            "No alerts found."
+            "No alerts found.",
           )
         : null,
 
@@ -1294,14 +1391,14 @@
                   React.createElement(
                     "div",
                     { className: "alert-message-text" },
-                    alert.message
-                  )
+                    alert.message,
+                  ),
                 ),
 
                 React.createElement(
                   "div",
                   { className: "alert-cell alert-gateway-cell" },
-                  alert.gateway_id || "—"
+                  alert.gateway_id || "—",
                 ),
 
                 React.createElement(
@@ -1312,8 +1409,8 @@
                     {
                       className: "severity-badge " + (alert.severity || "info"),
                     },
-                    alert.severity?.toUpperCase() || "INFO"
-                  )
+                    alert.severity?.toUpperCase() || "INFO",
+                  ),
                 ),
 
                 React.createElement(
@@ -1324,8 +1421,8 @@
                     {
                       className: "status-badge " + (alert.status || "active"),
                     },
-                    alert.status?.toUpperCase() || "ACTIVE"
-                  )
+                    alert.status?.toUpperCase() || "ACTIVE",
+                  ),
                 ),
 
                 React.createElement(
@@ -1335,7 +1432,7 @@
                     ? new Date(alert.created_at).toLocaleDateString() +
                         " " +
                         new Date(alert.created_at).toLocaleTimeString()
-                    : "—"
+                    : "—",
                 ),
 
                 alert.status === "active"
@@ -1348,12 +1445,12 @@
                           className: "button button-small",
                           onClick: () => handleResolveAlert(alert.id),
                         },
-                        "Resolve"
-                      )
+                        "Resolve",
+                      ),
                     )
-                  : null
-              )
-            )
+                  : null,
+              ),
+            ),
           )
         : null,
 
@@ -1369,12 +1466,12 @@
                 disabled: page <= 1,
                 onClick: () => setPage(page - 1),
               },
-              "← Previous"
+              "← Previous",
             ),
             React.createElement(
               "span",
               { className: "page-info" },
-              "Page " + page + " of " + totalPages
+              "Page " + page + " of " + totalPages,
             ),
             React.createElement(
               "button",
@@ -1383,10 +1480,10 @@
                 disabled: page >= totalPages,
                 onClick: () => setPage(page + 1),
               },
-              "Next →"
-            )
+              "Next →",
+            ),
           )
-        : null
+        : null,
     );
   }
 })(window.wp, window.React, window.ReactDOM);

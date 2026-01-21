@@ -140,9 +140,25 @@ class WC_Payment_Monitor {
 	 * Initialize plugin
 	 */
 	public function init() {
+		// Check WordPress version
+		global $wp_version;
+		if ( version_compare( $wp_version, '5.0', '<' ) ) {
+			add_action( 'admin_notices', array( $this, 'wordpress_version_notice' ) );
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+			return;
+		}
+
 		// Check if WooCommerce is active
-		if ( ! class_exists( 'WooCommerce' ) ) {
+		if ( ! $this->is_woocommerce_active() ) {
 			add_action( 'admin_notices', array( $this, 'woocommerce_missing_notice' ) );
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+			return;
+		}
+
+		// Check WooCommerce version
+		if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '5.0', '<' ) ) {
+			add_action( 'admin_notices', array( $this, 'woocommerce_version_notice' ) );
+			deactivate_plugins( plugin_basename( __FILE__ ) );
 			return;
 		}
 
@@ -221,11 +237,8 @@ class WC_Payment_Monitor {
 	 * Plugin activation
 	 */
 	public function activate() {
-		// Check WordPress and WooCommerce versions
-		if ( ! $this->check_requirements() ) {
-			deactivate_plugins( plugin_basename( __FILE__ ) );
-			wp_die( __( 'WooCommerce Payment Monitor requires WordPress 5.0+ and WooCommerce 5.0+', 'wc-payment-monitor' ) );
-		}
+		// Note: Requirements check moved to init() method to ensure WooCommerce is loaded
+		// This allows activation even if WooCommerce loads after this plugin
 
 		// Create database tables
 		$database = new WC_Payment_Monitor_Database();
@@ -281,15 +294,36 @@ class WC_Payment_Monitor {
 			return false;
 		}
 
-		if ( ! class_exists( 'WooCommerce' ) ) {
+		// Check if WooCommerce is installed and active
+		if ( ! $this->is_woocommerce_active() ) {
 			return false;
 		}
 
+		// Check WooCommerce version if available
 		if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '5.0', '<' ) ) {
 			return false;
 		}
 
 		return true;
+	}
+
+	/**
+	 * Check if WooCommerce is active
+	 */
+	private function is_woocommerce_active() {
+		// First check if the class exists (WooCommerce is loaded)
+		if ( class_exists( 'WooCommerce' ) ) {
+			return true;
+		}
+
+		// If class doesn't exist, check if WooCommerce plugin is active
+		if ( function_exists( 'is_plugin_active' ) ) {
+			return is_plugin_active( 'woocommerce/woocommerce.php' );
+		}
+
+		// Fallback: check if the plugin file exists in active plugins
+		$active_plugins = get_option( 'active_plugins', array() );
+		return in_array( 'woocommerce/woocommerce.php', $active_plugins );
 	}
 
 	/**
@@ -322,6 +356,28 @@ class WC_Payment_Monitor {
 			__( 'WooCommerce Payment Monitor', 'wc-payment-monitor' ) .
 			'</strong> ' .
 			__( 'requires WooCommerce to be installed and active.', 'wc-payment-monitor' ) .
+			'</p></div>';
+	}
+
+	/**
+	 * Show WordPress version notice
+	 */
+	public function wordpress_version_notice() {
+		echo '<div class="error"><p><strong>' .
+			__( 'WooCommerce Payment Monitor', 'wc-payment-monitor' ) .
+			'</strong> ' .
+			__( 'requires WordPress 5.0 or higher.', 'wc-payment-monitor' ) .
+			'</p></div>';
+	}
+
+	/**
+	 * Show WooCommerce version notice
+	 */
+	public function woocommerce_version_notice() {
+		echo '<div class="error"><p><strong>' .
+			__( 'WooCommerce Payment Monitor', 'wc-payment-monitor' ) .
+			'</strong> ' .
+			__( 'requires WooCommerce 5.0 or higher.', 'wc-payment-monitor' ) .
 			'</p></div>';
 	}
 }
