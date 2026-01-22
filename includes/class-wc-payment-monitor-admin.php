@@ -166,6 +166,16 @@ class WC_Payment_Monitor_Admin {
 			array( $this, 'render_alerts_page' )
 		);
 
+		// Add diagnostic tools submenu
+		add_submenu_page(
+			'wc-payment-monitor',
+			__( 'Diagnostic Tools', 'wc-payment-monitor' ),
+			__( 'Diagnostic Tools', 'wc-payment-monitor' ),
+			'manage_woocommerce',
+			'wc-payment-monitor-diagnostics',
+			array( $this, 'render_diagnostics_page' )
+		);
+
 		// Add settings submenu
 		add_submenu_page(
 			'wc-payment-monitor',
@@ -245,6 +255,23 @@ class WC_Payment_Monitor_Admin {
 			'license_key',
 			__( 'License Key', 'wc-payment-monitor' ),
 			array( $this, 'render_field_license_key' ),
+			'wc_payment_monitor_settings',
+			'wc_payment_monitor_main'
+		);
+
+		// Test mode settings
+		add_settings_field(
+			'enable_test_mode',
+			__( 'Enable Test Mode', 'wc-payment-monitor' ),
+			array( $this, 'render_field_enable_test_mode' ),
+			'wc_payment_monitor_settings',
+			'wc_payment_monitor_main'
+		);
+
+		add_settings_field(
+			'test_failure_rate',
+			__( 'Test Failure Rate (%)', 'wc-payment-monitor' ),
+			array( $this, 'render_field_test_failure_rate' ),
 			'wc_payment_monitor_settings',
 			'wc_payment_monitor_main'
 		);
@@ -356,6 +383,34 @@ class WC_Payment_Monitor_Admin {
 				<?php esc_html_e( 'License is invalid or expired', 'wc-payment-monitor' ); ?>
 			</p>
 		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * Render enable test mode field
+	 */
+	public function render_field_enable_test_mode() {
+		$options = get_option( 'wc_payment_monitor_settings', array() );
+		$enabled = isset( $options['enable_test_mode'] ) ? intval( $options['enable_test_mode'] ) : 0;
+		?>
+		<input type="checkbox" name="wc_payment_monitor_options[enable_test_mode]" value="1" <?php checked( $enabled, 1 ); ?> />
+		<label><?php esc_html_e( 'Enable payment failure simulation for testing', 'wc-payment-monitor' ); ?></label>
+		<p class="description" style="color: #d63638;">
+			<strong><?php esc_html_e( 'Warning:', 'wc-payment-monitor' ); ?></strong>
+			<?php esc_html_e( 'This will simulate random payment failures during checkout. Only enable on test/development sites!', 'wc-payment-monitor' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Render test failure rate field
+	 */
+	public function render_field_test_failure_rate() {
+		$options = get_option( 'wc_payment_monitor_settings', array() );
+		$rate    = isset( $options['test_failure_rate'] ) ? intval( $options['test_failure_rate'] ) : 10;
+		?>
+		<input type="number" name="wc_payment_monitor_options[test_failure_rate]" value="<?php echo esc_attr( $rate ); ?>" min="0" max="100" />
+		<p class="description"><?php esc_html_e( 'Percentage of payments to simulate as failures (only when test mode is enabled).', 'wc-payment-monitor' ); ?></p>
 		<?php
 	}
 
@@ -774,5 +829,373 @@ class WC_Payment_Monitor_Admin {
 				);
 			}
 		}
+	}
+
+	/**
+	 * Render diagnostics page
+	 */
+	public function render_diagnostics_page() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'wc-payment-monitor' ) );
+		}
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'Payment Monitor - Diagnostic Tools', 'wc-payment-monitor' ); ?></h1>
+			
+			<div style="margin: 20px 0;">
+				<p><?php esc_html_e( 'Use these tools to diagnose and resolve payment issues.', 'wc-payment-monitor' ); ?></p>
+			</div>
+
+			<div class="wc-payment-monitor-diagnostics">
+				<div class="diagnostic-section">
+					<div class="section-header">
+						<div>
+							<h2><?php esc_html_e( 'System Diagnostics', 'wc-payment-monitor' ); ?></h2>
+							<p class="section-subtitle"><?php esc_html_e( 'Run comprehensive health checks and diagnostics', 'wc-payment-monitor' ); ?></p>
+						</div>
+					</div>
+					<div class="section-content">
+						<button class="button button-primary" id="run-full-diagnostics">
+							<?php esc_html_e( 'Run Full Diagnostics', 'wc-payment-monitor' ); ?>
+						</button>
+						<button class="button" id="check-gateways">
+							<?php esc_html_e( 'Check Gateway Status', 'wc-payment-monitor' ); ?>
+						</button>
+						<button class="button" id="recalculate-health">
+							<?php esc_html_e( 'Recalculate Health Metrics', 'wc-payment-monitor' ); ?>
+						</button>
+						<div id="diagnostics-results" style="margin-top: 20px;"></div>
+					</div>
+				</div>
+
+				<div class="diagnostic-section">
+					<div class="section-header">
+						<div>
+							<h2><?php esc_html_e( 'Failure Simulator (Test Mode)', 'wc-payment-monitor' ); ?></h2>
+							<p class="section-subtitle"><?php esc_html_e( 'Create test orders with simulated payment failures', 'wc-payment-monitor' ); ?></p>
+						</div>
+					</div>
+					<div class="section-content">
+						<p><strong><?php esc_html_e( 'Warning:', 'wc-payment-monitor' ); ?></strong> 
+						<?php esc_html_e( 'These tools create test orders with simulated failures for testing purposes.', 'wc-payment-monitor' ); ?></p>
+						
+						<label for="failure-scenario"><?php esc_html_e( 'Failure Scenario:', 'wc-payment-monitor' ); ?></label>
+						<select id="failure-scenario">
+							<option value="card_declined"><?php esc_html_e( 'Card Declined', 'wc-payment-monitor' ); ?></option>
+							<option value="insufficient_funds"><?php esc_html_e( 'Insufficient Funds', 'wc-payment-monitor' ); ?></option>
+							<option value="gateway_timeout"><?php esc_html_e( 'Gateway Timeout', 'wc-payment-monitor' ); ?></option>
+							<option value="network_error"><?php esc_html_e( 'Network Error', 'wc-payment-monitor' ); ?></option>
+							<option value="fraud_detected"><?php esc_html_e( 'Fraud Detected', 'wc-payment-monitor' ); ?></option>
+						</select>
+						
+						<label for="failure-gateway"><?php esc_html_e( 'Gateway:', 'wc-payment-monitor' ); ?></label>
+						<select id="failure-gateway">
+							<option value="stripe">Stripe</option>
+							<option value="paypal">PayPal</option>
+							<option value="woocommerce_payments">WooCommerce Payments</option>
+						</select>
+						
+						<label for="failure-count"><?php esc_html_e( 'Number of Failures:', 'wc-payment-monitor' ); ?></label>
+						<input type="number" id="failure-count" value="1" min="1" max="50" />
+						
+						<button class="button button-secondary" id="simulate-failure">
+							<?php esc_html_e( 'Simulate Payment Failure', 'wc-payment-monitor' ); ?>
+						</button>
+						<button class="button button-secondary" id="clear-simulated">
+							<?php esc_html_e( 'Clear All Simulated Failures', 'wc-payment-monitor' ); ?>
+						</button>
+						
+						<div id="simulator-results" style="margin-top: 20px;"></div>
+					</div>
+				</div>
+
+				<div class="diagnostic-section">
+					<div class="section-header">
+						<div>
+							<h2><?php esc_html_e( 'Maintenance Tools', 'wc-payment-monitor' ); ?></h2>
+							<p class="section-subtitle"><?php esc_html_e( 'Clean up and maintain transaction data', 'wc-payment-monitor' ); ?></p>
+						</div>
+					</div>
+					<div class="section-content">
+						<button class="button" id="clean-orphaned">
+							<?php esc_html_e( 'Clean Orphaned Records', 'wc-payment-monitor' ); ?>
+						</button>
+						<button class="button" id="archive-old">
+							<?php esc_html_e( 'Archive Old Transactions (90+ days)', 'wc-payment-monitor' ); ?>
+						</button>
+						<button class="button button-secondary" id="reset-health">
+							<?php esc_html_e( 'Reset All Health Metrics', 'wc-payment-monitor' ); ?>
+						</button>
+						<div id="maintenance-results" style="margin-top: 20px;"></div>
+					</div>
+				</div>
+			</div>
+			
+			<script>
+				jQuery(document).ready(function($) {
+					// Add basic JavaScript functionality
+					$('#run-full-diagnostics').on('click', function() {
+						var $btn = $(this);
+						$btn.prop('disabled', true).text('<?php esc_attr_e( 'Running...', 'wc-payment-monitor' ); ?>');
+						
+						$.ajax({
+							url: wcPaymentMonitor.apiUrl + 'diagnostics/full',
+							method: 'GET',
+							headers: {
+								'X-WP-Nonce': wcPaymentMonitor.restNonce
+							},
+							success: function(response) {
+								$('#diagnostics-results').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+							},
+							error: function(xhr) {
+								$('#diagnostics-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
+							},
+							complete: function() {
+								$btn.prop('disabled', false).text('<?php esc_attr_e( 'Run Full Diagnostics', 'wc-payment-monitor' ); ?>');
+							}
+						});
+					});
+
+					$('#check-gateways').on('click', function() {
+						var $btn = $(this);
+						$btn.prop('disabled', true).text('<?php esc_attr_e( 'Checking...', 'wc-payment-monitor' ); ?>');
+						
+						$.ajax({
+							url: wcPaymentMonitor.apiUrl + 'diagnostics/gateways',
+							method: 'GET',
+							headers: {
+								'X-WP-Nonce': wcPaymentMonitor.restNonce
+							},
+							success: function(response) {
+								$('#diagnostics-results').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+							},
+							error: function(xhr) {
+								$('#diagnostics-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
+							},
+							complete: function() {
+								$btn.prop('disabled', false).text('<?php esc_attr_e( 'Check Gateway Status', 'wc-payment-monitor' ); ?>');
+							}
+						});
+					});
+
+					$('#recalculate-health').on('click', function() {
+						var $btn = $(this);
+						$btn.prop('disabled', true);
+						
+						$.ajax({
+							url: wcPaymentMonitor.apiUrl + 'diagnostics/health/recalculate',
+							method: 'POST',
+							headers: {
+								'X-WP-Nonce': wcPaymentMonitor.restNonce
+							},
+							success: function(response) {
+								$('#diagnostics-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+							},
+							error: function(xhr) {
+								$('#diagnostics-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
+							},
+							complete: function() {
+								$btn.prop('disabled', false);
+							}
+						});
+					});
+
+					$('#simulate-failure').on('click', function() {
+						var $btn = $(this);
+						var scenario = $('#failure-scenario').val();
+						var gateway = $('#failure-gateway').val();
+						var count = parseInt($('#failure-count').val());
+						
+						$btn.prop('disabled', true).text('<?php esc_attr_e( 'Simulating...', 'wc-payment-monitor' ); ?>');
+						
+						$.ajax({
+							url: wcPaymentMonitor.apiUrl + 'simulator/simulate',
+							method: 'POST',
+							headers: {
+								'X-WP-Nonce': wcPaymentMonitor.restNonce,
+								'Content-Type': 'application/json'
+							},
+							data: JSON.stringify({
+								scenario: scenario,
+								gateway_id: gateway,
+								count: count
+							}),
+							success: function(response) {
+								var msg = count > 1 
+									? 'Created ' + response.success + ' test orders with simulated failures'
+									: response.message;
+								$('#simulator-results').html('<div class="updated"><p>' + msg + '</p></div>');
+							},
+							error: function(xhr) {
+								$('#simulator-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
+							},
+							complete: function() {
+								$btn.prop('disabled', false).text('<?php esc_attr_e( 'Simulate Payment Failure', 'wc-payment-monitor' ); ?>');
+							}
+						});
+					});
+
+					$('#clear-simulated').on('click', function() {
+						if (!confirm('<?php esc_attr_e( 'Are you sure you want to delete all simulated test orders?', 'wc-payment-monitor' ); ?>')) {
+							return;
+						}
+						
+						var $btn = $(this);
+						$btn.prop('disabled', true);
+						
+						$.ajax({
+							url: wcPaymentMonitor.apiUrl + 'simulator/clear',
+							method: 'POST',
+							headers: {
+								'X-WP-Nonce': wcPaymentMonitor.restNonce
+							},
+							success: function(response) {
+								$('#simulator-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+							},
+							error: function(xhr) {
+								$('#simulator-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
+							},
+							complete: function() {
+								$btn.prop('disabled', false);
+							}
+						});
+					});
+
+					$('#clean-orphaned').on('click', function() {
+						if (!confirm('<?php esc_attr_e( 'Clean orphaned transaction records?', 'wc-payment-monitor' ); ?>')) {
+							return;
+						}
+						
+						var $btn = $(this);
+						$btn.prop('disabled', true);
+						
+						$.ajax({
+							url: wcPaymentMonitor.apiUrl + 'diagnostics/maintenance/orphaned',
+							method: 'POST',
+							headers: {
+								'X-WP-Nonce': wcPaymentMonitor.restNonce
+							},
+							success: function(response) {
+								$('#maintenance-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+							},
+							error: function(xhr) {
+								$('#maintenance-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
+							},
+							complete: function() {
+								$btn.prop('disabled', false);
+							}
+						});
+					});
+
+					$('#archive-old').on('click', function() {
+						if (!confirm('<?php esc_attr_e( 'Archive transactions older than 90 days?', 'wc-payment-monitor' ); ?>')) {
+							return;
+						}
+						
+						var $btn = $(this);
+						$btn.prop('disabled', true);
+						
+						$.ajax({
+							url: wcPaymentMonitor.apiUrl + 'diagnostics/maintenance/archive',
+							method: 'POST',
+							headers: {
+								'X-WP-Nonce': wcPaymentMonitor.restNonce
+							},
+							success: function(response) {
+								$('#maintenance-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+							},
+							error: function(xhr) {
+								$('#maintenance-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
+							},
+							complete: function() {
+								$btn.prop('disabled', false);
+							}
+						});
+					});
+
+					$('#reset-health').on('click', function() {
+						if (!confirm('<?php esc_attr_e( 'Reset all health metrics? This cannot be undone.', 'wc-payment-monitor' ); ?>')) {
+							return;
+						}
+						
+						var $btn = $(this);
+						$btn.prop('disabled', true);
+						
+						$.ajax({
+							url: wcPaymentMonitor.apiUrl + 'diagnostics/health/reset',
+							method: 'POST',
+							headers: {
+								'X-WP-Nonce': wcPaymentMonitor.restNonce
+							},
+							success: function(response) {
+								$('#maintenance-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+							},
+							error: function(xhr) {
+								$('#maintenance-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
+							},
+							complete: function() {
+								$btn.prop('disabled', false);
+							}
+						});
+					});
+				});
+			</script>
+			
+			<style>
+				.wc-payment-monitor-diagnostics .diagnostic-section {
+					margin-bottom: 20px;
+				}
+				.wc-payment-monitor-diagnostics .section-header {
+					display: flex;
+					justify-content: space-between;
+					align-items: flex-start;
+					padding: 20px;
+					background: #fff;
+					border: 1px solid #ccd0d4;
+					border-radius: 4px;
+					margin-bottom: 0;
+				}
+				.wc-payment-monitor-diagnostics .section-header h2 {
+					margin: 0 0 5px 0;
+					color: #1d2327;
+					font-size: 20px;
+					font-weight: 600;
+				}
+				.wc-payment-monitor-diagnostics .section-subtitle {
+					margin: 0;
+					color: #646970;
+					font-size: 14px;
+				}
+				.wc-payment-monitor-diagnostics .section-content {
+					padding: 20px;
+					background: #fff;
+					border: 1px solid #ccd0d4;
+					border-top: none;
+					border-radius: 0 0 4px 4px;
+				}
+				.wc-payment-monitor-diagnostics button {
+					margin-right: 10px;
+					margin-bottom: 10px;
+				}
+				.wc-payment-monitor-diagnostics label {
+					display: inline-block;
+					margin: 10px 10px 10px 0;
+					font-weight: bold;
+				}
+				.wc-payment-monitor-diagnostics select,
+				.wc-payment-monitor-diagnostics input[type="number"] {
+					margin-right: 15px;
+				}
+				.wc-payment-monitor-diagnostics pre {
+					background: #f5f5f5;
+					padding: 15px;
+					border: 1px solid #ddd;
+					border-radius: 3px;
+					overflow-x: auto;
+					max-height: 500px;
+				}
+			</style>
+		</div>
+		<?php
 	}
 }
