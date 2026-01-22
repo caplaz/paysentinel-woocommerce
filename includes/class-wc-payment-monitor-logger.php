@@ -400,14 +400,14 @@ class WC_Payment_Monitor_Logger {
                 SUM(amount) as total_amount,
                 AVG(amount) as avg_amount
             FROM {$table_name} 
-            WHERE gateway_id = %s AND created_at >= %s",
+            WHERE gateway_id = %s AND created_at >= %s AND status != 'pending'",
 				$gateway_id,
 				$start_time
 			),
 			ARRAY_A
 		);
 
-		// Calculate success rate
+		// Calculate success rate (excluding pending transactions)
 		if ( $stats['total_transactions'] > 0 ) {
 			$stats['success_rate'] = round( ( $stats['successful_transactions'] / $stats['total_transactions'] ) * 100, 2 );
 		} else {
