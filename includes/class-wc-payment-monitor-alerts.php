@@ -246,14 +246,16 @@ class WC_Payment_Monitor_Alerts {
 		$period       = $alert_data['period'];
 		$failed_count = $alert_data['failed_transactions'];
 		$total_count  = $alert_data['total_transactions'];
+		$success_count = $total_count - $failed_count;
 
 		$message = sprintf(
-			__( 'Payment gateway "%1$s" success rate has dropped to %2$s%% in the last %3$s. %4$d out of %5$d transactions failed.', 'wc-payment-monitor' ),
+			__( 'Payment gateway "%1$s" success rate has dropped to %2$s%% in the last %3$s. Only %4$d out of %5$d transactions succeeded (%6$d failed).', 'wc-payment-monitor' ),
 			$gateway_name,
 			$success_rate,
 			$this->format_period_name( $period ),
-			$failed_count,
-			$total_count
+			$success_count,
+			$total_count,
+			$failed_count
 		);
 
 		return $message;
