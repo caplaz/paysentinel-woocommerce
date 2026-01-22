@@ -96,8 +96,8 @@ class WC_Payment_Monitor_Logger {
 	/**
 	 * Log payment completion with additional details
 	 *
-	 * @param int      $order_id Order ID
-	 * @param WC_Order $order Order object
+	 * @param int    $order_id Order ID
+	 * @param object $order Order object
 	 */
 	public function log_payment_completion( $order_id, $order ) {
 		if ( ! $order ) {
@@ -111,8 +111,8 @@ class WC_Payment_Monitor_Logger {
 	/**
 	 * Extract transaction data from WooCommerce order
 	 *
-	 * @param WC_Order $order Order object
-	 * @param string   $status Transaction status
+	 * @param object $order Order object
+	 * @param string $status Transaction status
 	 * @return array Transaction data
 	 */
 	private function extract_transaction_data( $order, $status ) {
@@ -138,7 +138,7 @@ class WC_Payment_Monitor_Logger {
 	/**
 	 * Extract failure information from order
 	 *
-	 * @param WC_Order $order Order object
+	 * @param object $order Order object
 	 * @return array Failure information
 	 */
 	private function extract_failure_info( $order ) {
@@ -148,12 +148,14 @@ class WC_Payment_Monitor_Logger {
 		);
 
 		// Get order notes to extract failure information
-		$notes = wc_get_order_notes(
+		$notes = get_comments(
 			array(
-				'order_id' => $order->get_id(),
-				'limit'    => 5,
-				'orderby'  => 'date_created',
-				'order'    => 'DESC',
+				'post_id' => $order->get_id(),
+				'number'  => 5,
+				'orderby' => 'comment_date',
+				'order'   => 'DESC',
+				'approve' => 'approve',
+				'type'    => 'order_note',
 			)
 		);
 
