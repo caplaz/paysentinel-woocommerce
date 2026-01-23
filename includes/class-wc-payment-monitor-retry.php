@@ -21,7 +21,7 @@ class WC_Payment_Monitor_Retry {
 	private $logger;
 
 	/**
-	 * Maximum retry attempts per transaction
+	 * Maximum retry attempts per transaction (fallback)
 	 */
 	const MAX_RETRY_ATTEMPTS = 3;
 
@@ -43,27 +43,11 @@ class WC_Payment_Monitor_Retry {
 	 * Initialize WordPress hooks
 	 */
 	private function init_hooks() {
-		// Hook into failed payment events to schedule retries
-		add_action( 'woocommerce_order_status_failed', array( $this, 'schedule_retry_on_failure' ), 20, 2 );
+		// Hook into local failure event (fired by Logger) to schedule retries
+		add_action( 'wc_payment_monitor_payment_failed', array( $this, 'schedule_retry_on_failure' ), 10, 2 );
 
-		// Register retry cron action
+		// Register retry action scheduler
 		add_action( 'wc_payment_monitor_retry_payment', array( $this, 'attempt_retry_action' ), 10, 1 );
-
-		// Schedule periodic retry processing
-		add_action( 'init', array( $this, 'schedule_retry_processing' ) );
-		add_action( 'wc_payment_monitor_process_retries', array( $this, 'process_scheduled_retries' ) );
-
-		// Hook into plugin activation to schedule cron
-		add_action( 'wc_payment_monitor_activated', array( $this, 'schedule_retry_processing' ) );
-	}
-
-	/**
-	 * Schedule retry processing cron job
-	 */
-	public function schedule_retry_processing() {
-		if ( ! wp_next_scheduled( 'wc_payment_monitor_process_retries' ) ) {
-			wp_schedule_event( time(), 'hourly', 'wc_payment_monitor_process_retries' );
-		}
 	}
 
 	/**
@@ -74,10 +58,10 @@ class WC_Payment_Monitor_Retry {
 	 */
 	public function schedule_retry_on_failure( $order_id, $old_status = '' ) {
 		// Check if auto-retry is enabled
-		$settings          = get_option( 'wc_payment_monitor_settings', array() );
-		$enable_auto_retry = isset( $settings['enable_auto_retry'] ) ? $settings['enable_auto_retry'] : true;
+		$settings = get_option( 'wc_payment_monitor_options', array() );
+		$enabled  = isset( $settings['retry_enabled'] ) ? $settings['retry_enabled'] : true;
 
-		if ( ! $enable_auto_retry ) {
+		if ( ! $enabled ) {
 			return;
 		}
 
@@ -88,6 +72,8 @@ class WC_Payment_Monitor_Retry {
 
 		// Check if order has a stored payment method
 		if ( ! $this->has_stored_payment_method( $order ) ) {
+			// No stored method, send recovery email immediately
+			$this->send_recovery_email( $order );
 			return;
 		}
 
@@ -98,12 +84,57 @@ class WC_Payment_Monitor_Retry {
 		}
 
 		// Don't schedule retry if already at max attempts
-		if ( $transaction->retry_count >= self::MAX_RETRY_ATTEMPTS ) {
+		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+		if ( $transaction->retry_count >= $max_retries ) {
+			return;
+		}
+
+		// Analyze failure reason to decide if we should retry
+		if ( ! $this->analyze_failure_reason( $transaction->failure_reason ) ) {
+			// Hard decline: Send recovery email instead of retrying
+			$this->send_recovery_email( $order );
 			return;
 		}
 
 		// Schedule the first retry
 		$this->schedule_retry( $transaction->id );
+	}
+
+	/**
+	 * Analyze failure reason to determine if retry is worthwhile
+	 *
+	 * @param string $reason Failure reason/message
+	 * @return bool True if retry should be attempted
+	 */
+	private function analyze_failure_reason( $reason ) {
+		if ( empty( $reason ) ) {
+			return true;
+		}
+
+		$reason = strtolower( $reason );
+
+		// List of keywords that indicate permanent failures
+		$permanent_failures = array(
+			'fraud',
+			'do not honor',
+			'stolen',
+			'lost card',
+			'pick up card',
+			'invalid card number',
+			'invalid account',
+			'expired card',
+			'closure',
+			'stop recurring',
+			'hard decline'
+		);
+
+		foreach ( $permanent_failures as $keyword ) {
+			if ( strpos( $reason, $keyword ) !== false ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -125,37 +156,46 @@ class WC_Payment_Monitor_Retry {
 			)
 		);
 
-		if ( ! $transaction || $transaction->retry_count >= self::MAX_RETRY_ATTEMPTS ) {
+		$settings    = get_option( 'wc_payment_monitor_options', array() );
+		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+
+		if ( ! $transaction || $transaction->retry_count >= $max_retries ) {
 			return false;
 		}
 
 		// Get retry schedule from settings
-		$settings       = get_option( 'wc_payment_monitor_settings', array() );
 		$retry_schedule = isset( $settings['retry_schedule'] ) ? $settings['retry_schedule'] : self::DEFAULT_RETRY_SCHEDULE;
 
 		// Calculate next retry time
 		$retry_attempt = $transaction->retry_count;
 		if ( $retry_attempt >= count( $retry_schedule ) ) {
-			return false; // No more retries scheduled
+			// Fallback if we run out of schedule slots but haven't hit max retries:
+			// Just use the last schedule interval or a default
+			$retry_delay = end( $retry_schedule );
+		} else {
+			$retry_delay = $retry_schedule[ $retry_attempt ];
 		}
+		
+		$retry_time = time() + $retry_delay;
 
-		$retry_delay = $retry_schedule[ $retry_attempt ];
-		$retry_time  = time() + $retry_delay;
+		// Schedule with Action Scheduler
+		if ( function_exists( 'as_schedule_single_action' ) ) {
+			as_schedule_single_action( $retry_time, 'wc_payment_monitor_retry_payment', array( $transaction_id ) );
 
-		// Schedule the retry
-		wp_schedule_single_event( $retry_time, 'wc_payment_monitor_retry_payment', array( $transaction_id ) );
-
-		// Log the scheduled retry
-		error_log(
-			sprintf(
-				'WC Payment Monitor: Scheduled retry %d for transaction %d at %s',
-				$retry_attempt + 1,
-				$transaction_id,
-				date( 'Y-m-d H:i:s', $retry_time )
-			)
-		);
-
-		return true;
+			// Log the scheduled retry
+			error_log(
+				sprintf(
+					'WC Payment Monitor: Scheduled retry %d for transaction %d at %s via Action Scheduler',
+					$retry_attempt + 1,
+					$transaction_id,
+					date( 'Y-m-d H:i:s', $retry_time )
+				)
+			);
+			return true;
+		} else {
+			error_log( 'WC Payment Monitor: Action Scheduler not available for retry scheduling' );
+			return false;
+		}
 	}
 
 	/**
@@ -191,8 +231,11 @@ class WC_Payment_Monitor_Retry {
 			return false;
 		}
 
+		$settings    = get_option( 'wc_payment_monitor_options', array() );
+		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+
 		// Check retry limits
-		if ( $transaction->retry_count >= self::MAX_RETRY_ATTEMPTS ) {
+		if ( $transaction->retry_count >= $max_retries ) {
 			error_log( 'WC Payment Monitor: Max retry attempts reached for transaction: ' . $transaction_id );
 			return false;
 		}
@@ -235,9 +278,12 @@ class WC_Payment_Monitor_Retry {
 			// Retry failed
 			$this->handle_failed_retry( $order, $transaction, $retry_result, $new_retry_count );
 
-			// Schedule next retry if not at max attempts
-			if ( $new_retry_count < self::MAX_RETRY_ATTEMPTS ) {
+			// Check if we should schedule another
+			if ( $new_retry_count < $max_retries ) {
 				$this->schedule_retry( $transaction_id );
+			} else {
+				// Max retries reached, send recovery email
+				$this->send_recovery_email( $order );
 			}
 			return false;
 		}
@@ -281,12 +327,15 @@ class WC_Payment_Monitor_Retry {
 				);
 			}
 
+			$settings    = get_option( 'wc_payment_monitor_options', array() );
+			$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+
 			// Prepare order for retry
 			$order->add_order_note(
 				sprintf(
 					__( 'Attempting automatic payment retry %1$d of %2$d', 'wc-payment-monitor' ),
 					$transaction->retry_count + 1,
-					self::MAX_RETRY_ATTEMPTS
+					$max_retries
 				)
 			);
 
@@ -431,12 +480,15 @@ class WC_Payment_Monitor_Retry {
 			)
 		);
 
+		$settings    = get_option( 'wc_payment_monitor_options', array() );
+		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+
 		// If max attempts reached, add final note
-		if ( $retry_count >= self::MAX_RETRY_ATTEMPTS ) {
+		if ( $retry_count >= $max_retries ) {
 			$order->add_order_note(
 				sprintf(
 					__( 'Maximum retry attempts (%d) reached. No further automatic retries will be attempted.', 'wc-payment-monitor' ),
-					self::MAX_RETRY_ATTEMPTS
+					$max_retries
 				)
 			);
 		}
@@ -552,6 +604,108 @@ class WC_Payment_Monitor_Retry {
 	}
 
 	/**
+	 * Send recovery email to customer (Manual Payment Link)
+	 *
+	 * @param WC_Order $order Order object
+	 * @return bool Success
+	 */
+	public function send_recovery_email( $order ) {
+		$customer_email = $order->get_billing_email();
+		if ( empty( $customer_email ) ) {
+			return false;
+		}
+
+		$subject = sprintf(
+			__( '[%1$s] Action Required: Payment Failed for Order #%2$s', 'wc-payment-monitor' ),
+			get_bloginfo( 'name' ),
+			$order->get_order_number()
+		);
+
+		$message = $this->create_recovery_email_template( $order );
+
+		$headers = array(
+			'Content-Type: text/html; charset=UTF-8',
+			'From: ' . get_bloginfo( 'name' ) . ' <' . get_option( 'admin_email' ) . '>',
+		);
+
+		$order->add_order_note( __( 'Sent payment recovery email to customer.', 'wc-payment-monitor' ) );
+
+		return wp_mail( $customer_email, $subject, $message, $headers );
+	}
+
+	/**
+	 * Create recovery email template
+	 *
+	 * @param WC_Order $order Order object
+	 * @return string HTML email content
+	 */
+	private function create_recovery_email_template( $order ) {
+		$pay_link    = $order->get_checkout_payment_url();
+		$order_total = $order->get_formatted_order_total();
+		$subject     = sprintf(
+			__( '[%1$s] Action Required: Payment Failed for Order #%2$s', 'wc-payment-monitor' ),
+			get_bloginfo( 'name' ),
+			$order->get_order_number()
+		);
+
+		ob_start();
+		?>
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<meta charset="UTF-8">
+			<title><?php echo esc_html( $subject ); ?></title>
+			<style>
+				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+				.header { background-color: #d9534f; color: white; padding: 20px; text-align: center; }
+				.content { background-color: #f9f9f9; padding: 20px; }
+				.order-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #d9534f; }
+				.button { display: inline-block; background-color: #d9534f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; margin: 10px 0; }
+				.footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+			</style>
+		</head>
+		<body>
+			<div class="container">
+				<div class="header">
+					<h1><?php _e( 'Payment Action Required', 'wc-payment-monitor' ); ?></h1>
+					<p><?php _e( 'We were unable to process your payment', 'wc-payment-monitor' ); ?></p>
+				</div>
+				
+				<div class="content">
+					<h2><?php _e( 'Please Update Your Payment', 'wc-payment-monitor' ); ?></h2>
+					<p><?php _e( 'Unfortunately, the payment for your recent order was declined. To ensure your order is processed without delay, please use the link below to complete your payment.', 'wc-payment-monitor' ); ?></p>
+					
+					<div class="order-details">
+						<h3><?php _e( 'Order Details', 'wc-payment-monitor' ); ?></h3>
+						<ul>
+							<li><strong><?php _e( 'Order Number:', 'wc-payment-monitor' ); ?></strong> #<?php echo esc_html( $order->get_order_number() ); ?></li>
+							<li><strong><?php _e( 'Order Total:', 'wc-payment-monitor' ); ?></strong> <?php echo wp_kses_post( $order_total ); ?></li>
+							<li><strong><?php _e( 'Order Date:', 'wc-payment-monitor' ); ?></strong> <?php echo esc_html( $order->get_date_created()->format( 'F j, Y' ) ); ?></li>
+						</ul>
+					</div>
+					
+					<p style="text-align: center;">
+						<a href="<?php echo esc_url( $pay_link ); ?>" class="button">
+							<?php _e( 'Pay Now', 'wc-payment-monitor' ); ?>
+						</a>
+					</p>
+					
+					<p><?php _e( 'If you believe this charge should have gone through, please contact your bank or try a different card.', 'wc-payment-monitor' ); ?></p>
+				</div>
+				
+				<div class="footer">
+					<p><?php _e( 'This email was sent by our payment monitoring system', 'wc-payment-monitor' ); ?></p>
+					<p><?php echo esc_html( get_bloginfo( 'name' ) ); ?> - <?php echo esc_url( home_url() ); ?></p>
+				</div>
+			</div>
+		</body>
+		</html>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
 	 * Check if order has stored payment method
 	 *
 	 * @param WC_Order $order Order object
@@ -632,39 +786,6 @@ class WC_Payment_Monitor_Retry {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Process scheduled retries
-	 */
-	public function process_scheduled_retries() {
-		global $wpdb;
-
-		$table_name = $this->database->get_transactions_table();
-
-		// Find transactions that need retry processing
-		$pending_retries = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT * FROM {$table_name} 
-             WHERE status = 'failed' 
-             AND retry_count < %d 
-             AND created_at > %s
-             ORDER BY created_at ASC
-             LIMIT 50",
-				self::MAX_RETRY_ATTEMPTS,
-				date( 'Y-m-d H:i:s', time() - ( 7 * 86400 ) ) // Only process retries from last 7 days
-			)
-		);
-
-		foreach ( $pending_retries as $transaction ) {
-			// Check if retry is already scheduled
-			$scheduled = wp_next_scheduled( 'wc_payment_monitor_retry_payment', array( $transaction->id ) );
-
-			if ( ! $scheduled ) {
-				// Schedule retry if not already scheduled
-				$this->schedule_retry( $transaction->id );
-			}
-		}
 	}
 
 	/**
@@ -781,7 +902,10 @@ class WC_Payment_Monitor_Retry {
 			);
 		}
 
-		if ( $transaction->retry_count >= self::MAX_RETRY_ATTEMPTS ) {
+		$settings    = get_option( 'wc_payment_monitor_options', array() );
+		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+
+		if ( $transaction->retry_count >= $max_retries ) {
 			return array(
 				'success' => false,
 				'message' => __( 'Maximum retry attempts reached', 'wc-payment-monitor' ),

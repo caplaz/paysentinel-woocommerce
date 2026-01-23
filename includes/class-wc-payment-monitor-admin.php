@@ -43,6 +43,10 @@ class WC_Payment_Monitor_Admin {
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'update_option_wc_payment_monitor_options', array( $this, 'validate_license_on_save' ), 10, 2 );
+		
+		// Admin actions
+		add_action( 'admin_post_wc_payment_monitor_retry', array( $this, 'handle_manual_retry' ) );
+		add_action( 'admin_post_wc_payment_monitor_recovery', array( $this, 'handle_recovery_email' ) );
 	}
 
 	/**
@@ -455,11 +459,128 @@ class WC_Payment_Monitor_Admin {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'wc-payment-monitor' ) );
 		}
 
+		global $wpdb;
+		$table_name   = $this->database->get_transactions_table();
+		$transactions = $wpdb->get_results( "SELECT * FROM {$table_name} ORDER BY id DESC LIMIT 50" );
+		
+		add_thickbox();
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Transaction Log', 'wc-payment-monitor' ); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Transaction Log', 'wc-payment-monitor' ); ?></h1>
+			
+			<?php if ( isset( $_GET['message'] ) ) : ?>
+				<div class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( $_GET['type'] ) : 'info' ); ?> is-dismissible">
+					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
+				</div>
+			<?php endif; ?>
+
 			<p><?php esc_html_e( 'View all monitored payment transactions.', 'wc-payment-monitor' ); ?></p>
-			<div id="wc-payment-monitor-transactions-container"></div>
+			
+			<table class="wp-list-table widefat fixed striped">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Date', 'wc-payment-monitor' ); ?></th>
+						<th><?php esc_html_e( 'Status', 'wc-payment-monitor' ); ?></th>
+						<th><?php esc_html_e( 'Order', 'wc-payment-monitor' ); ?></th>
+						<th><?php esc_html_e( 'Amount', 'wc-payment-monitor' ); ?></th>
+						<th><?php esc_html_e( 'Gateway', 'wc-payment-monitor' ); ?></th>
+						<th><?php esc_html_e( 'Reason', 'wc-payment-monitor' ); ?></th>
+						<th><?php esc_html_e( 'Actions', 'wc-payment-monitor' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php if ( empty( $transactions ) ) : ?>
+						<tr><td colspan="7"><?php esc_html_e( 'No transactions found.', 'wc-payment-monitor' ); ?></td></tr>
+					<?php else : ?>
+						<?php foreach ( $transactions as $t ) : ?>
+							<tr>
+								<td><?php echo esc_html( $t->created_at ); ?></td>
+								<td>
+									<span class="wc-monitor-status status-<?php echo esc_attr( $t->status ); ?>" style="
+										padding: 3px 8px;
+										border-radius: 4px;
+										font-weight: 500;
+										background: <?php echo $t->status === 'success' ? '#d4edda' : ($t->status === 'failed' ? '#f8d7da' : '#fff3cd'); ?>;
+										color: <?php echo $t->status === 'success' ? '#155724' : ($t->status === 'failed' ? '#721c24' : '#856404'); ?>;
+									">
+										<?php echo esc_html( ucfirst( $t->status ) ); ?>
+									</span>
+								</td>
+								<td>
+									<a href="<?php echo esc_url( admin_url( 'post.php?post=' . $t->order_id . '&action=edit' ) ); ?>">
+										#<?php echo esc_html( $t->order_id ); ?>
+									</a>
+								</td>
+								<td><?php echo esc_html( $t->amount . ' ' . $t->currency ); ?></td>
+								<td><?php echo esc_html( $t->gateway_id ); ?></td>
+								<td><?php echo esc_html( $t->failure_reason ? $t->failure_reason : '-' ); ?></td>
+								<td>
+									<a href="#TB_inline?width=600&height=440&inlineId=transaction-details-<?php echo $t->id; ?>" class="thickbox button button-small tip" title="<?php echo esc_attr( sprintf( __( 'Transaction Details #%d', 'wc-payment-monitor' ), $t->id ) ); ?>" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 8px;">
+										<span class="dashicons dashicons-visibility" style="font-size: 18px; width: 18px; height: 18px;"></span>
+									</a>
+
+									<div id="transaction-details-<?php echo $t->id; ?>" style="display:none;">
+										<div class="wc-monitor-details-modal" style="padding: 10px 20px;">
+											<style>.wc-monitor-details-modal .form-table th, .wc-monitor-details-modal .form-table td { padding: 10px 0 !important; }</style>
+											<table class="form-table" style="margin-top: 0; margin-bottom: 0;">
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Transaction ID', 'wc-payment-monitor' ); ?></th>
+													<td><?php echo esc_html( $t->transaction_id ? $t->transaction_id : '-' ); ?></td>
+												</tr>
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Order ID', 'wc-payment-monitor' ); ?></th>
+													<td>#<?php echo esc_html( $t->order_id ); ?></td>
+												</tr>
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Gateway', 'wc-payment-monitor' ); ?></th>
+													<td><?php echo esc_html( $t->gateway_id ); ?></td>
+												</tr>
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Status', 'wc-payment-monitor' ); ?></th>
+													<td><?php echo esc_html( ucfirst( $t->status ) ); ?></td>
+												</tr>
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Failure Reason', 'wc-payment-monitor' ); ?></th>
+													<td><?php echo esc_html( $t->failure_reason ? $t->failure_reason : '-' ); ?></td>
+												</tr>
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Failure Code', 'wc-payment-monitor' ); ?></th>
+													<td><?php echo esc_html( $t->failure_code ? $t->failure_code : '-' ); ?></td>
+												</tr>
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Retry Count', 'wc-payment-monitor' ); ?></th>
+													<td><?php echo esc_html( $t->retry_count ); ?></td>
+												</tr>
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Customer Email', 'wc-payment-monitor' ); ?></th>
+													<td><?php echo esc_html( $t->customer_email ); ?></td>
+												</tr>
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Customer IP', 'wc-payment-monitor' ); ?></th>
+													<td><?php echo esc_html( $t->customer_ip ); ?></td>
+												</tr>
+												<tr>
+													<th style="width: 130px; vertical-align: top; font-weight: 600;"><?php esc_html_e( 'Created At', 'wc-payment-monitor' ); ?></th>
+													<td><?php echo esc_html( $t->created_at ); ?></td>
+												</tr>
+											</table>
+										</div>
+									</div>
+
+									<?php if ( in_array( $t->status, array( 'failed', 'retry' ) ) ) : ?>
+										<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=wc_payment_monitor_retry&order_id=' . $t->order_id ), 'wc_payment_monitor_retry_' . $t->order_id ) ); ?>" class="button button-small tip" title="<?php esc_attr_e( 'Retry Payment Now', 'wc-payment-monitor' ); ?>" style="margin-left: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 0 8px;">
+											<span class="dashicons dashicons-update" style="font-size: 18px; width: 18px; height: 18px;"></span>
+										</a>
+										<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=wc_payment_monitor_recovery&order_id=' . $t->order_id ), 'wc_payment_monitor_recovery_' . $t->order_id ) ); ?>" class="button button-small tip" style="margin-left: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 0 8px;" title="<?php esc_attr_e( 'Send Recovery Email', 'wc-payment-monitor' ); ?>">
+											<span class="dashicons dashicons-email-alt" style="font-size: 18px; width: 18px; height: 18px;"></span>
+										</a>
+									<?php endif; ?>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					<?php endif; ?>
+				</tbody>
+			</table>
 		</div>
 		<?php
 	}
@@ -502,6 +623,69 @@ class WC_Payment_Monitor_Admin {
 			</form>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Handle manual retry action
+	 */
+	public function handle_manual_retry() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'wc-payment-monitor' ) );
+		}
+
+		$order_id = isset( $_GET['order_id'] ) ? intval( $_GET['order_id'] ) : 0;
+		check_admin_referer( 'wc_payment_monitor_retry_' . $order_id );
+
+		if ( ! $order_id ) {
+			wp_redirect( admin_url( 'admin.php?page=wc-payment-monitor-transactions&message=' . urlencode( __( 'Invalid order ID.', 'wc-payment-monitor' ) ) . '&type=error' ) );
+			exit;
+		}
+
+		// Get retry instance
+		if ( ! isset( WC_Payment_Monitor::get_instance()->retry ) ) {
+			wp_redirect( admin_url( 'admin.php?page=wc-payment-monitor-transactions&message=' . urlencode( __( 'Retry component not available.', 'wc-payment-monitor' ) ) . '&type=error' ) );
+			exit;
+		}
+
+		$result = WC_Payment_Monitor::get_instance()->retry->manual_retry( $order_id );
+		$type   = $result['success'] ? 'success' : 'error';
+
+		wp_redirect( admin_url( 'admin.php?page=wc-payment-monitor-transactions&message=' . urlencode( $result['message'] ) . '&type=' . $type ) );
+		exit;
+	}
+
+	/**
+	 * Handle recovery email action
+	 */
+	public function handle_recovery_email() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'wc-payment-monitor' ) );
+		}
+
+		$order_id = isset( $_GET['order_id'] ) ? intval( $_GET['order_id'] ) : 0;
+		check_admin_referer( 'wc_payment_monitor_recovery_' . $order_id );
+
+		if ( ! $order_id ) {
+			wp_redirect( admin_url( 'admin.php?page=wc-payment-monitor-transactions&message=' . urlencode( __( 'Invalid order ID.', 'wc-payment-monitor' ) ) . '&type=error' ) );
+			exit;
+		}
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			wp_redirect( admin_url( 'admin.php?page=wc-payment-monitor-transactions&message=' . urlencode( __( 'Order not found.', 'wc-payment-monitor' ) ) . '&type=error' ) );
+			exit;
+		}
+
+		// Get retry instance
+		if ( ! isset( WC_Payment_Monitor::get_instance()->retry ) ) {
+			wp_redirect( admin_url( 'admin.php?page=wc-payment-monitor-transactions&message=' . urlencode( __( 'Retry component not available.', 'wc-payment-monitor' ) ) . '&type=error' ) );
+			exit;
+		}
+
+		WC_Payment_Monitor::get_instance()->retry->send_recovery_email( $order );
+
+		wp_redirect( admin_url( 'admin.php?page=wc-payment-monitor-transactions&message=' . urlencode( __( 'Recovery email sent successfully.', 'wc-payment-monitor' ) ) . '&type=success' ) );
+		exit;
 	}
 
 	/**

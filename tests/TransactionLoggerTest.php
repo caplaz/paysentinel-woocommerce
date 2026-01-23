@@ -1,111 +1,63 @@
 <?php
 /**
- * Unit tests for WC_Payment_Monitor_Logger class
- * Tests transaction logging and data extraction
+ * Real Integration Tests for Logger
  */
+class TransactionLoggerTest extends WP_UnitTestCase {
 
-class TransactionLoggerTest extends PHPUnit\Framework\TestCase {
+	private $logger;
+	private $order_id;
 
-	/**
-	 * Test transaction status values
-	 */
-	public function test_transaction_statuses() {
-		$valid_statuses = array( 'success', 'failed', 'pending' );
-
-		foreach ( $valid_statuses as $status ) {
-			$this->assertIsString( $status );
-			$this->assertNotEmpty( $status );
-			$this->assertMatchesRegularExpression( '/^[a-z]+$/', $status );
+	public function setUp(): void {
+		parent::setUp();
+		
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			$this->markTestSkipped( 'WooCommerce not active.' );
 		}
+
+		$this->logger = new WC_Payment_Monitor_Logger();
+		
+		// Create a dummy order
+		$order = wc_create_order();
+		$order->set_billing_email( 'logger_test@example.com' );
+		$order->set_total( 50.00 );
+		$order->save();
+		$this->order_id = $order->get_id();
+	}
+
+	public function tearDown(): void {
+		parent::tearDown();
+		wp_delete_post( $this->order_id, true );
 	}
 
 	/**
-	 * Test transaction data structure
+	 * Test Log Failure fires Action
 	 */
-	public function test_transaction_data_structure() {
-		$transaction_data = array(
-			'order_id'       => 123,
-			'gateway_id'     => 'stripe',
-			'transaction_id' => 'txn_123456',
-			'amount'         => 99.99,
-			'currency'       => 'USD',
-			'status'         => 'success',
-			'customer_email' => 'test@example.com',
-			'customer_ip'    => '192.168.1.1',
-		);
+	public function test_log_failure_fires_action() {
+		$fired = 0;
+		add_action( 'wc_payment_monitor_payment_failed', function( $order_id ) use ( &$fired ) {
+			$fired++;
+		} );
 
-		// Verify required fields exist
-		$this->assertArrayHasKey( 'order_id', $transaction_data );
-		$this->assertArrayHasKey( 'gateway_id', $transaction_data );
-		$this->assertArrayHasKey( 'status', $transaction_data );
-		$this->assertArrayHasKey( 'amount', $transaction_data );
+		// Simulate failure
+		$this->logger->log_failure( $this->order_id );
 
-		// Verify data types
-		$this->assertIsInt( $transaction_data['order_id'] );
-		$this->assertIsString( $transaction_data['gateway_id'] );
-		$this->assertIsFloat( $transaction_data['amount'] );
-		$this->assertIsString( $transaction_data['status'] );
+		$this->assertEquals( 1, $fired, 'The wc_payment_monitor_payment_failed action should fire exactly once.' );
 	}
 
 	/**
-	 * Test amount validation
+	 * Test Log Failure saves to Database
 	 */
-	public function test_transaction_amount_validation() {
-		$valid_amounts = array( 0.01, 9.99, 99.99, 999.99, 1000.00 );
+	public function test_log_failure_saves_db() {
+		global $wpdb;
+		$table_name = ( new WC_Payment_Monitor_Database() )->get_transactions_table();
 
-		foreach ( $valid_amounts as $amount ) {
-			$this->assertGreaterThan( 0, $amount );
-			$this->assertTrue( is_float( $amount ) || is_int( $amount ) );
-		}
-	}
+		$this->logger->log_failure( $this->order_id );
 
-	/**
-	 * Test currency code format
-	 */
-	public function test_currency_code_format() {
-		$valid_currencies = array( 'USD', 'EUR', 'GBP', 'JPY', 'AUD' );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table_name} WHERE order_id = %d", $this->order_id ) );
 
-		foreach ( $valid_currencies as $currency ) {
-			$this->assertEquals( 3, strlen( $currency ) );
-			$this->assertMatchesRegularExpression( '/^[A-Z]{3}$/', $currency );
-		}
-	}
-
-	/**
-	 * Test email address format
-	 */
-	public function test_email_format() {
-		$valid_emails = array(
-			'test@example.com',
-			'user@domain.co.uk',
-			'support@company.org',
-		);
-
-		foreach ( $valid_emails as $email ) {
-			$this->assertStringContainsString( '@', $email );
-			$this->assertStringContainsString( '.', $email );
-		}
-	}
-
-	/**
-	 * Test IP address format
-	 */
-	public function test_ip_address_format() {
-		$valid_ips = array(
-			'192.168.1.1',
-			'10.0.0.1',
-			'172.16.0.1',
-		);
-
-		foreach ( $valid_ips as $ip ) {
-			$parts = explode( '.', $ip );
-			$this->assertEquals( 4, count( $parts ) );
-
-			foreach ( $parts as $part ) {
-				$num = intval( $part );
-				$this->assertGreaterThanOrEqual( 0, $num );
-				$this->assertLessThanOrEqual( 255, $num );
-			}
-		}
+		$this->assertNotNull( $row, 'Transaction row should exist in DB.' );
+		$this->assertEquals( 'failed', $row->status );
+		$this->assertEquals( 50.00, $row->amount );
+		$this->assertEquals( 'logger_test@example.com', $row->customer_email );
 	}
 }

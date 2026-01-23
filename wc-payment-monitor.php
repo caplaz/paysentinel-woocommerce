@@ -176,20 +176,28 @@ class WC_Payment_Monitor {
 	}
 
 	/**
+	 * Component instances
+	 */
+	public $logger;
+	public $health;
+	public $alerts;
+	public $retry;
+
+	/**
 	 * Initialize plugin components
 	 */
 	private function init_components() {
 		// Initialize transaction logger
-		new WC_Payment_Monitor_Logger();
+		$this->logger = new WC_Payment_Monitor_Logger();
 
 		// Initialize health calculation engine
-		new WC_Payment_Monitor_Health();
+		$this->health = new WC_Payment_Monitor_Health();
 
 		// Initialize alert system
-		new WC_Payment_Monitor_Alerts();
+		$this->alerts = new WC_Payment_Monitor_Alerts();
 
 		// Initialize retry engine
-		new WC_Payment_Monitor_Retry();
+		$this->retry = new WC_Payment_Monitor_Retry();
 
 		// Initialize gateway connectivity scheduler
 		$this->init_gateway_connectivity_scheduler();

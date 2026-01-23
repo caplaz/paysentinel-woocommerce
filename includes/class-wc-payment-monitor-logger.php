@@ -96,6 +96,9 @@ class WC_Payment_Monitor_Logger {
 		$transaction_data['failure_code']   = $failure_info['code'];
 
 		$this->save_transaction( $transaction_data );
+
+		// Fire action for other components (like Retry Manager)
+		do_action( 'wc_payment_monitor_payment_failed', $order_id, $order );
 	}
 
 	/**
