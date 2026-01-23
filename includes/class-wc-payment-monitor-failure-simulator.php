@@ -216,13 +216,19 @@ class WC_Payment_Monitor_Failure_Simulator {
 	/**
 	 * Manually simulate a failure for a specific order
 	 *
-	 * @param int    $order_id Order ID
+	 * @param int|WC_Order $order_id_or_object Order ID or Order object
 	 * @param string $scenario_key Scenario key
 	 * @return array Result
 	 */
-	public function simulate_failure_for_order( $order_id, $scenario_key ) {
-		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
+	public function simulate_failure_for_order( $order_id_or_object, $scenario_key ) {
+		// Accept either order ID or order object
+		if ( is_numeric( $order_id_or_object ) ) {
+			$order = wc_get_order( $order_id_or_object );
+		} else {
+			$order = $order_id_or_object;
+		}
+		
+		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
 			return array(
 				'success' => false,
 				'message' => __( 'Order not found.', 'wc-payment-monitor' ),
@@ -238,16 +244,21 @@ class WC_Payment_Monitor_Failure_Simulator {
 
 		$scenario = self::FAILURE_SCENARIOS[ $scenario_key ];
 
-		// Add metadata before updating status
+		// Add metadata before updating status (like a real gateway would)
 		$order->add_meta_data( '_wc_payment_monitor_simulated_failure', true );
 		$order->add_meta_data( '_wc_payment_monitor_failure_scenario', $scenario_key );
+		$order->add_meta_data( '_wc_payment_monitor_failure_message', $scenario['message'] );
+		$order->add_meta_data( '_wc_payment_monitor_failure_code', strtoupper( str_replace( '_', '', $scenario_key ) ) );
+		
+		// Save the order to persist all data to database (like a real gateway would)
 		$order->save();
 
 		// Update order status to failed
 		// This triggers the woocommerce_order_status_failed hook, which logs the transaction
 		$order->update_status( 'failed', sprintf( 
-			__( '[SIMULATED FAILURE] %s', 'wc-payment-monitor' ),
-			$scenario['message']
+			__( '[SIMULATED FAILURE] %s (Error Code: %s)', 'wc-payment-monitor' ),
+			$scenario['message'],
+			strtoupper( str_replace( '_', '', $scenario_key ) )
 		) );
 
 		return array(
@@ -255,7 +266,7 @@ class WC_Payment_Monitor_Failure_Simulator {
 			'message' => sprintf( 
 				__( 'Successfully simulated %s failure for order #%d.', 'wc-payment-monitor' ),
 				$scenario['name'],
-				$order_id
+				$order->get_id()
 			),
 		);
 	}
@@ -280,13 +291,19 @@ class WC_Payment_Monitor_Failure_Simulator {
 			$gateway_id = $this->get_random_enabled_gateway();
 		}
 
-		// Create a test order
+		// Create a test order with realistic data
 		$order = wc_create_order();
+		
+		// Set basic order properties
 		$order->set_payment_method( $gateway_id );
-		$order->set_total( 100.00 );
-		$order->set_billing_email( 'test@example.com' );
+		$order->set_currency( 'USD' );
 		$order->set_billing_first_name( 'Test' );
 		$order->set_billing_last_name( 'Customer' );
+		$order->set_billing_address_1( '123 Test Street' );
+		$order->set_billing_city( 'Test City' );
+		$order->set_billing_state( 'CA' );
+		$order->set_billing_postcode( '12345' );
+		$order->set_billing_country( 'US' );
 
 		// Add a test product
 		$product = wc_get_product( $this->get_or_create_test_product() );
@@ -294,11 +311,36 @@ class WC_Payment_Monitor_Failure_Simulator {
 			$order->add_product( $product, 1 );
 		}
 
+		// Calculate totals before setting transaction-specific data
 		$order->calculate_totals();
+		
+		// Now set transaction-specific data (after calculate_totals to ensure it's not cleared)
+		$transaction_id = strtolower( $gateway_id ) . '_sim_' . uniqid() . '_' . time();
+		$customer_email = 'test-failure-' . uniqid() . '@example.com';
+		$customer_ip    = '192.168.1.' . rand( 1, 254 );
+		
+		$order->set_transaction_id( $transaction_id );
+		$order->set_billing_email( $customer_email );
+		$order->set_customer_ip_address( $customer_ip );
+		
+		error_log( sprintf( 
+			"[Payment Monitor Simulator] Pre-save Check - ID: %d, Txn: %s, Email: %s", 
+			$order->get_id(), 
+			$transaction_id, 
+			$customer_email 
+		) );
+
+		// Save order to persist all data before status change (like a real gateway would)
 		$order->save();
 
-		// Simulate the failure
-		$result = $this->simulate_failure_for_order( $order->get_id(), $scenario_key );
+		error_log( sprintf( 
+			"[Payment Monitor Simulator] Post-save Check - ID: %d, Txn from obj: %s", 
+			$order->get_id(), 
+			$order->get_transaction_id()
+		) );
+
+		// Simulate the failure - pass the order object directly
+		$result = $this->simulate_failure_for_order( $order, $scenario_key );
 
 		if ( $result['success'] ) {
 			$result['order_id'] = $order->get_id();

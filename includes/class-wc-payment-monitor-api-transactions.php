@@ -160,8 +160,8 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 			// Get paginated results
 			$offset = $this->calculate_offset( $pagination['page'], $pagination['per_page'] );
 
-			$query = "SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code,
-				 created_at as created_at
+			$query = "SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code, 
+                     transaction_id, customer_email, customer_ip, created_at as created_at
                       FROM $table_name 
                       WHERE $where_clause
                       ORDER BY created_at DESC
@@ -189,6 +189,9 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 						'failure_reason' => $row->failure_reason,
 						'failure_code'   => $row->failure_code,
 						'created_at'     => $row->created_at,
+						'transaction_id' => $row->transaction_id,
+						'customer_email' => $row->customer_email,
+						'customer_ip'    => $row->customer_ip,
 					);
 				},
 				$results

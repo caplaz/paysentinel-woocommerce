@@ -996,6 +996,7 @@
     const [perPage, setPerPage] = useState(20);
     const [totalCount, setTotalCount] = useState(0);
     const [statusFilter, setStatusFilter] = useState("");
+    const [expandedTransactionId, setExpandedTransactionId] = useState(null);
 
     // Fetch transactions
     const fetchTransactions = useCallback(async () => {
@@ -1071,6 +1072,13 @@
     }, [fetchTransactions]);
 
     const totalPages = Math.ceil(totalCount / perPage);
+
+    // Toggle transaction details expansion
+    const toggleTransactionDetails = (transactionId) => {
+      setExpandedTransactionId(
+        expandedTransactionId === transactionId ? null : transactionId,
+      );
+    };
 
     return React.createElement(
       "div",
@@ -1154,6 +1162,7 @@
                   React.createElement("th", null, "Amount"),
                   React.createElement("th", null, "Status"),
                   React.createElement("th", null, "Date"),
+                  React.createElement("th", null, "Actions"),
                 ),
               ),
               React.createElement(
@@ -1161,36 +1170,196 @@
                 null,
                 transactions.map((tx) =>
                   React.createElement(
-                    "tr",
+                    React.Fragment,
                     { key: tx.id },
-                    React.createElement("td", null, tx.id),
-                    React.createElement("td", null, tx.order_id || "N/A"),
-                    React.createElement("td", null, tx.gateway_id),
                     React.createElement(
-                      "td",
-                      null,
-                      tx.currency
-                        ? tx.currency + " " + parseFloat(tx.amount).toFixed(2)
-                        : "$" + parseFloat(tx.amount || 0).toFixed(2),
-                    ),
-                    React.createElement(
-                      "td",
-                      null,
+                      "tr",
+                      {
+                        className:
+                          "transaction-row status-" + (tx.status || ""),
+                      },
+                      React.createElement("td", null, tx.id),
+                      React.createElement("td", null, tx.order_id || "N/A"),
+                      React.createElement("td", null, tx.gateway_id),
                       React.createElement(
-                        "span",
-                        {
-                          className: "status-badge status-" + (tx.status || ""),
-                        },
-                        tx.status || "unknown",
+                        "td",
+                        null,
+                        tx.currency
+                          ? tx.currency + " " + parseFloat(tx.amount).toFixed(2)
+                          : "$" + parseFloat(tx.amount || 0).toFixed(2),
+                      ),
+                      React.createElement(
+                        "td",
+                        null,
+                        React.createElement(
+                          "span",
+                          {
+                            className:
+                              "status-badge status-" + (tx.status || ""),
+                          },
+                          tx.status || "unknown",
+                        ),
+                      ),
+                      React.createElement(
+                        "td",
+                        null,
+                        tx.created_at
+                          ? new Date(tx.created_at).toLocaleString()
+                          : "N/A",
+                      ),
+                      React.createElement(
+                        "td",
+                        null,
+                        React.createElement(
+                          "button",
+                          {
+                            className: "button button-small",
+                            onClick: () => toggleTransactionDetails(tx.id),
+                          },
+                          expandedTransactionId === tx.id ? "Hide" : "Details",
+                        ),
                       ),
                     ),
-                    React.createElement(
-                      "td",
-                      null,
-                      tx.created_at
-                        ? new Date(tx.created_at).toLocaleString()
-                        : "N/A",
-                    ),
+                    expandedTransactionId === tx.id
+                      ? React.createElement(
+                          "tr",
+                          { className: "transaction-details-row" },
+                          React.createElement(
+                            "td",
+                            { colSpan: "7" },
+                            React.createElement(
+                              "div",
+                              { className: "transaction-details" },
+                              React.createElement(
+                                "div",
+                                { className: "detail-grid" },
+                                React.createElement(
+                                  "div",
+                                  { className: "detail-item" },
+                                  React.createElement(
+                                    "strong",
+                                    null,
+                                    "Transaction ID: ",
+                                  ),
+                                  React.createElement(
+                                    "span",
+                                    null,
+                                    tx.transaction_id || "N/A",
+                                  ),
+                                ),
+                                React.createElement(
+                                  "div",
+                                  { className: "detail-item" },
+                                  React.createElement(
+                                    "strong",
+                                    null,
+                                    "Customer Email: ",
+                                  ),
+                                  React.createElement(
+                                    "span",
+                                    null,
+                                    tx.customer_email || "N/A",
+                                  ),
+                                ),
+                                React.createElement(
+                                  "div",
+                                  { className: "detail-item" },
+                                  React.createElement(
+                                    "strong",
+                                    null,
+                                    "Customer IP: ",
+                                  ),
+                                  React.createElement(
+                                    "span",
+                                    null,
+                                    tx.customer_ip || "N/A",
+                                  ),
+                                ),
+                                React.createElement(
+                                  "div",
+                                  { className: "detail-item" },
+                                  React.createElement(
+                                    "strong",
+                                    null,
+                                    "Retry Count: ",
+                                  ),
+                                  React.createElement(
+                                    "span",
+                                    null,
+                                    tx.retry_count || 0,
+                                  ),
+                                ),
+                                tx.status === "failed"
+                                  ? React.createElement(
+                                      React.Fragment,
+                                      null,
+                                      React.createElement(
+                                        "div",
+                                        { className: "detail-item full-width" },
+                                        React.createElement(
+                                          "strong",
+                                          null,
+                                          "Failure Code: ",
+                                        ),
+                                        React.createElement(
+                                          "span",
+                                          null,
+                                          tx.failure_code || "N/A",
+                                        ),
+                                      ),
+                                      React.createElement(
+                                        "div",
+                                        { className: "detail-item full-width" },
+                                        React.createElement(
+                                          "strong",
+                                          null,
+                                          "Failure Reason: ",
+                                        ),
+                                        React.createElement(
+                                          "span",
+                                          null,
+                                          tx.failure_reason || "N/A",
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                                React.createElement(
+                                  "div",
+                                  { className: "detail-item" },
+                                  React.createElement(
+                                    "strong",
+                                    null,
+                                    "Created: ",
+                                  ),
+                                  React.createElement(
+                                    "span",
+                                    null,
+                                    tx.created_at
+                                      ? new Date(tx.created_at).toLocaleString()
+                                      : "N/A",
+                                  ),
+                                ),
+                                React.createElement(
+                                  "div",
+                                  { className: "detail-item" },
+                                  React.createElement(
+                                    "strong",
+                                    null,
+                                    "Updated: ",
+                                  ),
+                                  React.createElement(
+                                    "span",
+                                    null,
+                                    tx.updated_at
+                                      ? new Date(tx.updated_at).toLocaleString()
+                                      : "N/A",
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : null,
                   ),
                 ),
               ),

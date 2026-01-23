@@ -56,15 +56,37 @@ class WC_Payment_Monitor_Logger {
 	/**
 	 * Log failed payment
 	 *
-	 * @param int    $order_id Order ID
-	 * @param string $old_status Previous order status
+	 * @param int      $order_id Order ID
+	 * @param WC_Order $order    Order object (optional in older WC versions, but standard now)
 	 */
-	public function log_failure( $order_id, $old_status = '' ) {
-		$order = wc_get_order( $order_id );
+	public function log_failure( $order_id, $order = null ) {
+		// Debug logging
+		error_log( "[Payment Monitor] log_failure called for Order #$order_id" );
+
+		// If order object wasn't passed (legacy), fetch it
+		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+			error_log( "[Payment Monitor] Order object not passed or invalid, refetching..." );
+			// Clear cache to ensure we get the freshest data
+			if ( function_exists( 'clean_post_cache' ) ) {
+				clean_post_cache( $order_id );
+			}
+			$order = wc_get_order( $order_id );
+		} else {
+			error_log( "[Payment Monitor] Using passed Order object." );
+		}
 
 		if ( ! $order ) {
+			error_log( "[Payment Monitor] Order not found for ID #$order_id" );
 			return;
 		}
+		
+		// Debug the data we have
+		error_log( sprintf( 
+			"[Payment Monitor] Data check - TxnID: %s, Email: %s, IP: %s", 
+			$order->get_transaction_id(),
+			$order->get_billing_email(),
+			$order->get_customer_ip_address()
+		) );
 
 		$transaction_data = $this->extract_transaction_data( $order, 'failed' );
 
@@ -146,6 +168,24 @@ class WC_Payment_Monitor_Logger {
 			'reason' => null,
 			'code'   => null,
 		);
+
+		// Check if this is a simulated failure first
+		if ( $order->get_meta( '_wc_payment_monitor_simulated_failure' ) ) {
+			$failure_message = $order->get_meta( '_wc_payment_monitor_failure_message' );
+			$failure_code    = $order->get_meta( '_wc_payment_monitor_failure_code' );
+
+			if ( ! empty( $failure_message ) ) {
+				$failure_info['reason'] = $failure_message;
+			}
+			if ( ! empty( $failure_code ) ) {
+				$failure_info['code'] = $failure_code;
+			}
+
+			// If we got info from metadata, return it
+			if ( ! empty( $failure_info['reason'] ) ) {
+				return $failure_info;
+			}
+		}
 
 		// Get order notes to extract failure information
 		$notes = get_comments(
