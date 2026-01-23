@@ -20,11 +20,11 @@ jobs:
                   docker compose --version
 
             - name: Start database
-              run: docker compose up -d wp-db
+              run: docker compose up -d db
 
             - name: Wait for database to be ready
               run: |
-                  timeout 60 bash -c 'until docker compose exec -T wp-db mysqladmin ping --silent; do sleep 1; done'
+                  timeout 60 bash -c 'until docker compose exec -T db mysqladmin ping --silent; do sleep 1; done'
 
             - name: Run tests
               run: docker compose run --rm tests bash -lc "vendor/bin/phpunit --configuration phpunit.xml --testdox --verbose"
