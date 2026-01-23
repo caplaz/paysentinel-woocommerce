@@ -27,7 +27,7 @@ jobs:
                   timeout 60 bash -c 'until docker compose exec -T db mysqladmin ping --silent; do sleep 1; done'
 
             - name: Run tests
-              run: docker compose run --rm tests bash -lc "vendor/bin/phpunit --configuration phpunit.xml --testdox --verbose"
+              run: docker compose run --rm tests
 
             - name: Stop services
               run: docker compose down
