@@ -290,6 +290,136 @@
   margin-bottom: 15px;
 }
 
+/* Chart.js Container Styles */
+.chart-container {
+  margin-bottom: 15px;
+  padding: 15px;
+  background: #fff;
+  border-radius: 4px;
+  min-height: 200px;
+  position: relative;
+}
+
+.chart-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  color: #646970;
+  font-size: 14px;
+  background: #f6f7f7;
+  border-radius: 4px;
+}
+
+.health-trend-chart {
+  width: 100%;
+  height: 200px;
+  position: relative;
+}
+
+.health-trend-chart canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Connection Status Indicator */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.connection-status.connected {
+  background: #d4edda;
+  color: #155724;
+}
+
+.connection-status.reconnecting {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.connection-status.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.connection-status::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.connection-status.connected::before {
+  background: #00a32a;
+}
+
+.connection-status.reconnecting::before {
+  background: #dba617;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.connection-status.error::before {
+  background: #d63638;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Mini Sparkline Styles */
+.mini-sparkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.mini-sparkline canvas {
+  flex: 1;
+  height: 100% !important;
+}
+
+.mini-sparkline .trend-indicator {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Loading Shimmer Animation */
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f0f0f1 25%,
+    #e5e5e5 50%,
+    #f0f0f1 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.chart-loading {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f6f7f7;
+  border-radius: 4px;
+}
+
+
 .sparkline {
   display: flex;
   align-items: flex-end;

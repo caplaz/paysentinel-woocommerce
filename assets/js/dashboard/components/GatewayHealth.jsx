@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import HealthTrendChart from "./charts/HealthTrendChart";
 
 /**
  * Gateway Health Component
@@ -185,7 +186,7 @@ function GatewayHealthComponent({
                       className={`connectivity-badge ${getConnectivityClass(
                         gateway.connectivity_status
                       )}`}
-                      title={gateway.connectivity_message || "Connectivity status'}>
+                      title={gateway.connectivity_message || "Connectivity status"}>
                       {getConnectivityText(gateway.connectivity_status)}
                     </span>
                   )}
@@ -222,37 +223,39 @@ function GatewayHealthComponent({
                 </div>
               </div>
 
-              {gateway.connectivity_status && (
-                <div className='connectivity-info'>
-                  <div className='connectivity-row'>
-                    <span className='connectivity-label'>API Status:</span>
-                    <span className={`connectivity-value ${getConnectivityClass(gateway.connectivity_status)}`}>
-                      {getConnectivityText(gateway.connectivity_status)}
-                    </span>
+              {
+                gateway.connectivity_status && (
+                  <div className='connectivity-info'>
+                    <div className='connectivity-row'>
+                      <span className='connectivity-label'>API Status:</span>
+                      <span className={`connectivity-value ${getConnectivityClass(gateway.connectivity_status)}`}>
+                        {getConnectivityText(gateway.connectivity_status)}
+                      </span>
+                    </div>
+                    {gateway.connectivity_response_time_ms !== null && (
+                      <div className='connectivity-row'>
+                        <span className='connectivity-label'>Response Time:</span>
+                        <span className='connectivity-value'>
+                          {gateway.connectivity_response_time_ms.toFixed(0)}ms
+                        </span>
+                      </div>
+                    )}
+                    {gateway.connectivity_checked_at && (
+                      <div className='connectivity-row'>
+                        <span className='connectivity-label'>Last Checked:</span>
+                        <span className='connectivity-value'>
+                          {new Date(gateway.connectivity_checked_at).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    )}
+                    {gateway.connectivity_message && (
+                      <div className='connectivity-message'>
+                        <small>{gateway.connectivity_message}</small>
+                      </div>
+                    )}
                   </div>
-                  {gateway.connectivity_response_time_ms !== null && (
-                    <div className='connectivity-row'>
-                      <span className='connectivity-label'>Response Time:</span>
-                      <span className='connectivity-value'>
-                        {gateway.connectivity_response_time_ms.toFixed(0)}ms
-                      </span>
-                    </div>
-                  )}
-                  {gateway.connectivity_checked_at && (
-                    <div className='connectivity-row'>
-                      <span className='connectivity-label'>Last Checked:</span>
-                      <span className='connectivity-value'>
-                        {new Date(gateway.connectivity_checked_at).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  )}
-                  {gateway.connectivity_message && (
-                    <div className='connectivity-message'>
-                      <small>{gateway.connectivity_message}</small>
-                    </div>
-                  )}
-                </div>
-              )}
+                )
+              }
 
               <div className='gateway-chart'>
                 <div className='progress-bar'>
@@ -265,90 +268,82 @@ function GatewayHealthComponent({
                 </div>
               </div>
 
-              {trendData.length > 0 && (
-                <div className='trend-section'>
-                  <button
-                    className='expand-trend-btn'
-                    onClick={() =>
-                      setExpandedGateway(isExpanded ? null : gateway.gateway_id)
-                    }>
-                    {isExpanded ? "Hide" : "Show"} Historical Trend
-                  </button>
+              {
+                trendData.length > 0 && (
+                  <div className='trend-section'>
+                    <button
+                      className='expand-trend-btn'
+                      onClick={() =>
+                        setExpandedGateway(isExpanded ? null : gateway.gateway_id)
+                      }>
+                      {isExpanded ? "Hide" : "Show"} Historical Trend
+                    </button>
 
-                  {isExpanded && (
-                    <div className='trend-chart'>
-                      <div className='trend-header'>
-                        Historical Trend - {getTimePeriodLabel()}
-                      </div>
-                      <div className='sparkline-container'>
-                        <div className='sparkline'>
-                          {trendData.map((point, idx) => (
-                            <div
-                              key={idx}
-                              className='sparkline-bar'
-                              style={{
-                                height: `${Math.max(20, point.health_score)}%`,
-                                opacity: 0.6 + (idx / trendData.length) * 0.4,
-                              }}
-                              title={`${point.health_score.toFixed(
-                                1
-                              )}% - ${new Date(
-                                point.timestamp
-                              ).toLocaleString()}`}
-                            />
-                          ))}
+                    {isExpanded && (
+                      <div className='trend-chart'>
+                        <div className='trend-header'>
+                          Historical Trend - {getTimePeriodLabel()}
+                        </div>
+                        <div className='chart-container'>
+                          <HealthTrendChart
+                            data={trendData}
+                            period={timePeriod}
+                            gatewayName={gateway.gateway_name || gateway.gateway_id}
+                          />
+                        </div>
+                        <div className='trend-stats'>
+                          <div className='trend-stat'>
+                            <span>
+                              Highest:{" "}
+                              {Math.max(
+                                ...trendData.map((p) => p.health_score)
+                              ).toFixed(1)}
+                              %
+                            </span>
+                          </div>
+                          <div className='trend-stat'>
+                            <span>
+                              Average:{" "}
+                              {(
+                                trendData.reduce(
+                                  (sum, p) => sum + p.health_score,
+                                  0
+                                ) / trendData.length
+                              ).toFixed(1)}
+                              %
+                            </span>
+                          </div>
+                          <div className='trend-stat'>
+                            <span>
+                              Lowest:{" "}
+                              {Math.min(
+                                ...trendData.map((p) => p.health_score)
+                              ).toFixed(1)}
+                              %
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className='trend-stats'>
-                        <div className='trend-stat'>
-                          <span>
-                            Highest:{" "}
-                            {Math.max(
-                              ...trendData.map((p) => p.health_score)
-                            ).toFixed(1)}
-                            %
-                          </span>
-                        </div>
-                        <div className='trend-stat'>
-                          <span>
-                            Average:{" "}
-                            {(
-                              trendData.reduce(
-                                (sum, p) => sum + p.health_score,
-                                0
-                              ) / trendData.length
-                            ).toFixed(1)}
-                            %
-                          </span>
-                        </div>
-                        <div className='trend-stat'>
-                          <span>
-                            Lowest:{" "}
-                            {Math.min(
-                              ...trendData.map((p) => p.health_score)
-                            ).toFixed(1)}
-                            %
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )
+              }
 
-              {gateway.last_checked && (
-                <div className='gateway-footer'>
-                  <small>
-                    Last checked:{" "}
-                    {new Date(gateway.last_checked).toLocaleTimeString()}
-                  </small>
-                </div>
-              )}
+              {
+                gateway.last_checked && (
+                  <div className='gateway-footer'>
+                    <small>
+                      Last checked:{" "}
+                      {new Date(gateway.last_checked).toLocaleTimeString()}
+                    </small>
+                  </div>
+                )
+              }
             </div>
           );
         })}
       </div>
-    </div>
+    </div >
   );
 }
 

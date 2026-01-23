@@ -20,9 +20,9 @@
     return data.map((gateway) => {
       const successRate = parseFloat(
         gateway.success_rate ??
-          gateway.success_rate_24h ??
-          gateway.health_percentage ??
-          0,
+        gateway.success_rate_24h ??
+        gateway.health_percentage ??
+        0,
       );
 
       const failed24h =
@@ -98,6 +98,138 @@
 
     return { items: [], total: 0 };
   }
+
+  /**
+   * HealthTrendChart Component
+   * Renders a Chart.js line chart for gateway health trends
+   */
+  function HealthTrendChart({ data, period, gatewayId }) {
+    const { useRef, useEffect: useEffectLocal } = React;
+    const canvasRef = useRef(null);
+    const chartRef = useRef(null);
+
+    useEffectLocal(() => {
+      if (!canvasRef.current || !data || data.length === 0) return;
+
+      // Access Chart.js from global scope (loaded via CDN)
+      const Chart = window.Chart;
+      if (!Chart) {
+        console.warn("Chart.js not loaded");
+        return;
+      }
+
+      // Destroy existing chart if present
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+
+      const ctx = canvasRef.current.getContext("2d");
+
+      // Prepare labels and data
+      const labels = data.map((point) => {
+        const date = new Date(point.timestamp);
+        if (period === "24h") {
+          return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        }
+        return date.toLocaleDateString([], { month: "short", day: "numeric" });
+      });
+
+      const healthScores = data.map((point) => point.health_score);
+
+      // Determine color based on average health
+      const avgHealth = healthScores.reduce((a, b) => a + b, 0) / healthScores.length;
+      let lineColor, bgColor;
+      if (avgHealth >= 95) {
+        lineColor = "#00a32a"; bgColor = "rgba(0, 163, 42, 0.1)";
+      } else if (avgHealth >= 90) {
+        lineColor = "#72aee6"; bgColor = "rgba(114, 174, 230, 0.1)";
+      } else if (avgHealth >= 75) {
+        lineColor = "#dba617"; bgColor = "rgba(219, 166, 23, 0.1)";
+      } else {
+        lineColor = "#d63638"; bgColor = "rgba(214, 54, 56, 0.1)";
+      }
+
+      chartRef.current = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: "Health Score",
+            data: healthScores,
+            borderColor: lineColor,
+            backgroundColor: bgColor,
+            fill: true,
+            tension: 0.4,
+            pointRadius: period === "24h" ? 2 : 3,
+            pointHoverRadius: 5,
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 500, easing: "easeInOutQuart" },
+          interaction: { intersect: false, mode: "index" },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              titleFont: { size: 12, weight: "bold" },
+              bodyFont: { size: 11 },
+              padding: 10,
+              displayColors: false,
+              callbacks: {
+                title: (context) => {
+                  const point = data[context[0].dataIndex];
+                  return new Date(point.timestamp).toLocaleString();
+                },
+                label: (context) => "Health: " + context.parsed.y.toFixed(1) + "%",
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: period === "24h" ? 6 : 7,
+                font: { size: 10 },
+                color: "#646970",
+              },
+            },
+            y: {
+              min: Math.max(0, Math.min(...healthScores) - 10),
+              max: 100,
+              grid: { color: "rgba(0, 0, 0, 0.05)" },
+              ticks: {
+                callback: (value) => value + "%",
+                font: { size: 10 },
+                color: "#646970",
+              },
+            },
+          },
+        },
+      });
+
+      return () => {
+        if (chartRef.current) {
+          chartRef.current.destroy();
+        }
+      };
+    }, [data, period, gatewayId]);
+
+    if (!data || data.length === 0) {
+      return React.createElement("div", { className: "chart-empty-state" }, "No trend data available");
+    }
+
+    return React.createElement(
+      "div",
+      { className: "health-trend-chart", style: { height: "180px" } },
+      React.createElement("canvas", { ref: canvasRef })
+    );
+  }
+
 
   /**
    * Dashboard Component
@@ -222,8 +354,7 @@
           response: err.response,
         });
         setError(
-          `Failed to load dashboard data. ${
-            err.message || "Check browser console for details."
+          `Failed to load dashboard data. ${err.message || "Check browser console for details."
           }`,
         );
         setLoading(false);
@@ -270,63 +401,63 @@
         { className: "gateway-health-grid" },
         healthData.length > 0
           ? healthData.map((gateway) =>
+            React.createElement(
+              "div",
+              {
+                key: gateway.gateway_id,
+                className:
+                  "gateway-card " +
+                  (gateway.success_rate >= 95
+                    ? "healthy"
+                    : gateway.success_rate >= 85
+                      ? "warning"
+                      : "critical"),
+              },
+              React.createElement("h3", null, gateway.gateway_id),
               React.createElement(
                 "div",
-                {
-                  key: gateway.gateway_id,
-                  className:
-                    "gateway-card " +
-                    (gateway.success_rate >= 95
-                      ? "healthy"
-                      : gateway.success_rate >= 85
-                        ? "warning"
-                        : "critical"),
-                },
-                React.createElement("h3", null, gateway.gateway_id),
+                { className: "metric" },
                 React.createElement(
-                  "div",
-                  { className: "metric" },
-                  React.createElement(
-                    "span",
-                    { className: "label" },
-                    "Success Rate:",
-                  ),
-                  React.createElement(
-                    "span",
-                    { className: "value" },
-                    gateway.success_rate + "%",
-                  ),
+                  "span",
+                  { className: "label" },
+                  "Success Rate:",
                 ),
                 React.createElement(
-                  "div",
-                  { className: "metric" },
-                  React.createElement(
-                    "span",
-                    { className: "label" },
-                    "Total Transactions:",
-                  ),
-                  React.createElement(
-                    "span",
-                    { className: "value" },
-                    gateway.total_transactions,
-                  ),
-                ),
-                React.createElement(
-                  "div",
-                  { className: "metric" },
-                  React.createElement(
-                    "span",
-                    { className: "label" },
-                    "Avg Response Time:",
-                  ),
-                  React.createElement(
-                    "span",
-                    { className: "value" },
-                    gateway.avg_response_time + "ms",
-                  ),
+                  "span",
+                  { className: "value" },
+                  gateway.success_rate + "%",
                 ),
               ),
-            )
+              React.createElement(
+                "div",
+                { className: "metric" },
+                React.createElement(
+                  "span",
+                  { className: "label" },
+                  "Total Transactions:",
+                ),
+                React.createElement(
+                  "span",
+                  { className: "value" },
+                  gateway.total_transactions,
+                ),
+              ),
+              React.createElement(
+                "div",
+                { className: "metric" },
+                React.createElement(
+                  "span",
+                  { className: "label" },
+                  "Avg Response Time:",
+                ),
+                React.createElement(
+                  "span",
+                  { className: "value" },
+                  gateway.avg_response_time + "ms",
+                ),
+              ),
+            ),
+          )
           : React.createElement("p", null, "No gateway health data available."),
       ),
 
@@ -337,66 +468,66 @@
         React.createElement("h3", null, "Recent Transactions"),
         transactions.length > 0
           ? React.createElement(
-              "table",
-              { className: "wp-list-table widefat fixed striped" },
+            "table",
+            { className: "wp-list-table widefat fixed striped" },
+            React.createElement(
+              "colgroup",
+              null,
+              React.createElement("col", { style: { width: "10%" } }),
+              React.createElement("col", { style: { width: "15%" } }),
+              React.createElement("col", { style: { width: "15%" } }),
+              React.createElement("col", { style: { width: "30%" } }),
+              React.createElement("col", { style: { width: "30%" } }),
+            ),
+            React.createElement(
+              "thead",
+              null,
               React.createElement(
-                "colgroup",
+                "tr",
                 null,
-                React.createElement("col", { style: { width: "10%" } }),
-                React.createElement("col", { style: { width: "15%" } }),
-                React.createElement("col", { style: { width: "15%" } }),
-                React.createElement("col", { style: { width: "30%" } }),
-                React.createElement("col", { style: { width: "30%" } }),
+                React.createElement("th", null, "ID"),
+                React.createElement("th", null, "Gateway"),
+                React.createElement("th", null, "Status"),
+                React.createElement("th", null, "Amount"),
+                React.createElement("th", null, "Time"),
               ),
-              React.createElement(
-                "thead",
-                null,
+            ),
+            React.createElement(
+              "tbody",
+              null,
+              transactions.map((tx) =>
                 React.createElement(
                   "tr",
-                  null,
-                  React.createElement("th", null, "ID"),
-                  React.createElement("th", null, "Gateway"),
-                  React.createElement("th", null, "Status"),
-                  React.createElement("th", null, "Amount"),
-                  React.createElement("th", null, "Time"),
-                ),
-              ),
-              React.createElement(
-                "tbody",
-                null,
-                transactions.map((tx) =>
+                  { key: tx.id },
+                  React.createElement("td", null, tx.id),
+                  React.createElement("td", null, tx.gateway_id),
                   React.createElement(
-                    "tr",
-                    { key: tx.id },
-                    React.createElement("td", null, tx.id),
-                    React.createElement("td", null, tx.gateway_id),
+                    "td",
+                    null,
                     React.createElement(
-                      "td",
-                      null,
-                      React.createElement(
-                        "span",
-                        {
-                          className: "status-" + tx.status,
-                        },
-                        tx.status,
-                      ),
+                      "span",
+                      {
+                        className: "status-" + tx.status,
+                      },
+                      tx.status,
                     ),
-                    React.createElement(
-                      "td",
-                      null,
-                      tx.amount ? "$" + tx.amount : "N/A",
-                    ),
-                    React.createElement(
-                      "td",
-                      null,
-                      tx.created_at
-                        ? new Date(tx.created_at).toLocaleString()
-                        : "N/A",
-                    ),
+                  ),
+                  React.createElement(
+                    "td",
+                    null,
+                    tx.amount ? "$" + tx.amount : "N/A",
+                  ),
+                  React.createElement(
+                    "td",
+                    null,
+                    tx.created_at
+                      ? new Date(tx.created_at).toLocaleString()
+                      : "N/A",
                   ),
                 ),
               ),
-            )
+            ),
+          )
           : React.createElement("p", null, "No recent transactions."),
       ),
 
@@ -407,67 +538,67 @@
         React.createElement("h3", null, "Recent Alerts"),
         alerts.length > 0
           ? React.createElement(
-              "table",
-              { className: "wp-list-table widefat fixed striped" },
+            "table",
+            { className: "wp-list-table widefat fixed striped" },
+            React.createElement(
+              "colgroup",
+              null,
+              React.createElement("col", { style: { width: "50%" } }),
+              React.createElement("col", { style: { width: "15%" } }),
+              React.createElement("col", { style: { width: "15%" } }),
+              React.createElement("col", { style: { width: "20%" } }),
+            ),
+            React.createElement(
+              "thead",
+              null,
               React.createElement(
-                "colgroup",
+                "tr",
                 null,
-                React.createElement("col", { style: { width: "50%" } }),
-                React.createElement("col", { style: { width: "15%" } }),
-                React.createElement("col", { style: { width: "15%" } }),
-                React.createElement("col", { style: { width: "20%" } }),
+                React.createElement("th", null, "Alert"),
+                React.createElement("th", null, "Gateway"),
+                React.createElement("th", null, "Severity"),
+                React.createElement("th", null, "Date"),
               ),
-              React.createElement(
-                "thead",
-                null,
+            ),
+            React.createElement(
+              "tbody",
+              null,
+              alerts.map((alert) =>
                 React.createElement(
                   "tr",
-                  null,
-                  React.createElement("th", null, "Alert"),
-                  React.createElement("th", null, "Gateway"),
-                  React.createElement("th", null, "Severity"),
-                  React.createElement("th", null, "Date"),
-                ),
-              ),
-              React.createElement(
-                "tbody",
-                null,
-                alerts.map((alert) =>
+                  {
+                    key: alert.id,
+                    className: "alert-row alert-" + alert.severity,
+                  },
                   React.createElement(
-                    "tr",
-                    {
-                      key: alert.id,
-                      className: "alert-row alert-" + alert.severity,
-                    },
+                    "td",
+                    null,
+                    React.createElement("strong", null, alert.title),
+                    React.createElement("br"),
+                    React.createElement("small", null, alert.message),
+                  ),
+                  React.createElement("td", null, alert.gateway_id || "-"),
+                  React.createElement(
+                    "td",
+                    null,
                     React.createElement(
-                      "td",
-                      null,
-                      React.createElement("strong", null, alert.title),
-                      React.createElement("br"),
-                      React.createElement("small", null, alert.message),
+                      "span",
+                      {
+                        className: "severity-badge " + alert.severity,
+                      },
+                      alert.severity.charAt(0).toUpperCase() +
+                      alert.severity.slice(1),
                     ),
-                    React.createElement("td", null, alert.gateway_id || "-"),
-                    React.createElement(
-                      "td",
-                      null,
-                      React.createElement(
-                        "span",
-                        {
-                          className: "severity-badge " + alert.severity,
-                        },
-                        alert.severity.charAt(0).toUpperCase() +
-                          alert.severity.slice(1),
-                      ),
-                    ),
-                    React.createElement(
-                      "td",
-                      null,
-                      new Date(alert.created_at).toLocaleString(),
-                    ),
+                  ),
+                  React.createElement(
+                    "td",
+                    null,
+                    new Date(alert.created_at).toLocaleString(),
                   ),
                 ),
               ),
-            )
+            ),
+          )
           : React.createElement("p", null, "No recent alerts."),
       ),
     );
@@ -752,19 +883,19 @@
       // Loading state
       isLoading && gateways.length === 0
         ? React.createElement(
-            "div",
-            { className: "loading-state" },
-            "Loading gateway health data...",
-          )
+          "div",
+          { className: "loading-state" },
+          "Loading gateway health data...",
+        )
         : null,
 
       // Empty state
       gateways.length === 0 && !isLoading && !error
         ? React.createElement(
-            "div",
-            { className: "empty-state" },
-            "No gateway data available yet. Please check back soon.",
-          )
+          "div",
+          { className: "empty-state" },
+          "No gateway data available yet. Please check back soon.",
+        )
         : null,
 
       // Gateways grid
@@ -881,102 +1012,84 @@
             // Trend section (if data available)
             trendData.length > 0
               ? React.createElement(
-                  "div",
-                  { className: "trend-section" },
-                  React.createElement(
-                    "button",
-                    {
-                      className: "expand-trend-btn",
-                      onClick: () =>
-                        setExpandedGateway(
-                          isExpanded ? null : gateway.gateway_id,
-                        ),
-                    },
-                    (isExpanded ? "Hide" : "Show") + " Historical Trend",
-                  ),
+                "div",
+                { className: "trend-section" },
+                React.createElement(
+                  "button",
+                  {
+                    className: "expand-trend-btn",
+                    onClick: () =>
+                      setExpandedGateway(
+                        isExpanded ? null : gateway.gateway_id,
+                      ),
+                  },
+                  (isExpanded ? "Hide" : "Show") + " Historical Trend",
+                ),
 
-                  // Expanded trend chart
-                  isExpanded
-                    ? React.createElement(
+                // Expanded trend chart
+                isExpanded
+                  ? React.createElement(
+                    "div",
+                    { className: "trend-chart" },
+                    React.createElement(
+                      "div",
+                      { className: "trend-header" },
+                      "Historical Trend - " + getTimePeriodLabel(),
+                    ),
+                    React.createElement(HealthTrendChart, {
+                      data: trendData,
+                      period: timePeriod,
+                      gatewayId: gateway.gateway_id,
+                    }),
+                    React.createElement(
+                      "div",
+                      { className: "trend-stats" },
+                      React.createElement(
                         "div",
-                        { className: "trend-chart" },
+                        { className: "trend-stat" },
                         React.createElement(
-                          "div",
-                          { className: "trend-header" },
-                          "Historical Trend - " + getTimePeriodLabel(),
+                          "span",
+                          null,
+                          "Highest: " +
+                          Math.max(
+                            ...trendData.map((p) => p.health_score),
+                          ).toFixed(1) +
+                          "%",
                         ),
+                      ),
+                      React.createElement(
+                        "div",
+                        { className: "trend-stat" },
                         React.createElement(
-                          "div",
-                          { className: "sparkline-container" },
-                          React.createElement(
-                            "div",
-                            { className: "sparkline" },
-                            trendData.map((point, idx) =>
-                              React.createElement("div", {
-                                key: idx,
-                                className: "sparkline-bar",
-                                style: {
-                                  height:
-                                    Math.max(20, point.health_score) + "%",
-                                  opacity: 0.6 + (idx / trendData.length) * 0.4,
-                                },
-                                title:
-                                  point.health_score.toFixed(1) +
-                                  "% - " +
-                                  new Date(point.timestamp).toLocaleString(),
-                              }),
-                            ),
-                          ),
+                          "span",
+                          null,
+                          "Average: " +
+                          (
+                            trendData.reduce(
+                              (a, p) => a + p.health_score,
+                              0,
+                            ) / trendData.length
+                          ).toFixed(1) +
+                          "%",
                         ),
+                      ),
+                      React.createElement(
+                        "div",
+                        { className: "trend-stat" },
                         React.createElement(
-                          "div",
-                          { className: "trend-stats" },
-                          React.createElement(
-                            "div",
-                            { className: "trend-stat" },
-                            React.createElement(
-                              "span",
-                              null,
-                              "Highest: " +
-                                Math.max(
-                                  ...trendData.map((p) => p.health_score),
-                                ).toFixed(1) +
-                                "%",
-                            ),
-                          ),
-                          React.createElement(
-                            "div",
-                            { className: "trend-stat" },
-                            React.createElement(
-                              "span",
-                              null,
-                              "Average: " +
-                                (
-                                  trendData.reduce(
-                                    (a, p) => a + p.health_score,
-                                    0,
-                                  ) / trendData.length
-                                ).toFixed(1) +
-                                "%",
-                            ),
-                          ),
-                          React.createElement(
-                            "div",
-                            { className: "trend-stat" },
-                            React.createElement(
-                              "span",
-                              null,
-                              "Lowest: " +
-                                Math.min(
-                                  ...trendData.map((p) => p.health_score),
-                                ).toFixed(1) +
-                                "%",
-                            ),
-                          ),
+                          "span",
+                          null,
+                          "Lowest: " +
+                          Math.min(
+                            ...trendData.map((p) => p.health_score),
+                          ).toFixed(1) +
+                          "%",
                         ),
-                      )
-                    : null,
-                )
+                      ),
+                    ),
+                  )
+                  : null,
+              )
               : null,
           );
         }),
@@ -1127,273 +1240,273 @@
       // Loading state
       isLoading && transactions.length === 0
         ? React.createElement(
-            "div",
-            { className: "loading-state" },
-            "Loading transactions...",
-          )
+          "div",
+          { className: "loading-state" },
+          "Loading transactions...",
+        )
         : null,
 
       // Empty state
       transactions.length === 0 && !isLoading && !error
         ? React.createElement(
-            "div",
-            { className: "empty-state" },
-            "No transactions found.",
-          )
+          "div",
+          { className: "empty-state" },
+          "No transactions found.",
+        )
         : null,
 
       // Transactions table
       transactions.length > 0
         ? React.createElement(
-            "div",
-            { className: "transactions-table-container" },
+          "div",
+          { className: "transactions-table-container" },
+          React.createElement(
+            "table",
+            { className: "wp-list-table widefat fixed striped" },
             React.createElement(
-              "table",
-              { className: "wp-list-table widefat fixed striped" },
+              "thead",
+              null,
               React.createElement(
-                "thead",
+                "tr",
                 null,
-                React.createElement(
-                  "tr",
-                  null,
-                  React.createElement("th", null, "ID"),
-                  React.createElement("th", null, "Order"),
-                  React.createElement("th", null, "Gateway"),
-                  React.createElement("th", null, "Amount"),
-                  React.createElement("th", null, "Status"),
-                  React.createElement("th", null, "Date"),
-                  React.createElement("th", null, "Actions"),
-                ),
+                React.createElement("th", null, "ID"),
+                React.createElement("th", null, "Order"),
+                React.createElement("th", null, "Gateway"),
+                React.createElement("th", null, "Amount"),
+                React.createElement("th", null, "Status"),
+                React.createElement("th", null, "Date"),
+                React.createElement("th", null, "Actions"),
               ),
-              React.createElement(
-                "tbody",
-                null,
-                transactions.map((tx) =>
+            ),
+            React.createElement(
+              "tbody",
+              null,
+              transactions.map((tx) =>
+                React.createElement(
+                  React.Fragment,
+                  { key: tx.id },
                   React.createElement(
-                    React.Fragment,
-                    { key: tx.id },
+                    "tr",
+                    {
+                      className:
+                        "transaction-row status-" + (tx.status || ""),
+                    },
+                    React.createElement("td", null, tx.id),
+                    React.createElement("td", null, tx.order_id || "N/A"),
+                    React.createElement("td", null, tx.gateway_id),
                     React.createElement(
-                      "tr",
-                      {
-                        className:
-                          "transaction-row status-" + (tx.status || ""),
-                      },
-                      React.createElement("td", null, tx.id),
-                      React.createElement("td", null, tx.order_id || "N/A"),
-                      React.createElement("td", null, tx.gateway_id),
+                      "td",
+                      null,
+                      tx.currency
+                        ? tx.currency + " " + parseFloat(tx.amount).toFixed(2)
+                        : "$" + parseFloat(tx.amount || 0).toFixed(2),
+                    ),
+                    React.createElement(
+                      "td",
+                      null,
                       React.createElement(
-                        "td",
-                        null,
-                        tx.currency
-                          ? tx.currency + " " + parseFloat(tx.amount).toFixed(2)
-                          : "$" + parseFloat(tx.amount || 0).toFixed(2),
-                      ),
-                      React.createElement(
-                        "td",
-                        null,
-                        React.createElement(
-                          "span",
-                          {
-                            className:
-                              "status-badge status-" + (tx.status || ""),
-                          },
-                          tx.status || "unknown",
-                        ),
-                      ),
-                      React.createElement(
-                        "td",
-                        null,
-                        tx.created_at
-                          ? new Date(tx.created_at).toLocaleString()
-                          : "N/A",
-                      ),
-                      React.createElement(
-                        "td",
-                        null,
-                        React.createElement(
-                          "button",
-                          {
-                            className: "button button-small",
-                            onClick: () => toggleTransactionDetails(tx.id),
-                          },
-                          expandedTransactionId === tx.id ? "Hide" : "Details",
-                        ),
+                        "span",
+                        {
+                          className:
+                            "status-badge status-" + (tx.status || ""),
+                        },
+                        tx.status || "unknown",
                       ),
                     ),
-                    expandedTransactionId === tx.id
-                      ? React.createElement(
-                          "tr",
-                          { className: "transaction-details-row" },
+                    React.createElement(
+                      "td",
+                      null,
+                      tx.created_at
+                        ? new Date(tx.created_at).toLocaleString()
+                        : "N/A",
+                    ),
+                    React.createElement(
+                      "td",
+                      null,
+                      React.createElement(
+                        "button",
+                        {
+                          className: "button button-small",
+                          onClick: () => toggleTransactionDetails(tx.id),
+                        },
+                        expandedTransactionId === tx.id ? "Hide" : "Details",
+                      ),
+                    ),
+                  ),
+                  expandedTransactionId === tx.id
+                    ? React.createElement(
+                      "tr",
+                      { className: "transaction-details-row" },
+                      React.createElement(
+                        "td",
+                        { colSpan: "7" },
+                        React.createElement(
+                          "div",
+                          { className: "transaction-details" },
                           React.createElement(
-                            "td",
-                            { colSpan: "7" },
+                            "div",
+                            { className: "detail-grid" },
                             React.createElement(
                               "div",
-                              { className: "transaction-details" },
+                              { className: "detail-item" },
                               React.createElement(
-                                "div",
-                                { className: "detail-grid" },
+                                "strong",
+                                null,
+                                "Transaction ID: ",
+                              ),
+                              React.createElement(
+                                "span",
+                                null,
+                                tx.transaction_id || "N/A",
+                              ),
+                            ),
+                            React.createElement(
+                              "div",
+                              { className: "detail-item" },
+                              React.createElement(
+                                "strong",
+                                null,
+                                "Customer Email: ",
+                              ),
+                              React.createElement(
+                                "span",
+                                null,
+                                tx.customer_email || "N/A",
+                              ),
+                            ),
+                            React.createElement(
+                              "div",
+                              { className: "detail-item" },
+                              React.createElement(
+                                "strong",
+                                null,
+                                "Customer IP: ",
+                              ),
+                              React.createElement(
+                                "span",
+                                null,
+                                tx.customer_ip || "N/A",
+                              ),
+                            ),
+                            React.createElement(
+                              "div",
+                              { className: "detail-item" },
+                              React.createElement(
+                                "strong",
+                                null,
+                                "Retry Count: ",
+                              ),
+                              React.createElement(
+                                "span",
+                                null,
+                                tx.retry_count || 0,
+                              ),
+                            ),
+                            tx.status === "failed"
+                              ? React.createElement(
+                                React.Fragment,
+                                null,
                                 React.createElement(
                                   "div",
-                                  { className: "detail-item" },
+                                  { className: "detail-item full-width" },
                                   React.createElement(
                                     "strong",
                                     null,
-                                    "Transaction ID: ",
+                                    "Failure Code: ",
                                   ),
                                   React.createElement(
                                     "span",
                                     null,
-                                    tx.transaction_id || "N/A",
+                                    tx.failure_code || "N/A",
                                   ),
                                 ),
                                 React.createElement(
                                   "div",
-                                  { className: "detail-item" },
+                                  { className: "detail-item full-width" },
                                   React.createElement(
                                     "strong",
                                     null,
-                                    "Customer Email: ",
+                                    "Failure Reason: ",
                                   ),
                                   React.createElement(
                                     "span",
                                     null,
-                                    tx.customer_email || "N/A",
+                                    tx.failure_reason || "N/A",
                                   ),
                                 ),
-                                React.createElement(
-                                  "div",
-                                  { className: "detail-item" },
-                                  React.createElement(
-                                    "strong",
-                                    null,
-                                    "Customer IP: ",
-                                  ),
-                                  React.createElement(
-                                    "span",
-                                    null,
-                                    tx.customer_ip || "N/A",
-                                  ),
-                                ),
-                                React.createElement(
-                                  "div",
-                                  { className: "detail-item" },
-                                  React.createElement(
-                                    "strong",
-                                    null,
-                                    "Retry Count: ",
-                                  ),
-                                  React.createElement(
-                                    "span",
-                                    null,
-                                    tx.retry_count || 0,
-                                  ),
-                                ),
-                                tx.status === "failed"
-                                  ? React.createElement(
-                                      React.Fragment,
-                                      null,
-                                      React.createElement(
-                                        "div",
-                                        { className: "detail-item full-width" },
-                                        React.createElement(
-                                          "strong",
-                                          null,
-                                          "Failure Code: ",
-                                        ),
-                                        React.createElement(
-                                          "span",
-                                          null,
-                                          tx.failure_code || "N/A",
-                                        ),
-                                      ),
-                                      React.createElement(
-                                        "div",
-                                        { className: "detail-item full-width" },
-                                        React.createElement(
-                                          "strong",
-                                          null,
-                                          "Failure Reason: ",
-                                        ),
-                                        React.createElement(
-                                          "span",
-                                          null,
-                                          tx.failure_reason || "N/A",
-                                        ),
-                                      ),
-                                    )
-                                  : null,
-                                React.createElement(
-                                  "div",
-                                  { className: "detail-item" },
-                                  React.createElement(
-                                    "strong",
-                                    null,
-                                    "Created: ",
-                                  ),
-                                  React.createElement(
-                                    "span",
-                                    null,
-                                    tx.created_at
-                                      ? new Date(tx.created_at).toLocaleString()
-                                      : "N/A",
-                                  ),
-                                ),
-                                React.createElement(
-                                  "div",
-                                  { className: "detail-item" },
-                                  React.createElement(
-                                    "strong",
-                                    null,
-                                    "Updated: ",
-                                  ),
-                                  React.createElement(
-                                    "span",
-                                    null,
-                                    tx.updated_at
-                                      ? new Date(tx.updated_at).toLocaleString()
-                                      : "N/A",
-                                  ),
-                                ),
+                              )
+                              : null,
+                            React.createElement(
+                              "div",
+                              { className: "detail-item" },
+                              React.createElement(
+                                "strong",
+                                null,
+                                "Created: ",
+                              ),
+                              React.createElement(
+                                "span",
+                                null,
+                                tx.created_at
+                                  ? new Date(tx.created_at).toLocaleString()
+                                  : "N/A",
+                              ),
+                            ),
+                            React.createElement(
+                              "div",
+                              { className: "detail-item" },
+                              React.createElement(
+                                "strong",
+                                null,
+                                "Updated: ",
+                              ),
+                              React.createElement(
+                                "span",
+                                null,
+                                tx.updated_at
+                                  ? new Date(tx.updated_at).toLocaleString()
+                                  : "N/A",
                               ),
                             ),
                           ),
-                        )
-                      : null,
-                  ),
+                        ),
+                      ),
+                    )
+                    : null,
                 ),
               ),
             ),
-          )
+          ),
+        )
         : null,
 
       // Pagination
       transactions.length > 0 && totalPages > 1
         ? React.createElement(
-            "div",
-            { className: "pagination" },
-            React.createElement(
-              "button",
-              {
-                disabled: page <= 1,
-                onClick: () => setPage(page - 1),
-              },
-              "Previous",
-            ),
-            React.createElement(
-              "span",
-              { className: "page-info" },
-              "Page " + page + " of " + totalPages,
-            ),
-            React.createElement(
-              "button",
-              {
-                disabled: page >= totalPages,
-                onClick: () => setPage(page + 1),
-              },
-              "Next",
-            ),
-          )
+          "div",
+          { className: "pagination" },
+          React.createElement(
+            "button",
+            {
+              disabled: page <= 1,
+              onClick: () => setPage(page - 1),
+            },
+            "Previous",
+          ),
+          React.createElement(
+            "span",
+            { className: "page-info" },
+            "Page " + page + " of " + totalPages,
+          ),
+          React.createElement(
+            "button",
+            {
+              disabled: page >= totalPages,
+              onClick: () => setPage(page + 1),
+            },
+            "Next",
+          ),
+        )
         : null,
     );
   }
@@ -1612,133 +1725,133 @@
       // Loading state
       isLoading && alerts.length === 0
         ? React.createElement(
-            "div",
-            { className: "loading-state" },
-            "Loading alerts...",
-          )
+          "div",
+          { className: "loading-state" },
+          "Loading alerts...",
+        )
         : null,
 
       // Empty state
       alerts.length === 0 && !isLoading && !error
         ? React.createElement(
-            "div",
-            { className: "empty-state" },
-            "No alerts found.",
-          )
+          "div",
+          { className: "empty-state" },
+          "No alerts found.",
+        )
         : null,
 
       // Alerts list
       alerts.length > 0
         ? React.createElement(
-            "div",
-            { className: "alerts-list-container" },
-            alerts.map((alert) =>
+          "div",
+          { className: "alerts-list-container" },
+          alerts.map((alert) =>
+            React.createElement(
+              "div",
+              {
+                key: alert.id,
+                className: "alert-row status-" + (alert.severity || "info"),
+              },
+
               React.createElement(
                 "div",
-                {
-                  key: alert.id,
-                  className: "alert-row status-" + (alert.severity || "info"),
-                },
-
+                { className: "alert-cell alert-title-cell" },
+                React.createElement("strong", null, alert.title),
                 React.createElement(
                   "div",
-                  { className: "alert-cell alert-title-cell" },
-                  React.createElement("strong", null, alert.title),
-                  React.createElement(
-                    "div",
-                    { className: "alert-message-text" },
-                    alert.message,
-                  ),
+                  { className: "alert-message-text" },
+                  alert.message,
                 ),
-
-                React.createElement(
-                  "div",
-                  { className: "alert-cell alert-gateway-cell" },
-                  alert.gateway_id || "—",
-                ),
-
-                React.createElement(
-                  "div",
-                  { className: "alert-cell alert-severity-cell" },
-                  React.createElement(
-                    "span",
-                    {
-                      className: "severity-badge " + (alert.severity || "info"),
-                    },
-                    alert.severity?.toUpperCase() || "INFO",
-                  ),
-                ),
-
-                React.createElement(
-                  "div",
-                  { className: "alert-cell alert-status-cell" },
-                  React.createElement(
-                    "span",
-                    {
-                      className: "status-badge " + (alert.status || "active"),
-                    },
-                    alert.status?.toUpperCase() || "ACTIVE",
-                  ),
-                ),
-
-                React.createElement(
-                  "div",
-                  { className: "alert-cell alert-date-cell" },
-                  alert.created_at
-                    ? new Date(alert.created_at).toLocaleDateString() +
-                        " " +
-                        new Date(alert.created_at).toLocaleTimeString()
-                    : "—",
-                ),
-
-                alert.status === "active"
-                  ? React.createElement(
-                      "div",
-                      { className: "alert-cell alert-action-cell" },
-                      React.createElement(
-                        "button",
-                        {
-                          className: "button button-small",
-                          onClick: () => handleResolveAlert(alert.id),
-                        },
-                        "Resolve",
-                      ),
-                    )
-                  : null,
               ),
+
+              React.createElement(
+                "div",
+                { className: "alert-cell alert-gateway-cell" },
+                alert.gateway_id || "—",
+              ),
+
+              React.createElement(
+                "div",
+                { className: "alert-cell alert-severity-cell" },
+                React.createElement(
+                  "span",
+                  {
+                    className: "severity-badge " + (alert.severity || "info"),
+                  },
+                  alert.severity?.toUpperCase() || "INFO",
+                ),
+              ),
+
+              React.createElement(
+                "div",
+                { className: "alert-cell alert-status-cell" },
+                React.createElement(
+                  "span",
+                  {
+                    className: "status-badge " + (alert.status || "active"),
+                  },
+                  alert.status?.toUpperCase() || "ACTIVE",
+                ),
+              ),
+
+              React.createElement(
+                "div",
+                { className: "alert-cell alert-date-cell" },
+                alert.created_at
+                  ? new Date(alert.created_at).toLocaleDateString() +
+                  " " +
+                  new Date(alert.created_at).toLocaleTimeString()
+                  : "—",
+              ),
+
+              alert.status === "active"
+                ? React.createElement(
+                  "div",
+                  { className: "alert-cell alert-action-cell" },
+                  React.createElement(
+                    "button",
+                    {
+                      className: "button button-small",
+                      onClick: () => handleResolveAlert(alert.id),
+                    },
+                    "Resolve",
+                  ),
+                )
+                : null,
             ),
-          )
+          ),
+        )
         : null,
 
       // Pagination
       alerts.length > 0 && totalPages > 1
         ? React.createElement(
-            "div",
-            { className: "pagination" },
-            React.createElement(
-              "button",
-              {
-                className: "button",
-                disabled: page <= 1,
-                onClick: () => setPage(page - 1),
-              },
-              "← Previous",
-            ),
-            React.createElement(
-              "span",
-              { className: "page-info" },
-              "Page " + page + " of " + totalPages,
-            ),
-            React.createElement(
-              "button",
-              {
-                className: "button",
-                disabled: page >= totalPages,
-                onClick: () => setPage(page + 1),
-              },
-              "Next →",
-            ),
-          )
+          "div",
+          { className: "pagination" },
+          React.createElement(
+            "button",
+            {
+              className: "button",
+              disabled: page <= 1,
+              onClick: () => setPage(page - 1),
+            },
+            "← Previous",
+          ),
+          React.createElement(
+            "span",
+            { className: "page-info" },
+            "Page " + page + " of " + totalPages,
+          ),
+          React.createElement(
+            "button",
+            {
+              className: "button",
+              disabled: page >= totalPages,
+              onClick: () => setPage(page + 1),
+            },
+            "Next →",
+          ),
+        )
         : null,
     );
   }
