@@ -192,6 +192,16 @@ class WC_Payment_Monitor_API_Diagnostics extends WC_Payment_Monitor_API_Base {
 
 		register_rest_route(
 			$this->namespace,
+			'/simulator/gateways',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_available_gateways' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/simulator/simulate',
 			array(
 				'methods'             => 'POST',
@@ -203,7 +213,7 @@ class WC_Payment_Monitor_API_Diagnostics extends WC_Payment_Monitor_API_Base {
 						'sanitize_callback' => 'sanitize_text_field',
 					),
 					'gateway_id' => array(
-						'default'           => 'stripe',
+						'default'           => null,
 						'sanitize_callback' => 'sanitize_text_field',
 					),
 					'count'      => array(
@@ -375,6 +385,16 @@ class WC_Payment_Monitor_API_Diagnostics extends WC_Payment_Monitor_API_Base {
 	public function get_failure_scenarios() {
 		$scenarios = $this->simulator->get_all_scenarios();
 		return $this->get_success_response( $scenarios );
+	}
+
+	/**
+	 * Get available payment gateways
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_available_gateways() {
+		$gateways = $this->simulator->get_available_gateways();
+		return $this->get_success_response( $gateways );
 	}
 
 	/**

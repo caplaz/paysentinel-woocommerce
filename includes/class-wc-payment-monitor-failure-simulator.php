@@ -264,15 +264,20 @@ class WC_Payment_Monitor_Failure_Simulator {
 	 * Create a test order with simulated failure
 	 *
 	 * @param string $scenario_key Scenario key
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID (optional, uses random enabled gateway if not specified)
 	 * @return array Result with order_id
 	 */
-	public function create_test_order_with_failure( $scenario_key, $gateway_id = 'stripe' ) {
+	public function create_test_order_with_failure( $scenario_key, $gateway_id = null ) {
 		if ( ! isset( self::FAILURE_SCENARIOS[ $scenario_key ] ) ) {
 			return array(
 				'success' => false,
 				'message' => __( 'Invalid failure scenario.', 'wc-payment-monitor' ),
 			);
+		}
+
+		// Use random enabled gateway if not specified
+		if ( empty( $gateway_id ) ) {
+			$gateway_id = $this->get_random_enabled_gateway();
 		}
 
 		// Create a test order
@@ -300,6 +305,32 @@ class WC_Payment_Monitor_Failure_Simulator {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Get enabled payment gateways
+	 *
+	 * @return array Array of gateway IDs
+	 */
+	private function get_enabled_gateways() {
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		
+		if ( empty( $available_gateways ) ) {
+			// Fallback to common gateways if none are enabled
+			return array( 'stripe', 'paypal', 'bacs' );
+		}
+
+		return array_keys( $available_gateways );
+	}
+
+	/**
+	 * Get a random enabled gateway
+	 *
+	 * @return string Gateway ID
+	 */
+	private function get_random_enabled_gateway() {
+		$gateways = $this->get_enabled_gateways();
+		return $gateways[ array_rand( $gateways ) ];
 	}
 
 	/**
@@ -339,27 +370,39 @@ class WC_Payment_Monitor_Failure_Simulator {
 	 * Generate bulk test failures
 	 *
 	 * @param int    $count Number of failures to generate
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID (optional, uses random enabled gateways if not specified)
 	 * @param array  $scenarios Specific scenarios to use (empty for random)
 	 * @return array Results
 	 */
-	public function generate_bulk_failures( $count, $gateway_id = 'stripe', $scenarios = array() ) {
+	public function generate_bulk_failures( $count, $gateway_id = null, $scenarios = array() ) {
 		$results = array(
 			'success'      => 0,
 			'failed'       => 0,
 			'order_ids'    => array(),
 			'errors'       => array(),
+			'gateways'     => array(),
 		);
 
 		$available_scenarios = empty( $scenarios ) ? array_keys( self::FAILURE_SCENARIOS ) : $scenarios;
+		$enabled_gateways = $this->get_enabled_gateways();
 
 		for ( $i = 0; $i < $count; $i++ ) {
 			$scenario_key = $available_scenarios[ array_rand( $available_scenarios ) ];
-			$result       = $this->create_test_order_with_failure( $scenario_key, $gateway_id );
+			
+			// Use specified gateway or rotate through enabled gateways
+			$current_gateway = $gateway_id ? $gateway_id : $enabled_gateways[ $i % count( $enabled_gateways ) ];
+			
+			$result = $this->create_test_order_with_failure( $scenario_key, $current_gateway );
 
 			if ( $result['success'] ) {
 				$results['success']++;
 				$results['order_ids'][] = $result['order_id'];
+				
+				// Track which gateways were used
+				if ( ! isset( $results['gateways'][ $current_gateway ] ) ) {
+					$results['gateways'][ $current_gateway ] = 0;
+				}
+				$results['gateways'][ $current_gateway ]++;
 			} else {
 				$results['failed']++;
 				$results['errors'][] = $result['message'];
@@ -376,6 +419,26 @@ class WC_Payment_Monitor_Failure_Simulator {
 	 */
 	public function get_all_scenarios() {
 		return self::FAILURE_SCENARIOS;
+	}
+
+	/**
+	 * Get available payment gateways
+	 *
+	 * @return array Array of gateway data
+	 */
+	public function get_available_gateways() {
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		$gateways_data = array();
+
+		foreach ( $available_gateways as $gateway_id => $gateway ) {
+			$gateways_data[] = array(
+				'id'      => $gateway_id,
+				'title'   => $gateway->get_title(),
+				'enabled' => $gateway->enabled === 'yes',
+			);
+		}
+
+		return $gateways_data;
 	}
 
 	/**

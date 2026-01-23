@@ -890,12 +890,17 @@ class WC_Payment_Monitor_Admin {
 						
 						<label for="failure-gateway"><?php esc_html_e( 'Gateway:', 'wc-payment-monitor' ); ?></label>
 						<select id="failure-gateway">
-							<option value="stripe">Stripe</option>
-							<option value="paypal">PayPal</option>
-							<option value="woocommerce_payments">WooCommerce Payments</option>
-						</select>
-						
-						<label for="failure-count"><?php esc_html_e( 'Number of Failures:', 'wc-payment-monitor' ); ?></label>
+							<option value=""><?php esc_html_e( 'Random Enabled Gateway', 'wc-payment-monitor' ); ?></option>
+						<?php
+						$available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+						foreach ( $available_gateways as $gateway_id => $gateway ) {
+							printf(
+								'<option value="%s">%s</option>',
+								esc_attr( $gateway_id ),
+								esc_html( $gateway->get_title() )
+							);
+						}
+						?>
 						<input type="number" id="failure-count" value="1" min="1" max="50" />
 						
 						<button class="button button-secondary" id="simulate-failure">
@@ -933,6 +938,28 @@ class WC_Payment_Monitor_Admin {
 			
 			<script>
 				jQuery(document).ready(function($) {
+					// Load available payment gateways on page load
+					$.ajax({
+						url: wcPaymentMonitor.apiUrl + 'simulator/gateways',
+						method: 'GET',
+						headers: {
+							'X-WP-Nonce': wcPaymentMonitor.restNonce
+						},
+						success: function(response) {
+							if (response.data && response.data.length > 0) {
+								response.data.forEach(function(gateway) {
+									if (gateway.enabled) {
+										$('#failure-gateway').append(
+											$('<option></option>')
+												.attr('value', gateway.id)
+												.text(gateway.title)
+										);
+									}
+								});
+							}
+						}
+					});
+
 					// Add basic JavaScript functionality
 					$('#run-full-diagnostics').on('click', function() {
 						var $btn = $(this);
