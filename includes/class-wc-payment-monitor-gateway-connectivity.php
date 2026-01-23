@@ -7,7 +7,7 @@
  * @package WC_Payment_Monitor
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (!defined('ABSPATH')) {
 	exit;
 }
 
@@ -16,7 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Manages connectivity checks for payment gateways
  */
-class WC_Payment_Monitor_Gateway_Connectivity {
+class WC_Payment_Monitor_Gateway_Connectivity
+{
 
 	/**
 	 * List of supported gateway connectors
@@ -24,9 +25,10 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 	 * @var array
 	 */
 	private $connectors = array(
-		'stripe'               => 'WC_Payment_Monitor_Stripe_Connector',
-		'paypal'               => 'WC_Payment_Monitor_PayPal_Connector',
+		'stripe' => 'WC_Payment_Monitor_Stripe_Connector',
+		'paypal' => 'WC_Payment_Monitor_PayPal_Connector',
 		'woocommerce_payments' => 'WC_Payment_Monitor_WC_Payments_Connector',
+		'square_credit_card' => 'WC_Payment_Monitor_Square_Connector',
 	);
 
 	/**
@@ -39,30 +41,31 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 	 *     'results'          => array of status results by gateway_id
 	 * }
 	 */
-	public function check_all_gateways() {
+	public function check_all_gateways()
+	{
 		$results = array(
-			'checked_gateways'  => 0,
-			'online_gateways'   => array(),
-			'offline_gateways'  => array(),
+			'checked_gateways' => 0,
+			'online_gateways' => array(),
+			'offline_gateways' => array(),
 			'unconfigured_gateways' => array(),
-			'results'           => array(),
+			'results' => array(),
 		);
 
-		foreach ( $this->connectors as $gateway_id => $connector_class ) {
+		foreach ($this->connectors as $gateway_id => $connector_class) {
 			// Skip if connector class doesn't exist
-			if ( ! class_exists( $connector_class ) ) {
+			if (!class_exists($connector_class)) {
 				continue;
 			}
 
-			$status = $this->check_gateway( $gateway_id );
+			$status = $this->check_gateway($gateway_id);
 
-			if ( null !== $status ) {
-				$results['results'][ $gateway_id ] = $status;
+			if (null !== $status) {
+				$results['results'][$gateway_id] = $status;
 				$results['checked_gateways']++;
 
-				if ( 'online' === $status['status'] ) {
+				if ('online' === $status['status']) {
 					$results['online_gateways'][] = $gateway_id;
-				} elseif ( 'offline' === $status['status'] ) {
+				} elseif ('offline' === $status['status']) {
 					$results['offline_gateways'][] = $gateway_id;
 				} else {
 					$results['unconfigured_gateways'][] = $gateway_id;
@@ -79,15 +82,16 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 	 * @param string $gateway_id Gateway identifier.
 	 * @return array|null Status result or null if gateway not found.
 	 */
-	public function check_gateway( $gateway_id ) {
-		if ( ! isset( $this->connectors[ $gateway_id ] ) ) {
+	public function check_gateway($gateway_id)
+	{
+		if (!isset($this->connectors[$gateway_id])) {
 			return null;
 		}
 
-		$connector_class = $this->connectors[ $gateway_id ];
+		$connector_class = $this->connectors[$gateway_id];
 
 		// Skip if class doesn't exist
-		if ( ! class_exists( $connector_class ) ) {
+		if (!class_exists($connector_class)) {
 			return null;
 		}
 
@@ -99,14 +103,14 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 			$status = $connector->test_connection();
 
 			// Log the result to database
-			$connector->log_connectivity_check( $status );
+			$connector->log_connectivity_check($status);
 
 			// Trigger hook for other plugins to react
-			do_action( 'wc_payment_monitor_gateway_checked', $gateway_id, $status );
+			do_action('wc_payment_monitor_gateway_checked', $gateway_id, $status);
 
 			return $status;
 
-		} catch ( Exception $e ) {
+		} catch (Exception $e) {
 			// Log exception
 			error_log(
 				sprintf(
@@ -126,14 +130,15 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 	 * @param string $gateway_id Gateway identifier.
 	 * @return object|null Last check record or null.
 	 */
-	public function get_last_check( $gateway_id ) {
-		if ( ! isset( $this->connectors[ $gateway_id ] ) ) {
+	public function get_last_check($gateway_id)
+	{
+		if (!isset($this->connectors[$gateway_id])) {
 			return null;
 		}
 
-		$connector_class = $this->connectors[ $gateway_id ];
+		$connector_class = $this->connectors[$gateway_id];
 
-		if ( ! class_exists( $connector_class ) ) {
+		if (!class_exists($connector_class)) {
 			return null;
 		}
 
@@ -148,19 +153,20 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 	 * @param int    $limit Number of records to retrieve.
 	 * @return array Array of connectivity check records.
 	 */
-	public function get_history( $gateway_id, $limit = 10 ) {
-		if ( ! isset( $this->connectors[ $gateway_id ] ) ) {
+	public function get_history($gateway_id, $limit = 10)
+	{
+		if (!isset($this->connectors[$gateway_id])) {
 			return array();
 		}
 
-		$connector_class = $this->connectors[ $gateway_id ];
+		$connector_class = $this->connectors[$gateway_id];
 
-		if ( ! class_exists( $connector_class ) ) {
+		if (!class_exists($connector_class)) {
 			return array();
 		}
 
 		$connector = new $connector_class();
-		return $connector->get_connectivity_history( $limit );
+		return $connector->get_connectivity_history($limit);
 	}
 
 	/**
@@ -168,8 +174,9 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 	 *
 	 * @return array Array of gateway IDs.
 	 */
-	public function get_supported_gateways() {
-		return array_keys( $this->connectors );
+	public function get_supported_gateways()
+	{
+		return array_keys($this->connectors);
 	}
 
 	/**
@@ -177,14 +184,15 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 	 *
 	 * @return array Array of enabled gateway IDs.
 	 */
-	public function get_enabled_gateways() {
+	public function get_enabled_gateways()
+	{
 		$enabled = array();
 
 		$wc_gateways = WC()->payment_gateways()->get_available_payment_gateways();
 
-		foreach ( $this->connectors as $gateway_id => $connector_class ) {
+		foreach ($this->connectors as $gateway_id => $connector_class) {
 			// Check if this gateway exists in WooCommerce and is enabled
-			if ( isset( $wc_gateways[ $gateway_id ] ) && $wc_gateways[ $gateway_id ]->enabled ) {
+			if (isset($wc_gateways[$gateway_id]) && $wc_gateways[$gateway_id]->enabled) {
 				$enabled[] = $gateway_id;
 			}
 		}
@@ -198,13 +206,14 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 	 * @param int $days Number of days to keep records for.
 	 * @return int Number of records deleted.
 	 */
-	public function cleanup_old_checks( $days = 30 ) {
+	public function cleanup_old_checks($days = 30)
+	{
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
 
 		// Calculate cutoff date
-		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$cutoff_date = gmdate('Y-m-d H:i:s', strtotime("-{$days} days"));
 
 		return $wpdb->query(
 			$wpdb->prepare(
