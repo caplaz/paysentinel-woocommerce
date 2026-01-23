@@ -610,6 +610,12 @@ class WC_Payment_Monitor_Retry {
 	 * @return bool Success
 	 */
 	public function send_recovery_email( $order ) {
+		// Prevent spamming recovery emails (debounce: 5 minutes)
+		$last_sent = $order->get_meta( '_wc_payment_monitor_recovery_sent' );
+		if ( $last_sent && ( time() - intval( $last_sent ) < 300 ) ) {
+			return false;
+		}
+
 		$customer_email = $order->get_billing_email();
 		if ( empty( $customer_email ) ) {
 			return false;
@@ -627,6 +633,10 @@ class WC_Payment_Monitor_Retry {
 			'Content-Type: text/html; charset=UTF-8',
 			'From: ' . get_bloginfo( 'name' ) . ' <' . get_option( 'admin_email' ) . '>',
 		);
+
+		// Flag as sent before adding note to avoid potential race conditions or loops
+		$order->update_meta_data( '_wc_payment_monitor_recovery_sent', time() );
+		$order->save();
 
 		$order->add_order_note( __( 'Sent payment recovery email to customer.', 'wc-payment-monitor' ) );
 
