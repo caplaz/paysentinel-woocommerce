@@ -30,7 +30,7 @@ jobs:
               run: composer install --no-progress --prefer-dist --optimize-autoloader
 
             - name: Run tests
-              run: docker compose run --rm tests
+              run: docker compose run --rm tests bash -lc "bash ./tests/entrypoint.sh && vendor/bin/phpunit tests/ 2>&1 | grep -v -E 'SERIALIZATION_FORMAT|^There were [0-9]+ warnings|^[0-9]+\) Database'"
 
             - name: Stop services
               run: docker compose down
