@@ -29,8 +29,17 @@ jobs:
             - name: Install Composer dependencies
               run: composer install --no-progress --prefer-dist --optimize-autoloader
 
+            - name: Set up WordPress test environment
+              run: docker compose run --rm tests bash -lc "bash ./tests/entrypoint.sh"
+
+            - name: Create WordPress config
+              run: docker compose run --rm tests wp config create --dbname=wordpress_test --dbuser=wp --dbpass=wp --dbhost=db --path=/tmp/wordpress --allow-root
+
+            - name: Install and activate WooCommerce
+              run: docker compose run --rm tests wp plugin install woocommerce --activate --path=/tmp/wordpress --allow-root
+
             - name: Run tests
-              run: docker compose run --rm tests bash -lc "bash ./tests/entrypoint.sh && wp plugin install woocommerce --activate --path=/tmp/wordpress --allow-root && vendor/bin/phpunit tests/ 2>&1 | grep -v -E 'SERIALIZATION_FORMAT|^There were [0-9]+ warnings|^[0-9]+\) Database'"
+              run: docker compose run --rm tests bash -lc "vendor/bin/phpunit tests/ 2>&1 | grep -v -E 'SERIALIZATION_FORMAT|^There were [0-9]+ warnings|^[0-9]+\) Database'"
 
             - name: Stop services
               run: docker compose down
