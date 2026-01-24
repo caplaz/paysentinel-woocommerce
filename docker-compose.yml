@@ -33,7 +33,7 @@ services:
       DB_USER: wp
       DB_PASS: wp
       DB_HOST: db
-      WP_VERSION: 6.4
+      WP_VERSION: 6.8
     working_dir: /workspace
     volumes:
       - ./:/workspace
