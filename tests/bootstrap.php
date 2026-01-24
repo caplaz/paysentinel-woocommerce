@@ -29,6 +29,11 @@ require_once $_tests_dir . '/includes/functions.php';
  */
 function _manually_load_plugin()
 {
+	// Set plugin directory for test environment
+	if (!defined('WP_PLUGIN_DIR')) {
+		define('WP_PLUGIN_DIR', '/tmp/wordpress/wp-content/plugins');
+	}
+
 	// Load WooCommerce first
 	if (file_exists(WP_PLUGIN_DIR . '/woocommerce/woocommerce.php')) {
 		require_once WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
