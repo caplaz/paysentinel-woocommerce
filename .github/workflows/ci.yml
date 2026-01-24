@@ -35,6 +35,9 @@ jobs:
             - name: Create WordPress config
               run: docker compose run --rm tests wp config create --dbname=wordpress_test --dbuser=wp --dbpass=wp --dbhost=db --path=/tmp/wordpress --allow-root
 
+            - name: Install WordPress core
+              run: docker compose run --rm tests wp core install --url=http://localhost --title="Test Site" --admin_user=admin --admin_password=password --admin_email=admin@example.com --path=/tmp/wordpress --allow-root
+
             - name: Install and activate WooCommerce
               run: docker compose run --rm tests wp plugin install woocommerce --activate --path=/tmp/wordpress --allow-root
 
