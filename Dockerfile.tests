@@ -16,6 +16,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # PHP extensions needed by WP + PHPUnit
 RUN docker-php-ext-install mysqli zip dom xml
 
+# Install WP-CLI
+RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+    && chmod +x wp-cli.phar \
+    && mv wp-cli.phar /usr/local/bin/wp
+
 WORKDIR /workspace
 
 # Default command can be overridden by docker-compose
