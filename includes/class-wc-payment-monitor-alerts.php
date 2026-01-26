@@ -160,7 +160,7 @@ class WC_Payment_Monitor_Alerts {
 					'severity'   => 'critical',
 					'message'    => sprintf( 
 						__( 'Critical Gateway Error detected on Order #%s. Reason: %s', 'wc-payment-monitor' ), 
-						$order->get_order_number(),
+						$order_id,
 						$transaction->failure_reason
 					),
 					'metadata'   => json_encode( array(
