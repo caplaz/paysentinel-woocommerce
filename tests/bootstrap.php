@@ -50,21 +50,30 @@ require $_tests_dir . '/includes/bootstrap.php';
 
 /**
  * Post-bootstrap WooCommerce loading.
- * After WordPress test bootstrap, explicitly load WooCommerce if hooks didn't work.
- * This is a safety measure for test runners that don't fire hooks in expected order.
+ * WooCommerce needs to load after WordPress is fully initialized.
+ * We use wp_loaded hook which fires after all plugins are loaded and initialized.
  */
-if (!class_exists('WooCommerce')) {
+function _load_woocommerce_after_wp_loaded() {
+	if (class_exists('WooCommerce')) {
+		return; // Already loaded
+	}
+
 	if (!defined('WP_PLUGIN_DIR')) {
 		define('WP_PLUGIN_DIR', '/tmp/wordpress/wp-content/plugins');
 	}
+
 	$wc_main = WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
 	if (file_exists($wc_main)) {
+		// Load WooCommerce plugin file which will define the WooCommerce class
 		require_once $wc_main;
-		if (function_exists('WC')) {
-			WC();
-		}
 	}
 }
+
+// Fire on wp_loaded hook to ensure full WordPress initialization
+add_action('wp_loaded', '_load_woocommerce_after_wp_loaded', 1);
+
+// Also try to trigger it immediately after WordPress bootstrap in case hooks don't fire
+_load_woocommerce_after_wp_loaded();
 
 // Load test base classes
 require_once __DIR__ . '/includes/class-wc-payment-monitor-test-case.php';
