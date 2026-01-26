@@ -65,7 +65,7 @@ class WC_Payment_Monitor {
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 		register_uninstall_hook( __FILE__, array( 'WC_Payment_Monitor', 'uninstall' ) );
 
-		add_action( 'plugins_loaded', array( $this, 'init' ) );
+		add_action( 'init', array( $this, 'init' ) );
 		
 		// Add custom cron schedules
 		add_filter( 'cron_schedules', array( $this, 'add_custom_cron_schedules' ) );
@@ -275,9 +275,13 @@ class WC_Payment_Monitor {
 	public function deactivate() {
 		// Clear scheduled events
 		wp_clear_scheduled_hook( 'wc_payment_monitor_health_calculation' );
-		wp_clear_scheduled_hook( 'wc_payment_monitor_retry_payments' );
 		wp_clear_scheduled_hook( 'wc_payment_monitor_process_retries' );
 		wp_clear_scheduled_hook( 'wc_payment_monitor_gateway_connectivity_check' );
+		
+		// Clear Action Scheduler actions
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( 'wc_payment_monitor_retry_payment' );
+		}
 	}
 
 	/**
@@ -285,6 +289,7 @@ class WC_Payment_Monitor {
 	 */
 	public static function uninstall() {
 		// Remove database tables
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-payment-monitor-database.php';
 		$database = new WC_Payment_Monitor_Database();
 		$database->drop_tables();
 
@@ -295,8 +300,12 @@ class WC_Payment_Monitor {
 
 		// Clear scheduled events
 		wp_clear_scheduled_hook( 'wc_payment_monitor_health_calculation' );
-		wp_clear_scheduled_hook( 'wc_payment_monitor_retry_payments' );
 		wp_clear_scheduled_hook( 'wc_payment_monitor_process_retries' );
+		
+		// Clear Action Scheduler actions
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( 'wc_payment_monitor_retry_payment' );
+		}
 	}
 
 	/**
