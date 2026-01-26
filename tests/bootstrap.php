@@ -25,24 +25,48 @@ if (!$_tests_dir) {
 require_once $_tests_dir . '/includes/functions.php';
 
 /**
- * Manually load the plugin being tested
+ * Manually load required plugins for the test environment.
+ *
+ * We load WooCommerce before our plugin because several tests rely on WC
+ * core objects being available (orders, tokens, etc.). Some CI runs were
+ * skipping WooCommerce-dependent tests because WC was not loaded even after
+ * CLI installation/activation. Loading it explicitly here guarantees the
+ * class exists in the test bootstrap regardless of DB activation state.
  */
 function _manually_load_plugin()
 {
-	// Set plugin directory for test environment
 	if (!defined('WP_PLUGIN_DIR')) {
 		define('WP_PLUGIN_DIR', '/tmp/wordpress/wp-content/plugins');
 	}
 
-	// Load WooCommerce first
-	if (file_exists(WP_PLUGIN_DIR . '/woocommerce/woocommerce.php')) {
-		require_once WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
+	$wc_main = WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
+	if (file_exists($wc_main)) {
+		require_once $wc_main;
+		// Ensure WooCommerce fully initializes if not already bootstrapped.
+		if (function_exists('WC') && method_exists('WooCommerce', 'instance')) {
+			WC();
+		}
 	}
 
-	// Load our plugin
-	// require WC_PAYMENT_MONITOR_PLUGIN_FILE; // Temporarily commented out
+	// Load our plugin if needed for integration tests.
+	// require WC_PAYMENT_MONITOR_PLUGIN_FILE;
 }
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');
+
+// Double-check WooCommerce is loaded after WordPress bootstrap; this protects
+// against scenarios where the muplugins_loaded hook is bypassed.
+tests_add_filter('plugins_loaded', function () {
+	if (class_exists('WooCommerce')) {
+		return;
+	}
+	$wc_main = WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
+	if (file_exists($wc_main)) {
+		require_once $wc_main;
+		if (function_exists('WC') && method_exists('WooCommerce', 'instance')) {
+			WC();
+		}
+	}
+});
 
 // Start up the WP testing environment
 require $_tests_dir . '/includes/bootstrap.php';
