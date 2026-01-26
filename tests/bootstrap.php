@@ -25,55 +25,45 @@ if (!$_tests_dir) {
 require_once $_tests_dir . '/includes/functions.php';
 
 /**
- * Register hook to load WooCommerce on muplugins_loaded.
- * This ensures WC loads at the earliest hook point in WordPress lifecycle.
+ * Load WooCommerce and the plugin being tested on muplugins_loaded hook.
+ * This matches the pattern used by WooCommerce core and major extensions.
+ * muplugins_loaded is the earliest hook where plugin loading is appropriate.
  */
 function _manually_load_plugin()
 {
+	// Define WP_PLUGIN_DIR if not already defined
 	if (!defined('WP_PLUGIN_DIR')) {
 		define('WP_PLUGIN_DIR', '/tmp/wordpress/wp-content/plugins');
 	}
 
+	// Load WooCommerce FIRST
 	$wc_main = WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
 	if (file_exists($wc_main)) {
 		require_once $wc_main;
-		// Ensure WooCommerce fully initializes if not already bootstrapped.
-		if (function_exists('WC')) {
-			WC();
-		}
 	}
+
+	// Load the plugin being tested
+	require_once WC_PAYMENT_MONITOR_PLUGIN_FILE;
 }
+
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');
 
-// Start up the WP testing environment
-require $_tests_dir . '/includes/bootstrap.php';
-
-/**
- * Post-bootstrap WooCommerce loading.
- * WooCommerce needs to load after WordPress is fully initialized.
- * We use wp_loaded hook which fires after all plugins are loaded and initialized.
- */
-function _load_woocommerce_after_wp_loaded() {
-	if (class_exists('WooCommerce')) {
-		return; // Already loaded
-	}
-
-	if (!defined('WP_PLUGIN_DIR')) {
-		define('WP_PLUGIN_DIR', '/tmp/wordpress/wp-content/plugins');
-	}
-
-	$wc_main = WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
-	if (file_exists($wc_main)) {
-		// Load WooCommerce plugin file which will define the WooCommerce class
-		require_once $wc_main;
+// Ensure WooCommerce is installed when tests run.
+// This must happen after WooCommerce loads but during test setup.
+function _install_woocommerce_for_tests()
+{
+	if (class_exists('WC_Install')) {
+		WC_Install::install();
 	}
 }
 
-// Fire on wp_loaded hook to ensure full WordPress initialization
-add_action('wp_loaded', '_load_woocommerce_after_wp_loaded', 1);
+// Run installation on setup_theme hook - this is called during test bootstrap
+// and ensures WooCommerce database tables and options are properly initialized
+tests_add_filter('setup_theme', '_install_woocommerce_for_tests');
 
-// Also try to trigger it immediately after WordPress bootstrap in case hooks don't fire
-_load_woocommerce_after_wp_loaded();
+// Start up the WP testing environment
+// This will trigger the muplugins_loaded and setup_theme hooks we registered above
+require $_tests_dir . '/includes/bootstrap.php';
 
 // Load test base classes
 require_once __DIR__ . '/includes/class-wc-payment-monitor-test-case.php';
