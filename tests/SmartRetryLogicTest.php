@@ -14,7 +14,13 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		
 		// Ensure WooCommerce main class is loaded if needed
 		if ( ! class_exists( 'WooCommerce' ) ) {
-			$this->markTestSkipped( 'WooCommerce not active.' );
+			// Try checking if WC() function exists, which usually implies WooCommerce is loaded
+			if ( function_exists( 'WC' ) ) {
+				// Initialize if needed
+				WC();
+			} else {
+				$this->markTestSkipped( 'WooCommerce not active.' );
+			}
 		}
 
 		// Initialize required components
@@ -27,19 +33,42 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 			'retry_schedule'     => array( 3600, 21600 ),
 		) );
 
-		// Setup Action Scheduler mock if not present
-		if ( ! function_exists( 'as_schedule_single_action' ) ) {
-			function as_schedule_single_action( $timestamp, $hook, $args = array(), $group = '' ) {
-				// Store in a global or static for verification
-				$GLOBALS['test_as_scheduled_actions'][] = array(
-					'timestamp' => $timestamp,
-					'hook'      => $hook,
-					'args'      => $args,
-				);
-				return rand( 1, 1000 );
+		// Check if Action Scheduler is loaded (it should be via WooCommerce)
+		if ( class_exists( 'ActionScheduler_Store' ) ) {
+			$GLOBALS['test_as_scheduled_actions'] = array();
+			
+			// Hook into AS to capture scheduled actions
+			add_action( 'action_scheduler_stored_action', function( $action_id ) {
+				try {
+					$action = ActionScheduler_Store::instance()->fetch_action( $action_id );
+					if ( $action ) {
+						$next = $action->get_schedule()->get_date();
+						$timestamp = $next ? $next->getTimestamp() : 0;
+						
+						$GLOBALS['test_as_scheduled_actions'][] = array(
+							'timestamp' => $timestamp,
+							'hook'      => $action->get_hook(),
+							'args'      => $action->get_args(),
+						);
+					}
+				} catch ( \Exception $e ) {
+					// Ignore errors fetching action
+				}
+			} );
+		} else {
+			// Fallback mock if AS not loaded (though checking function_exists is shaky if already defined)
+			if ( ! function_exists( 'as_schedule_single_action' ) ) {
+				function as_schedule_single_action( $timestamp, $hook, $args = array(), $group = '' ) {
+					$GLOBALS['test_as_scheduled_actions'][] = array(
+						'timestamp' => $timestamp,
+						'hook'      => $hook,
+						'args'      => $args,
+					);
+					return rand( 1, 1000 );
+				}
 			}
+			$GLOBALS['test_as_scheduled_actions'] = array();
 		}
-		$GLOBALS['test_as_scheduled_actions'] = array();
 
 		// Create a dummy order
 		$order = wc_create_order();
@@ -81,21 +110,45 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table_name = ( new WC_Payment_Monitor_Database() )->get_transactions_table();
 
+		// Add a stored payment method so we don't exit early on "No Stored Method" check
+		$user_id = $this->factory->user->create();
+		$token = new WC_Payment_Token_CC();
+		$token->set_token('tok_123');
+		$token->set_gateway_id('stripe');
+		$token->set_card_type('visa');
+		$token->set_last4('4242');
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$order = wc_get_order( $this->order_id );
+		$order->set_customer_id( $user_id );
+		$order->set_payment_method('stripe');
+		$order->save();
+
 		// Update transaction with hard decline reason
 		$wpdb->update(
 			$table_name,
 			array( 'failure_reason' => 'Do Not Honor - Stolen Card' ), // Hard decline keyword
 			array( 'id' => $this->transaction_id )
 		);
+		$t = $wpdb->get_row("SELECT * FROM $table_name WHERE id = " . $this->transaction_id);
 
 		// Fake the email sending
 		$this->reset_phpmailer();
 
+		// Clear previous actions
+		$GLOBALS['test_as_scheduled_actions'] = array();
+
 		// Trigger logic
 		$this->retry_instance->schedule_retry_on_failure( $this->order_id );
 
-		// Verify NO Action Scheduler event
-		$this->assertEmpty( $GLOBALS['test_as_scheduled_actions'], 'Hard decline should not schedule AS action.' );
+		// Verify NO Action Scheduler event (filter for our hook to avoid unrelated noise)
+		$scheduled_actions = array_filter( $GLOBALS['test_as_scheduled_actions'], function($a) {
+			return $a['hook'] === 'wc_payment_monitor_retry_payment';
+		});
+		$this->assertEmpty( $scheduled_actions, 'Hard decline should not schedule AS action.' );
 
 		// Verify Email Sent (Recovery Email)
 		// Note: WP_UnitTestCase usually mocks wp_mail, we can check basic assertions if available
@@ -133,6 +186,10 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		$token = new WC_Payment_Token_CC();
 		$token->set_token( 'tok_123' );
 		$token->set_gateway_id( 'stripe' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( date('Y', strtotime('+1 year')) );
 		$token->set_user_id( get_current_user_id() );
 		$token->save();
 		

@@ -11,7 +11,11 @@ class TransactionLoggerTest extends WP_UnitTestCase {
 		parent::setUp();
 		
 		if ( ! class_exists( 'WooCommerce' ) ) {
-			$this->markTestSkipped( 'WooCommerce not active.' );
+			if ( function_exists( 'WC' ) ) {
+				WC();
+			} else {
+				$this->markTestSkipped( 'WooCommerce not active.' );
+			}
 		}
 
 		$this->logger = new WC_Payment_Monitor_Logger();

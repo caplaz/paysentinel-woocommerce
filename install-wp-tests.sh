@@ -18,10 +18,18 @@ WP_TESTS_DIR=${WP_TESTS_DIR-$TMPDIR/wordpress-tests-lib}
 WP_CORE_DIR=${WP_CORE_DIR-$TMPDIR/wordpress/}
 
 download() {
-    if [ `which curl` ]; then
-        curl -s "$1" > "$2";
-    elif [ `which wget` ]; then
-        wget -nv -O "$2" "$1"
+    if command -v curl >/dev/null 2>&1; then
+        if [ -z "$2" ]; then
+            curl -s "$1"
+        else
+            curl -s "$1" > "$2"
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if [ -z "$2" ]; then
+            wget -q -O - "$1"
+        else
+            wget -nv -O "$2" "$1"
+        fi
     fi
 }
 
@@ -34,10 +42,13 @@ fi
 echo "Installing WordPress version $WP_VERSION in $WP_CORE_DIR..."
 
 if [ -d $WP_CORE_DIR ]; then
-    rm -rf $WP_CORE_DIR
+	# If it's a mount point OR just a dir, clear contents instead of removing the dir itself
+    rm -rf $WP_CORE_DIR/*
 fi
 
-mkdir -p $WP_CORE_DIR
+if [ ! -d $WP_CORE_DIR ]; then
+    mkdir -p $WP_CORE_DIR
+fi
 
 if [[ $WP_VERSION == 'nightly' ]] || [[ $WP_VERSION == 'trunk' ]]; then
 	mkdir -p $TMPDIR/wordpress-nightly
@@ -45,7 +56,7 @@ if [[ $WP_VERSION == 'nightly' ]] || [[ $WP_VERSION == 'trunk' ]]; then
 	unzip -q $TMPDIR/wordpress-nightly/wordpress-nightly.zip -d $TMPDIR/wordpress-nightly/
 	mv $TMPDIR/wordpress-nightly/wordpress/* $WP_CORE_DIR
 elif [ $WP_VERSION == 'latest' ]; then
-	local LATEST_VERSION=$(download https://api.wordpress.org/core/version-check/1.7/ | head -1)
+	LATEST_VERSION=$(download https://api.wordpress.org/core/version-check/1.7/ | head -1)
 	download https://wordpress.org/wordpress-$LATEST_VERSION.zip  $TMPDIR/wordpress-$LATEST_VERSION.zip
 	unzip -q $TMPDIR/wordpress-$LATEST_VERSION.zip -d $TMPDIR/
 	mv $TMPDIR/wordpress/* $WP_CORE_DIR

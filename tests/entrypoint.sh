@@ -27,4 +27,24 @@ else
     fi
 fi
 
+if [ -d "/tmp/wordpress-tests-lib/src/wp-content/plugins" ]; then
+    TARGET_PLUGIN_DIR="/tmp/wordpress-tests-lib/src/wp-content/plugins"
+else
+    # Fallback to standard WP location if test lib src structure is different
+    TARGET_PLUGIN_DIR="/tmp/wordpress/wp-content/plugins"
+fi
+
+# Install WooCommerce if not present
+WC_DIR="${TARGET_PLUGIN_DIR}/woocommerce"
+if [ ! -d "$WC_DIR" ]; then
+    echo -e "${YELLOW}Installing WooCommerce to ${TARGET_PLUGIN_DIR}...${NC}"
+    mkdir -p "$TARGET_PLUGIN_DIR"
+    curl -L https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip -o /tmp/woocommerce.zip
+    unzip -q /tmp/woocommerce.zip -d "$TARGET_PLUGIN_DIR/"
+    rm /tmp/woocommerce.zip
+    echo -e "${GREEN}✓ WooCommerce installed${NC}"
+else
+    echo -e "${GREEN}✓ WooCommerce already installed at ${WC_DIR}${NC}"
+fi
+
 echo "Ready to run tests"

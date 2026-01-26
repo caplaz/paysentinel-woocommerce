@@ -55,6 +55,11 @@ function _install_woocommerce_for_tests()
 	if (class_exists('WC_Install')) {
 		WC_Install::install();
 	}
+	
+	// Create plugin tables
+	if (class_exists('WC_Payment_Monitor_Database')) {
+		(new WC_Payment_Monitor_Database())->create_tables();
+	}
 }
 
 // Run installation on setup_theme hook - this is called during test bootstrap
