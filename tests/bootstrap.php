@@ -25,13 +25,8 @@ if (!$_tests_dir) {
 require_once $_tests_dir . '/includes/functions.php';
 
 /**
- * Manually load required plugins for the test environment.
- *
- * We load WooCommerce before our plugin because several tests rely on WC
- * core objects being available (orders, tokens, etc.). Some CI runs were
- * skipping WooCommerce-dependent tests because WC was not loaded even after
- * CLI installation/activation. Loading it explicitly here guarantees the
- * class exists in the test bootstrap regardless of DB activation state.
+ * Register hook to load WooCommerce on muplugins_loaded.
+ * This ensures WC loads at the earliest hook point in WordPress lifecycle.
  */
 function _manually_load_plugin()
 {
@@ -43,40 +38,33 @@ function _manually_load_plugin()
 	if (file_exists($wc_main)) {
 		require_once $wc_main;
 		// Ensure WooCommerce fully initializes if not already bootstrapped.
-		if (function_exists('WC') && method_exists('WooCommerce', 'instance')) {
+		if (function_exists('WC')) {
 			WC();
 		}
 	}
-
-	// Load our plugin if needed for integration tests.
-	// require WC_PAYMENT_MONITOR_PLUGIN_FILE;
 }
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');
 
+// Start up the WP testing environment
+require $_tests_dir . '/includes/bootstrap.php';
+
 /**
- * Double-check WooCommerce is loaded after WordPress bootstrap.
- * This protects against scenarios where the muplugins_loaded hook is bypassed.
+ * Post-bootstrap WooCommerce loading.
+ * After WordPress test bootstrap, explicitly load WooCommerce if hooks didn't work.
+ * This is a safety measure for test runners that don't fire hooks in expected order.
  */
-function _ensure_woocommerce_loaded()
-{
-	if (class_exists('WooCommerce')) {
-		return;
-	}
+if (!class_exists('WooCommerce')) {
 	if (!defined('WP_PLUGIN_DIR')) {
 		define('WP_PLUGIN_DIR', '/tmp/wordpress/wp-content/plugins');
 	}
 	$wc_main = WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
 	if (file_exists($wc_main)) {
 		require_once $wc_main;
-		if (function_exists('WC') && method_exists('WooCommerce', 'instance')) {
+		if (function_exists('WC')) {
 			WC();
 		}
 	}
 }
-tests_add_filter('plugins_loaded', '_ensure_woocommerce_loaded');
-
-// Start up the WP testing environment
-require $_tests_dir . '/includes/bootstrap.php';
 
 // Load test base classes
 require_once __DIR__ . '/includes/class-wc-payment-monitor-test-case.php';
