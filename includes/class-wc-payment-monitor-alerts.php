@@ -24,9 +24,9 @@ class WC_Payment_Monitor_Alerts {
 	 * Alert severity thresholds
 	 */
 	const SEVERITY_THRESHOLDS = array(
-		'critical' => 70,
-		'warning'  => 85,
-		'info'     => 95,
+		'high'    => 70,
+		'warning' => 85,
+		'info'    => 95,
 	);
 
 	/**
@@ -52,6 +52,12 @@ class WC_Payment_Monitor_Alerts {
 
 		// Hook into individual health calculations
 		add_action( 'wc_payment_monitor_gateway_health_calculated', array( $this, 'check_gateway_alerts' ), 10, 2 );
+
+		// Hook into gateway connectivity checks
+		add_action( 'wc_payment_monitor_gateway_checked', array( $this, 'check_gateway_connectivity_alert' ), 10, 2 );
+
+		// Hook into individual payment failures for immediate critical alerts
+		add_action( 'wc_payment_monitor_payment_failed', array( $this, 'check_immediate_transaction_alert' ), 10, 2 );
 	}
 
 	/**
@@ -74,6 +80,100 @@ class WC_Payment_Monitor_Alerts {
 	 */
 	public function check_gateway_alerts( $gateway_id, $health_data ) {
 		$this->check_and_send( $gateway_id, $health_data );
+	}
+
+	/**
+	 * Check gateway connectivity status and alert if down
+	 *
+	 * @param string $gateway_id Gateway ID
+	 * @param array  $status Status array from connectivity check
+	 */
+	public function check_gateway_connectivity_alert( $gateway_id, $status ) {
+		// Only alert if status is 'offline'
+		if ( ! isset( $status['status'] ) || 'offline' !== $status['status'] ) {
+			// If it's online, resolve any open 'gateway_down' alerts
+			if ( isset( $status['status'] ) && 'online' === $status['status'] ) {
+				$this->resolve_alerts( $gateway_id, 'gateway_down' );
+			}
+			return;
+		}
+
+		// Prepare alert data
+		$alert_data = array(
+			'alert_type' => 'gateway_down',
+			'gateway_id' => $gateway_id,
+			'severity'   => 'critical', // Gateway down is critical
+			'message'    => sprintf( 
+				__( 'Gateway %s is reported as offline. Error: %s', 'wc-payment-monitor' ), 
+				ucfirst( $gateway_id ), 
+				isset( $status['message'] ) ? $status['message'] : __( 'Unknown error', 'wc-payment-monitor' )
+			),
+			'metadata'   => json_encode( $status ),
+		);
+		
+		// Check rate limiting
+		if ( $this->is_rate_limited( $gateway_id, 'gateway_down' ) ) {
+			return;
+		}
+
+		$this->trigger_alert( $alert_data );
+	}
+
+	/**
+	 * Check for immediate alerts on transaction failure
+	 * This implements the "Hybrid Approach" - catching critical errors immediately
+	 * while leaving statistical analysis for the scheduled jobs.
+	 * 
+	 * @param int      $order_id Order ID
+	 * @param WC_Order $order    Order object
+	 */
+	public function check_immediate_transaction_alert( $order_id, $order ) {
+		// Get failure reason
+		$logger = new WC_Payment_Monitor_Logger();
+		$transaction = $logger->get_transaction_by_order_id( $order_id );
+		
+		if ( ! $transaction ) {
+			return;
+		}
+
+		$reason = strtolower( $transaction->failure_reason );
+		$gateway_id = $transaction->gateway_id;
+
+		// Define critical error keywords that require immediate attention
+		// These are "System Errors" vs "User Errors"
+		$critical_errors = array(
+			'authentication_required' => 'Gateway Misconfiguration',
+			'connection refused'      => 'Connection Error',
+			'timed out'               => 'Gateway Timeout',
+			'api key'                 => 'Invalid API Key',
+			'unauthorized'            => 'Unauthorized Access',
+			'curl error'              => 'Network Error',
+			'service unavailable'     => 'Service Unavailable',
+		);
+
+		foreach ( $critical_errors as $keyword => $label ) {
+			if ( strpos( $reason, $keyword ) !== false ) {
+				// Immediate Alert Found!
+				$alert_data = array(
+					'alert_type' => 'gateway_error',
+					'gateway_id' => $gateway_id,
+					'severity'   => 'critical',
+					'message'    => sprintf( 
+						__( 'Critical Gateway Error detected on Order #%s. Reason: %s', 'wc-payment-monitor' ), 
+						$order->get_order_number(),
+						$transaction->failure_reason
+					),
+					'metadata'   => json_encode( array(
+						'order_id'       => $order_id,
+						'failure_reason' => $transaction->failure_reason,
+						'error_type'     => $label
+					) ),
+				);
+
+				$this->trigger_alert( $alert_data );
+				return; // Only trigger one alert per transaction
+			}
+		}
 	}
 
 	/**
@@ -128,8 +228,8 @@ class WC_Payment_Monitor_Alerts {
 	 * @return string Severity level
 	 */
 	private function calculate_severity( $success_rate ) {
-		if ( $success_rate < self::SEVERITY_THRESHOLDS['critical'] ) {
-			return 'critical';
+		if ( $success_rate < self::SEVERITY_THRESHOLDS['high'] ) {
+			return 'high';
 		} elseif ( $success_rate < self::SEVERITY_THRESHOLDS['warning'] ) {
 			return 'warning';
 		} elseif ( $success_rate < self::SEVERITY_THRESHOLDS['info'] ) {
@@ -242,10 +342,16 @@ class WC_Payment_Monitor_Alerts {
 	 */
 	private function create_alert_message( $alert_data ) {
 		$gateway_name = $this->get_gateway_name( $alert_data['gateway_id'] );
-		$success_rate = number_format( $alert_data['success_rate'], 2 );
-		$period       = $alert_data['period'];
-		$failed_count = $alert_data['failed_transactions'];
-		$total_count  = $alert_data['total_transactions'];
+		
+		if ( isset( $alert_data['message'] ) && ! empty( $alert_data['message'] ) ) {
+			return $alert_data['message'];
+		}
+
+		// Backward compatibility / default for low_success_rate
+		$success_rate = isset( $alert_data['success_rate'] ) ? number_format( $alert_data['success_rate'], 2 ) : '0.00';
+		$period       = isset( $alert_data['period'] ) ? $alert_data['period'] : 'custom';
+		$failed_count = isset( $alert_data['failed_transactions'] ) ? $alert_data['failed_transactions'] : 0;
+		$total_count  = isset( $alert_data['total_transactions'] ) ? $alert_data['total_transactions'] : 0;
 		$success_count = $total_count - $failed_count;
 
 		$message = sprintf(

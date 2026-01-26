@@ -48,7 +48,7 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 					'severity' => array(
 						'type'        => 'string',
 						'description' => 'Filter by alert severity',
-						'enum'        => array( 'info', 'warning', 'critical' ),
+						'enum'        => array( 'info', 'warning', 'high', 'critical' ),
 						'required'    => false,
 					),
 				),
@@ -227,11 +227,11 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 		$result = $wpdb->update(
 			$table_name,
 			array(
-				'status'      => 'resolved',
+				'is_resolved' => 1,
 				'resolved_at' => current_time( 'mysql' ),
 			),
 			array( 'id' => $id ),
-			array( '%s', '%s' ),
+			array( '%d', '%s' ),
 			array( '%d' )
 		);
 

@@ -11,24 +11,27 @@ class PaymentAlertTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_alert_thresholds() {
 		// Expected alert thresholds for failure rates
-		$thresholds = array(
-			'critical' => 50,      // 50% failure rate
-			'warning'  => 20,       // 20% failure rate
-			'healthy'  => 5,        // 5% failure rate
-		);
+		// Note: These represent Success Rates. 
+		// < 70% is High (was Critical)
+		// < 85% is Warning
+		// < 95% is Info
+		$thresholds = WC_Payment_Monitor_Alerts::SEVERITY_THRESHOLDS;
 
-		foreach ( $thresholds as $level => $threshold ) {
-			$this->assertGreaterThanOrEqual( 0, $threshold );
-			$this->assertLessThanOrEqual( 100, $threshold );
-			$this->assertIsString( $level );
-		}
+		$this->assertArrayHasKey( 'high', $thresholds );
+		$this->assertArrayHasKey( 'warning', $thresholds );
+		$this->assertArrayHasKey( 'info', $thresholds );
+		$this->assertArrayNotHasKey( 'critical', $thresholds, 'Critical severity should be reserved for immediate alerts' );
+
+		$this->assertEquals( 70, $thresholds['high'] );
+		$this->assertEquals( 85, $thresholds['warning'] );
+		$this->assertEquals( 95, $thresholds['info'] );
 	}
 
 	/**
 	 * Test alert severity levels
 	 */
 	public function test_alert_severity_levels() {
-		$severity_levels = array( 'critical', 'warning', 'info' );
+		$severity_levels = array( 'critical', 'high', 'warning', 'info' );
 
 		foreach ( $severity_levels as $level ) {
 			$this->assertIsString( $level );

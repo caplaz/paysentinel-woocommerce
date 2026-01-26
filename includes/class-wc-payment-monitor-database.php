@@ -124,7 +124,7 @@ class WC_Payment_Monitor_Database {
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             alert_type ENUM('gateway_down', 'low_success_rate', 'high_failure_count', 'gateway_error') NOT NULL,
             gateway_id VARCHAR(50) NOT NULL,
-            severity ENUM('info', 'warning', 'critical') NOT NULL,
+            severity ENUM('info', 'warning', 'high', 'critical') NOT NULL,
             message TEXT NOT NULL,
             metadata TEXT DEFAULT NULL,
             is_resolved TINYINT(1) DEFAULT 0,
