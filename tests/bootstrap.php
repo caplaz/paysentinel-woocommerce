@@ -53,11 +53,17 @@ function _manually_load_plugin()
 }
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');
 
-// Double-check WooCommerce is loaded after WordPress bootstrap; this protects
-// against scenarios where the muplugins_loaded hook is bypassed.
-tests_add_filter('plugins_loaded', function () {
+/**
+ * Double-check WooCommerce is loaded after WordPress bootstrap.
+ * This protects against scenarios where the muplugins_loaded hook is bypassed.
+ */
+function _ensure_woocommerce_loaded()
+{
 	if (class_exists('WooCommerce')) {
 		return;
+	}
+	if (!defined('WP_PLUGIN_DIR')) {
+		define('WP_PLUGIN_DIR', '/tmp/wordpress/wp-content/plugins');
 	}
 	$wc_main = WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
 	if (file_exists($wc_main)) {
@@ -66,7 +72,8 @@ tests_add_filter('plugins_loaded', function () {
 			WC();
 		}
 	}
-});
+}
+tests_add_filter('plugins_loaded', '_ensure_woocommerce_loaded');
 
 // Start up the WP testing environment
 require $_tests_dir . '/includes/bootstrap.php';
