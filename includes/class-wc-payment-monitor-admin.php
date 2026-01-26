@@ -303,6 +303,15 @@ class WC_Payment_Monitor_Admin
 			'wc_payment_monitor_main'
 		);
 
+		// Per-gateway alert configuration (Pro+ feature)
+		add_settings_field(
+			'gateway_alert_config',
+			__('Per-Gateway Alert Configuration', 'wc-payment-monitor'),
+			array($this, 'render_field_gateway_alert_config'),
+			'wc_payment_monitor_settings',
+			'wc_payment_monitor_main'
+		);
+
 		// Test mode settings
 		add_settings_field(
 			'enable_test_mode',
@@ -566,6 +575,130 @@ class WC_Payment_Monitor_Admin
 	}
 
 	/**
+	 * Render per-gateway alert configuration field
+	 */
+	public function render_field_gateway_alert_config()
+	{
+		$settings = get_option('wc_payment_monitor_settings', array());
+		$gateway_config = isset($settings['gateway_alert_config']) ? $settings['gateway_alert_config'] : array();
+		$tier = $this->license->get_license_tier();
+		$is_locked = ! in_array($tier, array('pro', 'agency'), true);
+		
+		// Get active WooCommerce payment gateways
+		$active_gateways = array();
+		if (class_exists('WC_Payment_Gateways')) {
+			$payment_gateways = WC_Payment_Gateways::instance();
+			$gateways = $payment_gateways->get_available_payment_gateways();
+			foreach ($gateways as $gateway_id => $gateway) {
+				$active_gateways[$gateway_id] = $gateway->get_title();
+			}
+		}
+		
+		// Add common gateway IDs if not detected
+		$default_gateways = array(
+			'stripe' => 'Stripe',
+			'paypal' => 'PayPal',
+			'square' => 'Square',
+			'wc_payments' => 'WooCommerce Payments'
+		);
+		foreach ($default_gateways as $id => $name) {
+			if (!isset($active_gateways[$id])) {
+				$active_gateways[$id] = $name;
+			}
+		}
+		?>
+		<div style="position: relative;">
+			<?php if ($is_locked): ?>
+				<div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+					<span class="dashicons dashicons-lock" style="color: #856404; float: left; margin-right: 10px; font-size: 24px;"></span>
+					<p style="margin: 0; color: #856404;">
+						<strong><?php esc_html_e('Pro Feature', 'wc-payment-monitor'); ?></strong><br>
+						<?php 
+						printf(
+							__('Per-gateway alert configuration requires Pro plan or higher. <a href="%s" target="_blank" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'wc-payment-monitor'),
+							'https://paysentinel.caplaz.com/plans'
+						);
+						?>
+					</p>
+				</div>
+			<?php else: ?>
+				<p class="description" style="margin-bottom: 15px;">
+					<?php esc_html_e('Configure custom alert thresholds and channels for each payment gateway. Leave empty to use global settings.', 'wc-payment-monitor'); ?>
+				</p>
+			<?php endif; ?>
+			
+			<table class="widefat" style="<?php echo $is_locked ? 'opacity: 0.5; pointer-events: none;' : ''; ?>">
+				<thead>
+					<tr>
+						<th style="width: 30%;"><?php esc_html_e('Gateway', 'wc-payment-monitor'); ?></th>
+						<th style="width: 15%;"><?php esc_html_e('Enabled', 'wc-payment-monitor'); ?></th>
+						<th style="width: 20%;"><?php esc_html_e('Threshold (%)', 'wc-payment-monitor'); ?></th>
+						<th style="width: 35%;"><?php esc_html_e('Alert Channels', 'wc-payment-monitor'); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ($active_gateways as $gateway_id => $gateway_name): ?>
+						<?php
+						$config = isset($gateway_config[$gateway_id]) ? $gateway_config[$gateway_id] : array();
+						$enabled = isset($config['enabled']) ? (bool) $config['enabled'] : true;
+						$threshold = isset($config['threshold']) ? floatval($config['threshold']) : '';
+						$channels = isset($config['channels']) ? $config['channels'] : array('email');
+						?>
+						<tr>
+							<td><strong><?php echo esc_html($gateway_name); ?></strong></td>
+							<td>
+								<input type="checkbox" 
+									name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr($gateway_id); ?>][enabled]" 
+									value="1" 
+									<?php checked($enabled, true); ?>
+									<?php echo $is_locked ? 'disabled' : ''; ?> />
+							</td>
+							<td>
+								<input type="number" 
+									name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr($gateway_id); ?>][threshold]" 
+									value="<?php echo esc_attr($threshold); ?>" 
+									placeholder="<?php echo esc_attr($settings['alert_threshold'] ?? 85); ?>"
+									min="1" 
+									max="100" 
+									step="0.1" 
+									style="width: 80px;"
+									<?php echo $is_locked ? 'disabled' : ''; ?> />
+							</td>
+							<td>
+								<label style="margin-right: 10px;">
+									<input type="checkbox" 
+										name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr($gateway_id); ?>][channels][]" 
+										value="email" 
+										<?php checked(in_array('email', $channels), true); ?>
+										<?php echo $is_locked ? 'disabled' : ''; ?> />
+									<?php esc_html_e('Email', 'wc-payment-monitor'); ?>
+								</label>
+								<label style="margin-right: 10px;">
+									<input type="checkbox" 
+										name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr($gateway_id); ?>][channels][]" 
+										value="sms" 
+										<?php checked(in_array('sms', $channels), true); ?>
+										<?php echo $is_locked ? 'disabled' : ''; ?> />
+									<?php esc_html_e('SMS', 'wc-payment-monitor'); ?>
+								</label>
+								<label>
+									<input type="checkbox" 
+										name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr($gateway_id); ?>][channels][]" 
+										value="slack" 
+										<?php checked(in_array('slack', $channels), true); ?>
+										<?php echo $is_locked ? 'disabled' : ''; ?> />
+									<?php esc_html_e('Slack', 'wc-payment-monitor'); ?>
+								</label>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Render test failure rate field
 	 */
 	public function render_field_test_failure_rate()
@@ -590,9 +723,94 @@ class WC_Payment_Monitor_Admin
 			wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
 		}
 
+		// Get license info for header display
+		$tier = $this->license->get_license_tier();
+		$quota = $this->license->get_sms_quota();
+		$tier_labels = array(
+			'free' => __('Free', 'wc-payment-monitor'),
+			'starter' => __('Starter', 'wc-payment-monitor'),
+			'pro' => __('Pro', 'wc-payment-monitor'),
+			'agency' => __('Agency', 'wc-payment-monitor')
+		);
+		$tier_colors = array(
+			'free' => '#6c757d',
+			'starter' => '#0073aa',
+			'pro' => '#46b450',
+			'agency' => '#9b51e0'
+		);
+		$tier_label = isset($tier_labels[$tier]) ? $tier_labels[$tier] : ucfirst($tier);
+		$tier_color = isset($tier_colors[$tier]) ? $tier_colors[$tier] : '#0073aa';
+
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e('Payment Monitor Dashboard', 'wc-payment-monitor'); ?></h1>
+			<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+				<h1 style="margin: 0;"><?php esc_html_e('Payment Monitor Dashboard', 'wc-payment-monitor'); ?></h1>
+				<div style="display: flex; gap: 15px; align-items: center;">
+					<!-- License Tier Badge -->
+					<div style="background: <?php echo esc_attr($tier_color); ?>; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;">
+						<span class="dashicons dashicons-awards" style="font-size: 16px; width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;"></span>
+						<?php echo esc_html($tier_label); ?> <?php esc_html_e('Plan', 'wc-payment-monitor'); ?>
+					</div>
+					
+					<!-- SMS Quota Display -->
+					<?php if ($quota && isset($quota['sms_remaining'], $quota['sms_limit'])): ?>
+						<?php 
+						$usage_percent = ($quota['sms_limit'] > 0) ? (($quota['sms_limit'] - $quota['sms_remaining']) / $quota['sms_limit']) * 100 : 0;
+						$quota_color = '#46b450'; // green
+						if ($usage_percent >= 80) {
+							$quota_color = '#dc3232'; // red
+						} elseif ($usage_percent >= 60) {
+							$quota_color = '#f0b849'; // yellow
+						}
+						?>
+						<div style="background: white; border: 1px solid #ddd; padding: 8px 16px; border-radius: 4px;">
+							<div style="display: flex; align-items: center; gap: 10px;">
+								<span class="dashicons dashicons-email" style="color: <?php echo esc_attr($quota_color); ?>; font-size: 20px; width: 20px; height: 20px;"></span>
+								<div>
+									<div style="font-size: 11px; color: #666; line-height: 1.2;">
+										<?php esc_html_e('SMS Quota', 'wc-payment-monitor'); ?>
+									</div>
+									<div style="font-weight: bold; font-size: 14px; color: <?php echo esc_attr($quota_color); ?>;">
+										<?php echo esc_html($quota['sms_remaining'] . ' / ' . $quota['sms_limit']); ?>
+									</div>
+								</div>
+							</div>
+							<?php if (isset($quota['sms_reset_date'])): ?>
+								<div style="font-size: 10px; color: #999; margin-top: 2px;">
+									<?php 
+									printf(
+										esc_html__('Resets: %s', 'wc-payment-monitor'),
+										esc_html(date_i18n(get_option('date_format'), strtotime($quota['sms_reset_date'])))
+									);
+									?>
+								</div>
+							<?php endif; ?>
+						</div>
+					<?php endif; ?>
+					
+					<!-- Quota Exceeded Warning -->
+					<?php
+					$quota_exceeded = get_option('wc_payment_monitor_quota_exceeded', false);
+					if ($quota_exceeded):
+					?>
+						<div style="background: #dc3232; color: white; padding: 8px 16px; border-radius: 4px; font-size: 13px;">
+							<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; vertical-align: middle;"></span>
+							<?php esc_html_e('SMS Quota Exceeded', 'wc-payment-monitor'); ?>
+							<a href="https://paysentinel.caplaz.com/upgrade" target="_blank" style="color: white; text-decoration: underline; margin-left: 10px;">
+								<?php esc_html_e('Upgrade', 'wc-payment-monitor'); ?>
+							</a>
+						</div>
+					<?php endif; ?>
+					
+					<!-- Upgrade Button for Free Tier -->
+					<?php if ($tier === 'free'): ?>
+						<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="button button-primary" style="height: auto;">
+							<span class="dashicons dashicons-star-filled" style="font-size: 16px; width: 16px; height: 16px; vertical-align: middle;"></span>
+							<?php esc_html_e('Upgrade to Pro', 'wc-payment-monitor'); ?>
+						</a>
+					<?php endif; ?>
+				</div>
+			</div>
 			<div id="wc-payment-monitor-root"></div>
 		</div>
 		<?php

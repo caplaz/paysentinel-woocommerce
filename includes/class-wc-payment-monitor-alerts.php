@@ -248,12 +248,17 @@ class WC_Payment_Monitor_Alerts {
 	 * @return bool Should trigger alert
 	 */
 	private function should_trigger_alert( $gateway_id, $success_rate, $severity ) {
-		// Get alert threshold from settings
+		// Get alert threshold - check gateway-specific first (Pro+ feature)
 		$settings  = get_option( 'wc_payment_monitor_settings', array() );
-		$threshold = isset( $settings['alert_threshold'] ) ? floatval( $settings['alert_threshold'] ) : 85.0;
+		$threshold = $this->get_gateway_alert_threshold( $gateway_id, $settings );
 
 		// Only trigger if below threshold
 		if ( $success_rate >= $threshold ) {
+			return false;
+		}
+
+		// Check if alerts are enabled for this gateway (Pro+ feature)
+		if ( ! $this->is_gateway_alerts_enabled( $gateway_id, $settings ) ) {
 			return false;
 		}
 
@@ -262,6 +267,48 @@ class WC_Payment_Monitor_Alerts {
 			return false;
 		}
 
+		return true;
+	}
+
+	/**
+	 * Get alert threshold for a specific gateway
+	 *
+	 * @param string $gateway_id Gateway ID
+	 * @param array  $settings Plugin settings
+	 * @return float Alert threshold
+	 */
+	private function get_gateway_alert_threshold( $gateway_id, $settings ) {
+		// Check if per-gateway configuration is available (Pro+ feature)
+		if ( $this->has_feature( 'per_gateway_config' ) ) {
+			$gateway_config = isset( $settings['gateway_alert_config'] ) ? $settings['gateway_alert_config'] : array();
+			
+			if ( isset( $gateway_config[ $gateway_id ] ) && isset( $gateway_config[ $gateway_id ]['threshold'] ) ) {
+				return floatval( $gateway_config[ $gateway_id ]['threshold'] );
+			}
+		}
+
+		// Fall back to global threshold
+		return isset( $settings['alert_threshold'] ) ? floatval( $settings['alert_threshold'] ) : 85.0;
+	}
+
+	/**
+	 * Check if alerts are enabled for a specific gateway
+	 *
+	 * @param string $gateway_id Gateway ID
+	 * @param array  $settings Plugin settings
+	 * @return bool Alerts enabled
+	 */
+	private function is_gateway_alerts_enabled( $gateway_id, $settings ) {
+		// Check if per-gateway configuration is available (Pro+ feature)
+		if ( $this->has_feature( 'per_gateway_config' ) ) {
+			$gateway_config = isset( $settings['gateway_alert_config'] ) ? $settings['gateway_alert_config'] : array();
+			
+			if ( isset( $gateway_config[ $gateway_id ] ) && isset( $gateway_config[ $gateway_id ]['enabled'] ) ) {
+				return (bool) $gateway_config[ $gateway_id ]['enabled'];
+			}
+		}
+
+		// Default: enabled
 		return true;
 	}
 
@@ -378,30 +425,20 @@ class WC_Payment_Monitor_Alerts {
 		$settings           = get_option( 'wc_payment_monitor_settings', array() );
 		$notifications_sent = false;
 		$tier               = $this->get_license_tier();
+		$gateway_id         = isset( $alert_data['gateway_id'] ) ? $alert_data['gateway_id'] : '';
 
-		// Determine which channels to use
-		$channels = array();
+		// Determine which channels to use - check per-gateway config first (Pro+ feature)
+		$channels = $this->get_alert_channels_for_gateway( $gateway_id, $settings, $tier );
 		
 		// Email - check if using local (free) or server-side delivery (starter+)
-		if ( ! empty( $settings['alert_email'] ) ) {
+		if ( in_array( 'email', $channels, true ) && ! empty( $settings['alert_email'] ) ) {
 			if ( 'free' === $tier ) {
 				// Send email locally for free tier
 				$email_sent         = $this->send_email_notification( $alert_data, $settings['alert_email'] );
 				$notifications_sent = $notifications_sent || $email_sent;
-			} else {
-				// Use server-side email delivery for paid tiers (better deliverability)
-				$channels[] = 'email';
+				// Remove email from channels array since we handled it locally
+				$channels = array_diff( $channels, array( 'email' ) );
 			}
-		}
-
-		// SMS - available for starter+ tiers
-		if ( ! empty( $settings['alert_phone_number'] ) && in_array( $tier, array( 'starter', 'pro', 'agency' ), true ) ) {
-			$channels[] = 'sms';
-		}
-
-		// Slack - available for pro+ tiers
-		if ( ! empty( $settings['alert_slack_workspace'] ) && in_array( $tier, array( 'pro', 'agency' ), true ) ) {
-			$channels[] = 'slack';
 		}
 
 		// Send through API if we have premium channels
@@ -411,6 +448,75 @@ class WC_Payment_Monitor_Alerts {
 		}
 
 		return $notifications_sent;
+	}
+
+	/**
+	 * Get alert channels for a specific gateway
+	 *
+	 * @param string $gateway_id Gateway ID
+	 * @param array  $settings Plugin settings
+	 * @param string $tier License tier
+	 * @return array Alert channels
+	 */
+	private function get_alert_channels_for_gateway( $gateway_id, $settings, $tier ) {
+		$channels = array();
+
+		// Check per-gateway configuration first (Pro+ feature)
+		if ( $this->has_feature( 'per_gateway_config' ) ) {
+			$gateway_config = isset( $settings['gateway_alert_config'] ) ? $settings['gateway_alert_config'] : array();
+			
+			if ( isset( $gateway_config[ $gateway_id ] ) && isset( $gateway_config[ $gateway_id ]['channels'] ) ) {
+				$configured_channels = $gateway_config[ $gateway_id ]['channels'];
+				
+				// Validate channels against tier permissions
+				foreach ( $configured_channels as $channel ) {
+					if ( $this->is_channel_available( $channel, $tier, $settings ) ) {
+						$channels[] = $channel;
+					}
+				}
+				
+				return $channels;
+			}
+		}
+
+		// Fall back to global channel configuration
+		if ( ! empty( $settings['alert_email'] ) ) {
+			$channels[] = 'email';
+		}
+		
+		if ( ! empty( $settings['alert_phone_number'] ) && in_array( $tier, array( 'starter', 'pro', 'agency' ), true ) ) {
+			$channels[] = 'sms';
+		}
+		
+		if ( ! empty( $settings['alert_slack_workspace'] ) && in_array( $tier, array( 'pro', 'agency' ), true ) ) {
+			$channels[] = 'slack';
+		}
+
+		return $channels;
+	}
+
+	/**
+	 * Check if a specific alert channel is available
+	 *
+	 * @param string $channel Channel name
+	 * @param string $tier License tier
+	 * @param array  $settings Plugin settings
+	 * @return bool Channel available
+	 */
+	private function is_channel_available( $channel, $tier, $settings ) {
+		switch ( $channel ) {
+			case 'email':
+				return ! empty( $settings['alert_email'] );
+			
+			case 'sms':
+				return ! empty( $settings['alert_phone_number'] ) && in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
+			
+			case 'slack':
+				return ! empty( $settings['alert_slack_workspace'] ) && in_array( $tier, array( 'pro', 'agency' ), true );
+			
+			default:
+				return false;
+		}
 	}
 
 	/**

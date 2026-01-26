@@ -360,6 +360,7 @@ class WC_Payment_Monitor {
 			'alert_phone_number'     => '',
 			'alert_slack_workspace'  => '',
 			'alert_threshold'        => 85,
+			'gateway_alert_config'   => array(), // Per-gateway configuration (Pro+ feature)
 			'monitoring_interval'    => 300, // 5 minutes
 			'enable_auto_retry'      => true,
 			'retry_schedule'         => array( 3600, 21600, 86400 ), // 1h, 6h, 24h
