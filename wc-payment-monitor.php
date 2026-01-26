@@ -355,18 +355,15 @@ class WC_Payment_Monitor {
 	 */
 	private function set_default_options() {
 		$default_settings = array(
-			'enabled_gateways'    => array(),
-			'alert_email'         => get_option( 'admin_email' ),
-			'alert_threshold'     => 85,
-			'monitoring_interval' => 300, // 5 minutes
-			'enable_auto_retry'   => true,
-			'retry_schedule'      => array( 3600, 21600, 86400 ), // 1h, 6h, 24h
-			'alert_phone'         => '',
-			'slack_webhook'       => '',
-			'license_key'         => '',
-			'twilio_sid'          => '',
-			'twilio_token'        => '',
-			'twilio_from'         => '',
+			'enabled_gateways'       => array(),
+			'alert_email'            => get_option( 'admin_email' ),
+			'alert_phone_number'     => '',
+			'alert_slack_workspace'  => '',
+			'alert_threshold'        => 85,
+			'monitoring_interval'    => 300, // 5 minutes
+			'enable_auto_retry'      => true,
+			'retry_schedule'         => array( 3600, 21600, 86400 ), // 1h, 6h, 24h
+			'license_key'            => '',
 		);
 
 		add_option( 'wc_payment_monitor_settings', $default_settings );

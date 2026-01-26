@@ -191,6 +191,68 @@ class WC_Payment_Monitor_License {
 	}
 
 	/**
+	 * Get license tier/plan
+	 *
+	 * @return string Tier: free, starter, pro, agency
+	 */
+	public function get_license_tier() {
+		if ( ! $this->is_license_valid() ) {
+			return 'free';
+		}
+
+		$license_data = $this->get_license_data();
+		
+		if ( ! $license_data || ! isset( $license_data['plan'] ) ) {
+			return 'free';
+		}
+		
+		return strtolower( $license_data['plan'] );
+	}
+
+	/**
+	 * Check if a specific feature is available in current license tier
+	 *
+	 * @param string $feature_name Feature name (e.g., 'sms_alerts', 'slack_alerts')
+	 * @return bool|int Feature available (true/false or numeric limit)
+	 */
+	public function has_feature( $feature_name ) {
+		if ( ! $this->is_license_valid() ) {
+			return false;
+		}
+
+		$license_data = $this->get_license_data();
+		
+		if ( ! $license_data || ! isset( $license_data['features'] ) ) {
+			return false;
+		}
+		
+		if ( ! isset( $license_data['features'][ $feature_name ] ) ) {
+			return false;
+		}
+
+		return $license_data['features'][ $feature_name ];
+	}
+
+	/**
+	 * Get SMS quota information
+	 *
+	 * @return array|null Quota info with 'limit', 'used', 'remaining', 'reset_date'
+	 */
+	public function get_sms_quota() {
+		if ( ! $this->is_license_valid() ) {
+			return null;
+		}
+
+		$license_data = $this->get_license_data();
+		
+		if ( ! $license_data || ! isset( $license_data['quota'] ) ) {
+			return null;
+		}
+		
+		return $license_data['quota'];
+	}
+
+	/**
 	 * Check license on admin pages (once per session)
 	 */
 	public function check_license_on_admin() {

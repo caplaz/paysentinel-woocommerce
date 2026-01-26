@@ -278,6 +278,31 @@ class WC_Payment_Monitor_Admin
 			'wc_payment_monitor_main'
 		);
 
+		// Alert notification settings
+		add_settings_field(
+			'alert_email',
+			__('Alert Email Address', 'wc-payment-monitor'),
+			array($this, 'render_field_alert_email'),
+			'wc_payment_monitor_settings',
+			'wc_payment_monitor_main'
+		);
+
+		add_settings_field(
+			'alert_phone_number',
+			__('Alert Phone Number (SMS)', 'wc-payment-monitor'),
+			array($this, 'render_field_alert_phone_number'),
+			'wc_payment_monitor_settings',
+			'wc_payment_monitor_main'
+		);
+
+		add_settings_field(
+			'alert_slack_workspace',
+			__('Slack Workspace ID', 'wc-payment-monitor'),
+			array($this, 'render_field_alert_slack_workspace'),
+			'wc_payment_monitor_settings',
+			'wc_payment_monitor_main'
+		);
+
 		// Test mode settings
 		add_settings_field(
 			'enable_test_mode',
@@ -435,6 +460,108 @@ class WC_Payment_Monitor_Admin
 			<strong><?php esc_html_e('Warning:', 'wc-payment-monitor'); ?></strong>
 			<?php esc_html_e('This will simulate random payment failures during checkout. Only enable on test/development sites!', 'wc-payment-monitor'); ?>
 		</p>
+		<?php
+	}
+
+	/**
+	 * Render alert email field
+	 */
+	public function render_field_alert_email()
+	{
+		$settings = get_option('wc_payment_monitor_settings', array());
+		$email = isset($settings['alert_email']) ? sanitize_email($settings['alert_email']) : get_option('admin_email');
+		?>
+		<input type="email" name="wc_payment_monitor_options[alert_email]"
+			value="<?php echo esc_attr($email); ?>" class="regular-text" />
+		<p class="description">
+			<?php esc_html_e('Email address to receive payment failure alerts (Free tier - local delivery).', 'wc-payment-monitor'); ?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Render alert phone number field
+	 */
+	public function render_field_alert_phone_number()
+	{
+		$settings = get_option('wc_payment_monitor_settings', array());
+		$phone = isset($settings['alert_phone_number']) ? sanitize_text_field($settings['alert_phone_number']) : '';
+		$tier = $this->license->get_license_tier();
+		$is_locked = ! in_array($tier, array('starter', 'pro', 'agency'), true);
+		?>
+		<div style="position: relative;">
+			<input type="tel" name="wc_payment_monitor_options[alert_phone_number]"
+				value="<?php echo esc_attr($phone); ?>" class="regular-text"
+				placeholder="+1234567890"
+				<?php echo $is_locked ? 'disabled' : ''; ?> />
+			<?php if ($is_locked): ?>
+				<span class="dashicons dashicons-lock" style="color: #d63638; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Starter plan or higher required', 'wc-payment-monitor'); ?>"></span>
+			<?php else: ?>
+				<span class="dashicons dashicons-yes-alt" style="color: #46b450; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Feature available in your plan', 'wc-payment-monitor'); ?>"></span>
+			<?php endif; ?>
+		</div>
+		<p class="description">
+			<?php
+			if ($is_locked) {
+				printf(
+					__('SMS alerts delivered via PaySentinel servers. <strong>Requires Starter plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
+					'https://paysentinel.caplaz.com/plans'
+				);
+			} else {
+				$quota = $this->license->get_sms_quota();
+				if ($quota && isset($quota['sms_remaining'], $quota['sms_limit'])) {
+					printf(
+						__('SMS alerts delivered via PaySentinel servers. Quota: %d/%d remaining this month.', 'wc-payment-monitor'),
+						$quota['sms_remaining'],
+						$quota['sms_limit']
+					);
+				} else {
+					esc_html_e('SMS alerts delivered via PaySentinel servers. Enter your phone number with country code (e.g., +1234567890).', 'wc-payment-monitor');
+				}
+			}
+			?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Render alert Slack workspace field
+	 */
+	public function render_field_alert_slack_workspace()
+	{
+		$settings = get_option('wc_payment_monitor_settings', array());
+		$slack = isset($settings['alert_slack_workspace']) ? sanitize_text_field($settings['alert_slack_workspace']) : '';
+		$tier = $this->license->get_license_tier();
+		$is_locked = ! in_array($tier, array('pro', 'agency'), true);
+		?>
+		<div style="position: relative;">
+			<input type="text" name="wc_payment_monitor_options[alert_slack_workspace]"
+				value="<?php echo esc_attr($slack); ?>" class="regular-text"
+				placeholder="T01234567"
+				<?php echo $is_locked ? 'disabled' : ''; ?> />
+			<?php if ($is_locked): ?>
+				<span class="dashicons dashicons-lock" style="color: #d63638; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Pro plan or higher required', 'wc-payment-monitor'); ?>"></span>
+			<?php else: ?>
+				<span class="dashicons dashicons-yes-alt" style="color: #46b450; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Feature available in your plan', 'wc-payment-monitor'); ?>"></span>
+			<?php endif; ?>
+		</div>
+		<p class="description">
+			<?php
+			if ($is_locked) {
+				printf(
+					__('Slack/Discord/Teams notifications delivered via PaySentinel. <strong>Requires Pro plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
+					'https://paysentinel.caplaz.com/plans'
+				);
+			} else {
+				esc_html_e('Slack notifications delivered via PaySentinel servers. Click "Connect Slack" below to link your workspace.', 'wc-payment-monitor');
+			}
+			?>
+		</p>
+		<?php if (!$is_locked): ?>
+			<button type="button" class="button button-secondary" style="margin-top: 10px;">
+				<?php esc_html_e('Connect Slack Workspace', 'wc-payment-monitor'); ?>
+			</button>
+		<?php endif; ?>
 		<?php
 	}
 

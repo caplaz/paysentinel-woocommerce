@@ -377,26 +377,37 @@ class WC_Payment_Monitor_Alerts {
 	private function send_notifications( $alert_data, $alert_id ) {
 		$settings           = get_option( 'wc_payment_monitor_settings', array() );
 		$notifications_sent = false;
+		$tier               = $this->get_license_tier();
 
-		// Send email notification
+		// Determine which channels to use
+		$channels = array();
+		
+		// Email - check if using local (free) or server-side delivery (starter+)
 		if ( ! empty( $settings['alert_email'] ) ) {
-			$email_sent         = $this->send_email_notification( $alert_data, $settings['alert_email'] );
-			$notifications_sent = $notifications_sent || $email_sent;
+			if ( 'free' === $tier ) {
+				// Send email locally for free tier
+				$email_sent         = $this->send_email_notification( $alert_data, $settings['alert_email'] );
+				$notifications_sent = $notifications_sent || $email_sent;
+			} else {
+				// Use server-side email delivery for paid tiers (better deliverability)
+				$channels[] = 'email';
+			}
 		}
 
-		// Send premium notifications if available
-		if ( $this->is_premium_feature_available() ) {
-			// SMS notification
-			if ( ! empty( $settings['alert_phone'] ) ) {
-				$sms_sent           = $this->send_sms_notification( $alert_data, $settings['alert_phone'] );
-				$notifications_sent = $notifications_sent || $sms_sent;
-			}
+		// SMS - available for starter+ tiers
+		if ( ! empty( $settings['alert_phone_number'] ) && in_array( $tier, array( 'starter', 'pro', 'agency' ), true ) ) {
+			$channels[] = 'sms';
+		}
 
-			// Slack notification
-			if ( ! empty( $settings['slack_webhook'] ) ) {
-				$slack_sent         = $this->send_slack_notification( $alert_data, $settings['slack_webhook'] );
-				$notifications_sent = $notifications_sent || $slack_sent;
-			}
+		// Slack - available for pro+ tiers
+		if ( ! empty( $settings['alert_slack_workspace'] ) && in_array( $tier, array( 'pro', 'agency' ), true ) ) {
+			$channels[] = 'slack';
+		}
+
+		// Send through API if we have premium channels
+		if ( ! empty( $channels ) ) {
+			$api_sent           = $this->send_to_api( $alert_data, $channels, $settings );
+			$notifications_sent = $notifications_sent || $api_sent;
 		}
 
 		return $notifications_sent;
@@ -790,90 +801,182 @@ class WC_Payment_Monitor_Alerts {
 	 * @return bool Premium features available
 	 */
 	private function is_premium_feature_available() {
-		// Check if premium license is active
-		$settings       = get_option( 'wc_payment_monitor_settings', array() );
-		$license_key    = isset( $settings['license_key'] ) ? $settings['license_key'] : '';
-		$license_status = get_option( 'wc_payment_monitor_license_status', 'inactive' );
+		// Use License class for validation
+		$license = new WC_Payment_Monitor_License();
+		$is_valid = $license->is_license_valid();
 
 		// Allow filtering for testing or custom license validation
 		$is_premium = apply_filters(
 			'wc_payment_monitor_premium_available',
-			! empty( $license_key ) && $license_status === 'active'
+			$is_valid
 		);
 
 		return $is_premium;
 	}
 
 	/**
-	 * Send SMS notification (premium feature)
+	 * Get license tier from license data
+	 *
+	 * @return string License tier: free, starter, pro, agency
+	 */
+	private function get_license_tier() {
+		$license = new WC_Payment_Monitor_License();
+		$license_data = $license->get_license_data();
+		
+		if ( ! $license_data || ! isset( $license_data['plan'] ) ) {
+			return 'free';
+		}
+		
+		return strtolower( $license_data['plan'] );
+	}
+
+	/**
+	 * Check if a specific feature is available in current license tier
+	 *
+	 * @param string $feature_name Feature name
+	 * @return bool Feature available
+	 */
+	private function has_feature( $feature_name ) {
+		$license = new WC_Payment_Monitor_License();
+		$license_data = $license->get_license_data();
+		
+		if ( ! $license_data || ! isset( $license_data['features'] ) ) {
+			return false;
+		}
+		
+		return isset( $license_data['features'][ $feature_name ] ) && $license_data['features'][ $feature_name ];
+	}
+
+	/**
+	 * Send alert to centralized API for delivery
+	 *
+	 * @param array  $alert_data Alert data
+	 * @param array  $channels Channels to send to (email, sms, slack)
+	 * @param array  $settings Plugin settings
+	 * @return bool Success
+	 */
+	private function send_to_api( $alert_data, $channels, $settings ) {
+		$license = new WC_Payment_Monitor_License();
+		$license_key = $license->get_license_key();
+		
+		if ( empty( $license_key ) ) {
+			error_log( 'WC Payment Monitor: Cannot send alert to API - no license key' );
+			return false;
+		}
+
+		// Prepare contact information
+		$contact = array(
+			'email' => isset( $settings['alert_email'] ) ? $settings['alert_email'] : '',
+		);
+		
+		if ( ! empty( $settings['alert_phone_number'] ) ) {
+			$contact['phone'] = $settings['alert_phone_number'];
+		}
+		
+		if ( ! empty( $settings['alert_slack_workspace'] ) ) {
+			$contact['slack_workspace'] = $settings['alert_slack_workspace'];
+		}
+
+		// Prepare alert payload
+		$payload = array(
+			'license_key' => $license_key,
+			'site_url'    => get_site_url(),
+			'contact'     => $contact,
+			'channels'    => $channels,
+			'alert'       => array(
+				'type'          => $alert_data['alert_type'],
+				'gateway'       => $alert_data['gateway_id'],
+				'severity'      => $alert_data['severity'],
+				'success_rate'  => isset( $alert_data['success_rate'] ) ? $alert_data['success_rate'] : null,
+				'failed_count'  => isset( $alert_data['failed_transactions'] ) ? $alert_data['failed_transactions'] : 0,
+				'total_count'   => isset( $alert_data['total_transactions'] ) ? $alert_data['total_transactions'] : 0,
+				'timestamp'     => current_time( 'c' ),
+				'message'       => $this->create_alert_message( $alert_data ),
+			),
+		);
+
+		// Send to API
+		$url = 'https://paysentinel.caplaz.com/api/alerts';
+		
+		$args = array(
+			'method'  => 'POST',
+			'headers' => array(
+				'Content-Type' => 'application/json',
+			),
+			'body'    => wp_json_encode( $payload ),
+			'timeout' => 10,
+		);
+
+		$response = wp_remote_post( $url, $args );
+
+		if ( is_wp_error( $response ) ) {
+			error_log( 'WC Payment Monitor API Error: ' . $response->get_error_message() );
+			return false;
+		}
+
+		$response_code = wp_remote_retrieve_response_code( $response );
+		$response_body = wp_remote_retrieve_body( $response );
+		$response_data = json_decode( $response_body, true );
+
+		// Handle different response codes
+		if ( 200 === $response_code ) {
+			// Success - log quota info if available
+			if ( isset( $response_data['quota'] ) ) {
+				update_option( 'wc_payment_monitor_sms_quota', $response_data['quota'] );
+			}
+			return true;
+		} elseif ( 402 === $response_code ) {
+			// Quota exceeded
+			error_log( 'WC Payment Monitor: SMS quota exceeded' );
+			update_option( 'wc_payment_monitor_quota_exceeded', true );
+			return false;
+		} elseif ( 401 === $response_code ) {
+			// Invalid license
+			error_log( 'WC Payment Monitor: Invalid license for API alerts' );
+			return false;
+		} else {
+			// Other error
+			error_log( 'WC Payment Monitor API Error: HTTP ' . $response_code . ' - ' . $response_body );
+			return false;
+		}
+	}
+
+	/**
+	 * Send SMS notification (legacy method - now uses API)
+	 * Kept for backward compatibility with test endpoints
 	 *
 	 * @param array  $alert_data Alert data
 	 * @param string $phone_number Phone number
 	 * @return bool Success
 	 */
 	private function send_sms_notification( $alert_data, $phone_number ) {
-		if ( ! $this->is_premium_feature_available() ) {
-			return false;
-		}
-
-		$settings     = get_option( 'wc_payment_monitor_settings', array() );
-		$twilio_sid   = isset( $settings['twilio_sid'] ) ? $settings['twilio_sid'] : '';
-		$twilio_token = isset( $settings['twilio_token'] ) ? $settings['twilio_token'] : '';
-		$twilio_from  = isset( $settings['twilio_from'] ) ? $settings['twilio_from'] : '';
-
-		if ( empty( $twilio_sid ) || empty( $twilio_token ) || empty( $twilio_from ) ) {
-			error_log( 'WC Payment Monitor: Twilio credentials not configured' );
-			return false;
-		}
-
-		// Create SMS message
-		$message = $this->create_sms_message( $alert_data );
-
-		// Prepare Twilio API request
-		$url = "https://api.twilio.com/2010-04-01/Accounts/{$twilio_sid}/Messages.json";
-
-		$data = array(
-			'From' => $twilio_from,
-			'To'   => $phone_number,
-			'Body' => $message,
-		);
-
-		$args = array(
-			'method'  => 'POST',
-			'headers' => array(
-				'Authorization' => 'Basic ' . base64_encode( $twilio_sid . ':' . $twilio_token ),
-				'Content-Type'  => 'application/x-www-form-urlencoded',
-			),
-			'body'    => http_build_query( $data ),
-			'timeout' => 30,
-		);
-
-		$response = wp_remote_post( $url, $args );
-
-		if ( is_wp_error( $response ) ) {
-			error_log( 'WC Payment Monitor SMS Error: ' . $response->get_error_message() );
-			return false;
-		}
-
-		$response_code = wp_remote_retrieve_response_code( $response );
-		$response_body = wp_remote_retrieve_body( $response );
-
-		if ( $response_code >= 200 && $response_code < 300 ) {
-			return true;
-		} else {
-			error_log( 'WC Payment Monitor SMS Error: HTTP ' . $response_code . ' - ' . $response_body );
-			return false;
-		}
+		$settings = get_option( 'wc_payment_monitor_settings', array() );
+		$settings['alert_phone_number'] = $phone_number;
+		return $this->send_to_api( $alert_data, array( 'sms' ), $settings );
 	}
 
 	/**
-	 * Send Slack notification (premium feature)
+	 * Send Slack notification (legacy method - now uses API)
+	 * Kept for backward compatibility with test endpoints
+	 *
+	 * @param array  $alert_data Alert data
+	 * @param string $webhook_url Slack webhook URL (now slack workspace ID)
+	 * @return bool Success
+	 */
+	private function send_slack_notification( $alert_data, $webhook_url ) {
+		$settings = get_option( 'wc_payment_monitor_settings', array() );
+		$settings['alert_slack_workspace'] = $webhook_url;
+		return $this->send_to_api( $alert_data, array( 'slack' ), $settings );
+	}
+
+	/**
+	 * Legacy Slack webhook method - redirects to API
 	 *
 	 * @param array  $alert_data Alert data
 	 * @param string $webhook_url Slack webhook URL
 	 * @return bool Success
 	 */
-	private function send_slack_notification( $alert_data, $webhook_url ) {
+	private function send_slack_notification_legacy( $alert_data, $webhook_url ) {
 		if ( ! $this->is_premium_feature_available() ) {
 			return false;
 		}
