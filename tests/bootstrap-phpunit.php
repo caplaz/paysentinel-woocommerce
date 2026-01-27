@@ -17,6 +17,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Prevent PHP notices when plugin files are analyzed
 error_reporting( E_ALL & ~E_NOTICE & ~E_WARNING );
 
+// Define WordPress constants
+if ( ! defined( 'WP_MEMORY_LIMIT' ) ) {
+	define( 'WP_MEMORY_LIMIT', '256M' );
+}
+
+if ( ! defined( 'WP_MAX_MEMORY_LIMIT' ) ) {
+	define( 'WP_MAX_MEMORY_LIMIT', '512M' );
+}
+
+if ( ! defined( 'WP_DEBUG' ) ) {
+	define( 'WP_DEBUG', false );
+}
+
+if ( ! defined( 'DB_NAME' ) ) {
+	define( 'DB_NAME', 'test_db' );
+}
+
 // Define plugin constants
 define( 'WC_PAYMENT_MONITOR_PLUGIN_FILE', dirname( __DIR__ ) . '/wc-payment-monitor.php' );
 define( 'WC_PAYMENT_MONITOR_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
@@ -24,7 +41,32 @@ define( 'WC_PAYMENT_MONITOR_PLUGIN_URL', 'http://example.org/wp-content/plugins/
 define( 'WC_PAYMENT_MONITOR_PLUGIN_BASENAME', 'wc-payment-monitor/wc-payment-monitor.php' );
 define( 'WC_PAYMENT_MONITOR_VERSION', '1.0.0' );
 
-// Mock WordPress functions if not available
+// Mock global $wpdb
+global $wpdb;
+$wpdb = new class {
+	public function get_var( $query ) {
+		// Return a default value for database size queries
+		if ( strpos( $query, 'information_schema' ) !== false ) {
+			return '1024.00';
+		}
+		return 1; // Default for table existence checks
+	}
+	public function prepare( $query, ...$args ) {
+		// Simple mock - replace %s with args
+		if ( count( $args ) > 0 ) {
+			foreach ( $args as $arg ) {
+				$query = preg_replace( '/%s/', $arg, $query, 1 );
+			}
+		}
+		return $query;
+	}
+	public function get_results( $query ) {
+		return array(); // Return empty array for queries
+	}
+	public function esc_like( $text ) {
+		return $text; // Simple mock - just return the text
+	}
+};
 if ( ! function_exists( '__' ) ) {
 	function __( $text, $domain = 'default' ) {
 		return $text;
@@ -158,6 +200,9 @@ require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-security.p
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-base.php';
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-health.php';
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-transactions.php';
+require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-diagnostics.php';
+require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-gateway-connectivity.php';
+require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-diagnostics.php';
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-admin.php';
 
 // Minimal WooCommerce stubs for tests when WooCommerce isn't loaded
@@ -184,5 +229,39 @@ if ( ! function_exists( 'wc_get_order' ) ) {
 	function wc_get_order( $order_id ) {
 		// No WooCommerce in unit tests; return null to skip order augmentation
 		return null;
+	}
+}
+
+if ( ! function_exists( 'wp_timezone_string' ) ) {
+	function wp_timezone_string() {
+		return 'UTC';
+	}
+}
+
+if ( ! function_exists( 'current_time' ) ) {
+	function current_time( $type, $gmt = 0 ) {
+		return date( 'Y-m-d H:i:s' );
+	}
+}
+
+if ( ! function_exists( 'get_bloginfo' ) ) {
+	function get_bloginfo( $show = '', $filter = 'raw' ) {
+		$info = array(
+			'version' => '6.0.0',
+			'charset' => 'UTF-8',
+		);
+		return isset( $info[ $show ] ) ? $info[ $show ] : '';
+	}
+}
+
+if ( ! function_exists( 'get_locale' ) ) {
+	function get_locale() {
+		return 'en_US';
+	}
+}
+
+if ( ! function_exists( 'wp_next_scheduled' ) ) {
+	function wp_next_scheduled( $hook ) {
+		return false; // No scheduled events in tests
 	}
 }

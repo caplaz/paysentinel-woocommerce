@@ -1474,9 +1474,6 @@ class WC_Payment_Monitor_Admin
 						<button class="button button-primary" id="run-full-diagnostics">
 							<?php esc_html_e('Run Full Diagnostics', 'wc-payment-monitor'); ?>
 						</button>
-						<button class="button" id="check-gateways">
-							<?php esc_html_e('Check Gateway Status', 'wc-payment-monitor'); ?>
-						</button>
 						<button class="button" id="recalculate-health">
 							<?php esc_html_e('Recalculate Health Metrics', 'wc-payment-monitor'); ?>
 						</button>
@@ -1561,6 +1558,106 @@ class WC_Payment_Monitor_Admin
 
 			<script>
 				jQuery(document).ready(function ($) {
+					// Helper: Format Gateway Results
+					function formatGatewayResults(data) {
+						var html = '<div class="card" style="max-width: 100%; margin-top: 10px; padding: 0;">';
+						html += '<h3 style="padding: 10px 15px; margin: 0; background: #f8f9fa; border-bottom: 1px solid #ddd;"><?php esc_html_e('Gateway Status Report', 'wc-payment-monitor'); ?></h3>';
+						
+						if (data.issues && data.issues.length > 0) {
+							html += '<div class="notice notice-warning inline" style="margin: 10px 15px;"><p><strong><?php esc_html_e('Issues Found:', 'wc-payment-monitor'); ?></strong></p><ul style="list-style: disc; margin-left: 20px;">';
+							data.issues.forEach(function(issue) {
+								html += '<li>' + issue + '</li>';
+							});
+							html += '</ul></div>';
+						}
+
+						html += '<table class="widefat striped" style="border: none; box-shadow: none;">';
+						html += '<thead><tr>';
+						html += '<th><?php esc_html_e('Gateway', 'wc-payment-monitor'); ?></th>';
+						html += '<th><?php esc_html_e('Status', 'wc-payment-monitor'); ?></th>';
+						html += '<th><?php esc_html_e('Message', 'wc-payment-monitor'); ?></th>';
+						html += '<th><?php esc_html_e('Last Checked', 'wc-payment-monitor'); ?></th>';
+						html += '<th><?php esc_html_e('24h Success Rate', 'wc-payment-monitor'); ?></th>';
+						html += '</tr></thead><tbody>';
+
+						if (data.gateways) {
+							Object.keys(data.gateways).forEach(function(key) {
+								var gateway = data.gateways[key];
+								var statusIcon = gateway.status === 'online' ? '✅' : (gateway.status === 'offline' ? '❌' : '⚠️');
+								var statusColor = gateway.status === 'online' ? 'green' : (gateway.status === 'offline' ? 'red' : 'orange');
+								
+								var successRate = '-';
+								if (gateway.health_24h && gateway.health_24h.success_rate !== null) {
+									successRate = gateway.health_24h.success_rate + '%';
+								}
+
+								html += '<tr>';
+								html += '<td><strong>' + (gateway.id) + '</strong></td>';
+								html += '<td><span style="color:' + statusColor + ';">' + statusIcon + ' ' + gateway.status.toUpperCase() + '</span></td>';
+								html += '<td>' + (gateway.message || '-') + '</td>';
+								html += '<td>' + (gateway.last_checked || 'Never') + '</td>';
+								html += '<td>' + successRate + '</td>';
+								html += '</tr>';
+							});
+						} else {
+							html += '<tr><td colspan="5"><?php esc_html_e('No gateway data available.', 'wc-payment-monitor'); ?></td></tr>';
+						}
+
+						html += '</tbody></table></div>';
+						return html;
+					}
+
+					// Helper: Format Full Diagnostics
+					function formatFullDiagnostics(data) {
+						var html = '<div style="margin-top: 15px;">';
+						html += '<h3><?php esc_html_e('System Health Report', 'wc-payment-monitor'); ?> <span style="font-weight: normal; font-size: 13px; color: #666;">(' + data.timestamp + ')</span></h3>';
+
+						// System Info
+						if (data.system_info) {
+							html += '<div class="card" style="margin-bottom: 20px; padding: 15px;">';
+							html += '<h4 style="margin-top: 0;"><?php esc_html_e('System Information', 'wc-payment-monitor'); ?></h4>';
+							html += '<table class="widefat fixed striped" style="width: 100%; border: 1px solid #eee;"><tbody>';
+							Object.entries(data.system_info).forEach(function([key, value]) {
+								var label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+								html += '<tr><td style="width: 200px; font-weight: 600;">' + label + '</td><td>' + value + '</td></tr>';
+							});
+							html += '</tbody></table></div>';
+						}
+
+						// Database
+						if (data.database) {
+							var dbStatus = data.database.status === 'healthy' ? '✅ Healthy' : '⚠️ Issues Found';
+							html += '<div class="card" style="margin-bottom: 20px; padding: 15px;">';
+							html += '<h4 style="margin-top: 0;"><?php esc_html_e('Database Status', 'wc-payment-monitor'); ?>: ' + dbStatus + '</h4>';
+							
+							if (data.database.issues && data.database.issues.length > 0) {
+								html += '<div class="notice notice-warning inline"><ul style="margin: 5px 0 5px 20px; list-style: disc;">';
+								data.database.issues.forEach(function(issue) {
+									html += '<li>' + issue + '</li>';
+								});
+								html += '</ul></div>';
+							}
+							
+							if (data.database.tables) {
+								html += '<p><strong>Table Status:</strong></p>';
+								html += '<ul style="margin-left: 20px; list-style: circle;">';
+								Object.entries(data.database.tables).forEach(function([table, info]) {
+									html += '<li><strong>' + table + ':</strong> ' + (info.exists ? 'Exists' : 'Missing') + ' (' + info.count + ' records)</li>';
+								});
+								html += '</ul>';
+							}
+							html += '</div>';
+						}
+
+						// Gateways section
+						if (data.gateways) {
+							html += formatGatewayResults(data.gateways);
+						}
+						
+						html += '</div>';
+						return html;
+					}
+
 					// Load available payment gateways on page load
 					$.ajax({
 						url: wcPaymentMonitor.apiUrl + 'simulator/gateways',
@@ -1595,35 +1692,13 @@ class WC_Payment_Monitor_Admin
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
 							},
 							success: function (response) {
-								$('#diagnostics-results').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+								$('#diagnostics-results').html(formatFullDiagnostics(response));
 							},
 							error: function (xhr) {
 								$('#diagnostics-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
 							},
 							complete: function () {
 								$btn.prop('disabled', false).text('<?php esc_attr_e('Run Full Diagnostics', 'wc-payment-monitor'); ?>');
-							}
-						});
-					});
-
-					$('#check-gateways').on('click', function () {
-						var $btn = $(this);
-						$btn.prop('disabled', true).text('<?php esc_attr_e('Checking...', 'wc-payment-monitor'); ?>');
-
-						$.ajax({
-							url: wcPaymentMonitor.apiUrl + 'diagnostics/gateways',
-							method: 'GET',
-							headers: {
-								'X-WP-Nonce': wcPaymentMonitor.restNonce
-							},
-							success: function (response) {
-								$('#diagnostics-results').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
-							},
-							error: function (xhr) {
-								$('#diagnostics-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
-							},
-							complete: function () {
-								$btn.prop('disabled', false).text('<?php esc_attr_e('Check Gateway Status', 'wc-payment-monitor'); ?>');
 							}
 						});
 					});

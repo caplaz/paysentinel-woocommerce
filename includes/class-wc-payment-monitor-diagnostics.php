@@ -124,6 +124,8 @@ class WC_Payment_Monitor_Diagnostics {
 			)
 		);
 
+		// Handle null or non-numeric values
+		$size = $size !== null ? floatval( $size ) : 0.0;
 		$results['total_size_mb'] = round( $size, 2 );
 
 		if ( $size > 100 ) {
@@ -156,7 +158,7 @@ class WC_Payment_Monitor_Diagnostics {
 				'id'              => $gateway_id,
 				'status'          => $status['status'],
 				'message'         => $status['message'],
-				'last_checked'    => $status['checked_at'],
+				'last_checked'    => isset( $status['last_checked_at'] ) ? $status['last_checked_at'] : null,
 				'health_24h'      => isset( $health_data['24hour'] ) ? $health_data['24hour'] : null,
 			);
 
