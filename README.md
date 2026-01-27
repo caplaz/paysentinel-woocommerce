@@ -49,6 +49,10 @@ The plugin monitors gateway health using a hybrid approach:
 
 See [Alert Severity Logic](docs/ALERT_LOGIC.md) for more technical details.
 
+## Pre-Launch Checklist
+
+Before deploying to production, review the [Pre-Launch Testing Checklist](docs/PRE_LAUNCH_CHECKLIST.md) to ensure all features work correctly across different license tiers.
+
 ## Development
 
 This plugin follows WordPress coding standards and uses an autoloader for class management.
