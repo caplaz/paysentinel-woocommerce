@@ -202,6 +202,7 @@ require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-health
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-transactions.php';
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-diagnostics.php';
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-gateway-connectivity.php';
+require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-failure-simulator.php';
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-diagnostics.php';
 require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-admin.php';
 
@@ -263,5 +264,14 @@ if ( ! function_exists( 'get_locale' ) ) {
 if ( ! function_exists( 'wp_next_scheduled' ) ) {
 	function wp_next_scheduled( $hook ) {
 		return false; // No scheduled events in tests
+	}
+}
+
+// Mock WordPress REST API classes for testing
+if ( ! class_exists( 'WP_REST_Request' ) ) {
+	class WP_REST_Request {
+		public function get_param( $key ) {
+			return null;
+		}
 	}
 }

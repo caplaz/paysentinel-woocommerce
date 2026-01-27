@@ -179,6 +179,33 @@ class WC_Payment_Monitor_API_Diagnostics extends WC_Payment_Monitor_API_Base {
 			)
 		);
 
+		// Maintenance endpoints (aliases for cleanup)
+		register_rest_route(
+			$this->namespace,
+			'/diagnostics/maintenance/orphaned',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'clean_orphaned' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/diagnostics/maintenance/archive',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'archive_transactions' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'days' => array(
+						'default'           => 90,
+						'sanitize_callback' => 'absint',
+					),
+				),
+			)
+		);
+
 		// Failure simulator routes
 		register_rest_route(
 			$this->namespace,

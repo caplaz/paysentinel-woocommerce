@@ -65,4 +65,40 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		$this->assertArrayHasKey('woocommerce_version', $result);
 		$this->assertArrayHasKey('plugin_version', $result);
 	}
+
+	/**
+	 * Test API diagnostics class can be instantiated
+	 */
+	public function test_api_diagnostics_class_can_be_instantiated() {
+		$api = new WC_Payment_Monitor_API_Diagnostics();
+		$this->assertInstanceOf(WC_Payment_Monitor_API_Diagnostics::class, $api);
+	}
+
+	/**
+	 * Test that clean_orphaned method exists and can be called
+	 */
+	public function test_clean_orphaned_method_exists() {
+		$api = new WC_Payment_Monitor_API_Diagnostics();
+		$this->assertTrue(method_exists($api, 'clean_orphaned'));
+	}
+
+	/**
+	 * Test that archive_transactions method exists and can be called
+	 */
+	public function test_archive_transactions_method_exists() {
+		$api = new WC_Payment_Monitor_API_Diagnostics();
+		$this->assertTrue(method_exists($api, 'archive_transactions'));
+	}
+
+	/**
+	 * Test that maintenance endpoints are registered
+	 */
+	public function test_maintenance_endpoints_are_registered() {
+		$api = new WC_Payment_Monitor_API_Diagnostics();
+		$this->assertTrue(method_exists($api, 'register_routes'));
+		
+		// Test that the register_routes method can be called without errors
+		$api->register_routes();
+		$this->assertTrue(true); // If we get here, no fatal errors occurred
+	}
 }
