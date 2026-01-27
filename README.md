@@ -39,6 +39,16 @@ The plugin creates three custom database tables:
 2. `wp_payment_monitor_gateway_health` - Stores gateway performance metrics
 3. `wp_payment_monitor_alerts` - Stores alert history and status
 
+## Performance Monitoring & Alerts
+
+The plugin monitors gateway health using a hybrid approach:
+
+- **Immediate Alerts**: Critical system errors trigger alerts instantly.
+- **Statistical Alerts**: Success rates are analyzed over 1h, 24h, and 7d periods.
+- **Volume Awareness**: Severity is automatically adjusted for low-volume stores to reduce noise.
+
+See [Alert Severity Logic](docs/ALERT_LOGIC.md) for more technical details.
+
 ## Development
 
 This plugin follows WordPress coding standards and uses an autoloader for class management.

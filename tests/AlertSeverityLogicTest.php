@@ -115,9 +115,9 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey('critical', $thresholds);
 		
 		// If we could invoke calculate_severity:
-		// 69% success -> High
-		// 80% success -> Warning
-		// 90% success -> Info
+		// 74% success -> High
+		// 85% success -> Warning
+		// 92% success -> Info
 	}
 
 	// Helper to get alert count from DB
@@ -125,6 +125,63 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $this->database_instance->get_alerts_table();
 		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+	}
+
+	/**
+	 * Test 0% success rate with low volume
+	 */
+	public function test_low_volume_zero_success_severity() {
+		$gateway_id = 'test_gateway';
+		$health_data = array(
+			'24h' => array(
+				'gateway_id' => $gateway_id,
+				'period' => '24h',
+				'total_transactions' => 1,
+				'successful_transactions' => 0,
+				'failed_transactions' => 1,
+				'success_rate' => 0.0,
+				'avg_response_time' => 0,
+				'last_failure_at' => current_time('mysql'),
+				'calculated_at' => current_time('mysql'),
+			)
+		);
+
+		$this->alerts_instance->check_gateway_alerts($gateway_id, $health_data);
+
+		$latest_alert = $this->get_latest_alert();
+		$this->assertNotNull($latest_alert);
+		$this->assertEquals('low_success_rate', $latest_alert['alert_type']);
+		$this->assertEquals(0.0, (float)json_decode($latest_alert['metadata'], true)['success_rate']);
+		
+		// This is the core of the user's issue
+		// With volume awareness: 0% success on 1 transaction should be info
+		$this->assertEquals('info', $latest_alert['severity'], '0% success rate on 1 transaction should be info severity due to volume adjustment');
+	}
+
+	/**
+	 * Test 0% success rate with high volume
+	 */
+	public function test_high_volume_zero_success_severity() {
+		$gateway_id = 'test_gateway_high';
+		$health_data = array(
+			'24h' => array(
+				'gateway_id' => $gateway_id,
+				'period' => '24h',
+				'total_transactions' => 15, // Sufficient volume
+				'successful_transactions' => 0,
+				'failed_transactions' => 15,
+				'success_rate' => 0.0,
+				'avg_response_time' => 0,
+				'last_failure_at' => current_time('mysql'),
+				'calculated_at' => current_time('mysql'),
+			)
+		);
+
+		$this->alerts_instance->check_gateway_alerts($gateway_id, $health_data);
+
+		$latest_alert = $this->get_latest_alert();
+		$this->assertNotNull($latest_alert);
+		$this->assertEquals('high', $latest_alert['severity'], '0% success rate on 15 transactions should be high severity');
 	}
 
 	private function get_latest_alert() {

@@ -378,17 +378,75 @@ class WC_Payment_Monitor_Diagnostics {
 		global $wpdb;
 
 		$table_name = $this->database->get_transactions_table();
+		$alerts_table = $this->database->get_alerts_table();
 
-		$deleted = $wpdb->query(
+		// Clean orphaned transaction records
+		$deleted_transactions = $wpdb->query(
 			"DELETE t FROM {$table_name} t
 			LEFT JOIN {$wpdb->posts} p ON t.order_id = p.ID
 			WHERE p.ID IS NULL"
 		);
 
+		// Clean orphaned alerts (gateway_error alerts referencing deleted orders)
+		$deleted_alerts = 0;
+		if ( $wpdb->has_cap( 'json_extract' ) ) {
+			// MySQL 5.7.8+ or MariaDB 10.2.3+ with native JSON support
+			$deleted_alerts = $wpdb->query(
+				"DELETE a FROM {$alerts_table} a
+				LEFT JOIN {$wpdb->posts} p ON JSON_EXTRACT(a.metadata, '$.order_id') = p.ID
+				WHERE a.alert_type = 'gateway_error'
+				AND JSON_EXTRACT(a.metadata, '$.order_id') IS NOT NULL
+				AND p.ID IS NULL"
+			);
+		} else {
+			// Fallback for older MySQL versions - get alerts and check manually
+			$orphaned_alert_ids = array();
+			$potential_alerts = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, metadata FROM {$alerts_table} WHERE alert_type = %s",
+					'gateway_error'
+				)
+			);
+
+			foreach ( $potential_alerts as $alert ) {
+				$metadata = json_decode( $alert->metadata, true );
+				if ( isset( $metadata['order_id'] ) && ! empty( $metadata['order_id'] ) ) {
+					$order_exists = $wpdb->get_var(
+						$wpdb->prepare(
+							"SELECT ID FROM {$wpdb->posts} WHERE ID = %d",
+							$metadata['order_id']
+						)
+					);
+					if ( ! $order_exists ) {
+						$orphaned_alert_ids[] = $alert->id;
+					}
+				}
+			}
+
+			if ( ! empty( $orphaned_alert_ids ) ) {
+				$placeholders = implode( ',', array_fill( 0, count( $orphaned_alert_ids ), '%d' ) );
+				$deleted_alerts = $wpdb->query(
+					$wpdb->prepare(
+						"DELETE FROM {$alerts_table} WHERE id IN ({$placeholders})",
+						$orphaned_alert_ids
+					)
+				);
+			}
+		}
+
+		$total_deleted = intval( $deleted_transactions ) + intval( $deleted_alerts );
+
 		return array(
 			'success' => true,
-			'deleted' => intval( $deleted ),
-			'message' => sprintf( __( 'Deleted %d orphaned transaction records.', 'wc-payment-monitor' ), intval( $deleted ) ),
+			'deleted' => $total_deleted,
+			'transactions_deleted' => intval( $deleted_transactions ),
+			'alerts_deleted' => intval( $deleted_alerts ),
+			'message' => sprintf(
+				__( 'Deleted %d orphaned records (%d transactions, %d alerts).', 'wc-payment-monitor' ),
+				$total_deleted,
+				intval( $deleted_transactions ),
+				intval( $deleted_alerts )
+			),
 		);
 	}
 

@@ -11,10 +11,10 @@ class PaymentAlertTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_alert_thresholds() {
 		// Expected alert thresholds for failure rates
-		// Note: These represent Success Rates. 
-		// < 70% is High (was Critical)
-		// < 85% is Warning
-		// < 95% is Info
+		// Note: These represent Success Rates.
+		// < 75% is High (25%+ failure rate)
+		// < 90% is Warning (10-25% failure rate)
+		// < 95% is Info (5-10% failure rate)
 		$thresholds = WC_Payment_Monitor_Alerts::SEVERITY_THRESHOLDS;
 
 		$this->assertArrayHasKey( 'high', $thresholds );
@@ -22,8 +22,8 @@ class PaymentAlertTest extends PHPUnit\Framework\TestCase {
 		$this->assertArrayHasKey( 'info', $thresholds );
 		$this->assertArrayNotHasKey( 'critical', $thresholds, 'Critical severity should be reserved for immediate alerts' );
 
-		$this->assertEquals( 70, $thresholds['high'] );
-		$this->assertEquals( 85, $thresholds['warning'] );
+		$this->assertEquals( 75, $thresholds['high'] );
+		$this->assertEquals( 90, $thresholds['warning'] );
 		$this->assertEquals( 95, $thresholds['info'] );
 	}
 

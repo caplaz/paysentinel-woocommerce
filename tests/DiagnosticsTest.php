@@ -101,4 +101,223 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		$api->register_routes();
 		$this->assertTrue(true); // If we get here, no fatal errors occurred
 	}
+
+	/**
+	 * Test clean_orphaned_records method exists and returns expected structure
+	 */
+	public function test_clean_orphaned_records_method_exists() {
+		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$result = $diagnostics->clean_orphaned_records();
+
+		$this->assertIsArray($result);
+		$this->assertArrayHasKey('success', $result);
+		$this->assertArrayHasKey('deleted', $result);
+		$this->assertArrayHasKey('transactions_deleted', $result);
+		$this->assertArrayHasKey('alerts_deleted', $result);
+		$this->assertArrayHasKey('message', $result);
+		$this->assertTrue($result['success']);
+	}
+
+	/**
+	 * Test clean_orphaned_records cleans orphaned transactions
+	 */
+	public function test_clean_orphaned_records_cleans_transactions() {
+		global $wpdb;
+
+		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$database = new WC_Payment_Monitor_Database();
+		$table_name = $database->get_transactions_table();
+
+		// Create a mock transaction with non-existent order ID
+		$wpdb->insert(
+			$table_name,
+			array(
+				'order_id' => 999999, // Non-existent order
+				'gateway_id' => 'stripe',
+				'amount' => 100.00,
+				'currency' => 'USD',
+				'status' => 'failed',
+				'failure_reason' => 'Test failure',
+				'created_at' => current_time('mysql'),
+			)
+		);
+		$inserted_id = $wpdb->insert_id;
+
+		// Verify the record was inserted
+		$record = $wpdb->get_row(
+			$wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d", $inserted_id)
+		);
+		$this->assertNotNull($record);
+
+		// Run cleanup
+		$result = $diagnostics->clean_orphaned_records();
+
+		// Verify the orphaned transaction was deleted
+		$this->assertGreaterThanOrEqual(1, $result['transactions_deleted']);
+		$this->assertGreaterThanOrEqual(1, $result['deleted']);
+
+		// Verify the record is gone
+		$record_after = $wpdb->get_row(
+			$wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d", $inserted_id)
+		);
+		$this->assertNull($record_after);
+	}
+
+	/**
+	 * Test clean_orphaned_records cleans orphaned alerts
+	 */
+	public function test_clean_orphaned_records_cleans_alerts() {
+		global $wpdb;
+
+		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$database = new WC_Payment_Monitor_Database();
+		$alerts_table = $database->get_alerts_table();
+
+		// Create a mock alert with non-existent order ID in metadata
+		$metadata = json_encode(array(
+			'order_id' => 999999, // Non-existent order
+			'failure_reason' => 'Test failure',
+			'error_type' => 'Connection Error'
+		));
+
+		$wpdb->insert(
+			$alerts_table,
+			array(
+				'alert_type' => 'gateway_error',
+				'gateway_id' => 'stripe',
+				'severity' => 'critical',
+				'message' => 'Test alert message',
+				'metadata' => $metadata,
+				'is_resolved' => 0,
+				'created_at' => current_time('mysql'),
+			)
+		);
+		$inserted_id = $wpdb->insert_id;
+
+		// Verify the alert was inserted
+		$alert = $wpdb->get_row(
+			$wpdb->prepare("SELECT * FROM {$alerts_table} WHERE id = %d", $inserted_id)
+		);
+		$this->assertNotNull($alert);
+
+		// Run cleanup
+		$result = $diagnostics->clean_orphaned_records();
+
+		// Verify the orphaned alert was deleted
+		$this->assertGreaterThanOrEqual(1, $result['alerts_deleted']);
+		$this->assertGreaterThanOrEqual(1, $result['deleted']);
+
+		// Verify the alert is gone
+		$alert_after = $wpdb->get_row(
+			$wpdb->prepare("SELECT * FROM {$alerts_table} WHERE id = %d", $inserted_id)
+		);
+		$this->assertNull($alert_after);
+	}
+
+	/**
+	 * Test clean_orphaned_records does not clean alerts without order_id
+	 */
+	public function test_clean_orphaned_records_preserves_alerts_without_order_id() {
+		global $wpdb;
+
+		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$database = new WC_Payment_Monitor_Database();
+		$alerts_table = $database->get_alerts_table();
+
+		// Create a mock alert without order_id in metadata (performance-based alert)
+		$metadata = json_encode(array(
+			'success_rate' => 85.5,
+			'total_transactions' => 100,
+			'failed_transactions' => 15
+		));
+
+		$wpdb->insert(
+			$alerts_table,
+			array(
+				'alert_type' => 'low_success_rate',
+				'gateway_id' => 'stripe',
+				'severity' => 'warning',
+				'message' => 'Test performance alert',
+				'metadata' => $metadata,
+				'is_resolved' => 0,
+				'created_at' => current_time('mysql'),
+			)
+		);
+		$inserted_id = $wpdb->insert_id;
+
+		// Run cleanup
+		$result = $diagnostics->clean_orphaned_records();
+
+		// Verify the alert was NOT deleted
+		$this->assertEquals(0, $result['alerts_deleted']);
+
+		// Verify the alert still exists
+		$alert_after = $wpdb->get_row(
+			$wpdb->prepare("SELECT * FROM {$alerts_table} WHERE id = %d", $inserted_id)
+		);
+		$this->assertNotNull($alert_after);
+
+		// Clean up
+		$wpdb->delete($alerts_table, array('id' => $inserted_id));
+	}
+
+	/**
+	 * Test clean_orphaned_records does not clean gateway_error alerts with valid order_id
+	 */
+	public function test_clean_orphaned_records_preserves_valid_alerts() {
+		global $wpdb;
+
+		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$database = new WC_Payment_Monitor_Database();
+		$alerts_table = $database->get_alerts_table();
+
+		// Create a valid order first
+		$order_id = $wpdb->insert(
+			$wpdb->posts,
+			array(
+				'post_type' => 'shop_order',
+				'post_status' => 'wc-completed',
+				'post_date' => current_time('mysql'),
+				'post_date_gmt' => current_time('mysql', true),
+			)
+		);
+		$order_id = $wpdb->insert_id;
+
+		// Create a mock alert with valid order ID in metadata
+		$metadata = json_encode(array(
+			'order_id' => $order_id,
+			'failure_reason' => 'Test failure',
+			'error_type' => 'Connection Error'
+		));
+
+		$wpdb->insert(
+			$alerts_table,
+			array(
+				'alert_type' => 'gateway_error',
+				'gateway_id' => 'stripe',
+				'severity' => 'critical',
+				'message' => 'Test alert message',
+				'metadata' => $metadata,
+				'is_resolved' => 0,
+				'created_at' => current_time('mysql'),
+			)
+		);
+		$inserted_id = $wpdb->insert_id;
+
+		// Run cleanup
+		$result = $diagnostics->clean_orphaned_records();
+
+		// Verify the alert was NOT deleted
+		$this->assertEquals(0, $result['alerts_deleted']);
+
+		// Verify the alert still exists
+		$alert_after = $wpdb->get_row(
+			$wpdb->prepare("SELECT * FROM {$alerts_table} WHERE id = %d", $inserted_id)
+		);
+		$this->assertNotNull($alert_after);
+
+		// Clean up
+		$wpdb->delete($alerts_table, array('id' => $inserted_id));
+		$wpdb->delete($wpdb->posts, array('ID' => $order_id));
+	}
 }

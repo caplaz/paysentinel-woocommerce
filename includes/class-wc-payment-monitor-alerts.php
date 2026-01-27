@@ -24,8 +24,8 @@ class WC_Payment_Monitor_Alerts {
 	 * Alert severity thresholds
 	 */
 	const SEVERITY_THRESHOLDS = array(
-		'high'    => 70,
-		'warning' => 85,
+		'high'    => 75,
+		'warning' => 90,
 		'info'    => 95,
 	);
 
@@ -197,8 +197,8 @@ class WC_Payment_Monitor_Alerts {
 				continue;
 			}
 
-			// Determine alert severity based on success rate
-			$severity = $this->calculate_severity( $success_rate );
+			// Determine alert severity based on success rate and volume
+			$severity = $this->calculate_severity( $success_rate, $total_transactions );
 
 			// Check if we need to send an alert
 			if ( $this->should_trigger_alert( $gateway_id, $success_rate, $severity ) ) {
@@ -222,21 +222,36 @@ class WC_Payment_Monitor_Alerts {
 	}
 
 	/**
-	 * Calculate alert severity based on success rate
+	 * Calculate alert severity based on success rate and transaction volume
 	 *
-	 * @param float $success_rate Success rate percentage
+	 * @param float $success_rate       Success rate percentage
+	 * @param int   $total_transactions Total number of transactions in period
 	 * @return string Severity level
 	 */
-	private function calculate_severity( $success_rate ) {
+	private function calculate_severity( $success_rate, $total_transactions = 0 ) {
+		// Determine base severity based on success rate thresholds
+		$severity = 'info';
+
 		if ( $success_rate < self::SEVERITY_THRESHOLDS['high'] ) {
-			return 'high';
+			$severity = 'high';
 		} elseif ( $success_rate < self::SEVERITY_THRESHOLDS['warning'] ) {
-			return 'warning';
-		} elseif ( $success_rate < self::SEVERITY_THRESHOLDS['info'] ) {
-			return 'info';
+			$severity = 'warning';
 		}
 
-		return 'info'; // Default to info for edge cases
+		// Volume-based Adjustment (Avoid high-severity noise on low volume)
+		// If total transactions are low, we downgrade the severity because the
+		// statistical significance is lower.
+		if ( $total_transactions < 3 ) {
+			// Extremely low volume (1-2 txns): always info
+			$severity = 'info';
+		} elseif ( $total_transactions < 10 ) {
+			// Low volume (3-9 txns): cap at warning
+			if ( 'high' === $severity ) {
+				$severity = 'warning';
+			}
+		}
+
+		return $severity;
 	}
 
 	/**
