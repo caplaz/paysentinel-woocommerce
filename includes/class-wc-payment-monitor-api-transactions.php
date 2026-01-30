@@ -183,6 +183,7 @@ class WC_Payment_Monitor_API_Transactions extends WC_Payment_Monitor_API_Base {
 						'id'             => intval( $row->id ),
 						'order_id'       => intval( $row->order_id ),
 						'gateway_id'     => $row->gateway_id,
+						'gateway_name'   => WC_Payment_Monitor::get_friendly_gateway_name( $row->gateway_id ),
 						'status'         => $row->status,
 						'amount'         => floatval( $row->amount ),
 						'currency'       => $row->currency,

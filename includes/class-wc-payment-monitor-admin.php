@@ -445,6 +445,25 @@ class WC_Payment_Monitor_Admin
 						<?php echo esc_html(sprintf(__('Expires: %s', 'wc-payment-monitor'), date_i18n(get_option('date_format'), strtotime($license_data['expiration_ts'])))); ?>
 					</p>
 				<?php endif; ?>
+				<?php
+				$site_registered = $this->license->is_site_registered();
+				$site_registration_data = $this->license->get_site_registration_data();
+				if ($site_registered): ?>
+					<p style="margin: 5px 0; font-size: 14px; color: #46b450;">
+						<span class="dashicons dashicons-admin-site" style="color: #46b450;"></span>
+						<?php esc_html_e('Site is registered with license', 'wc-payment-monitor'); ?>
+					</p>
+					<?php if ($site_registration_data && isset($site_registration_data['registered_at'])): ?>
+						<p style="margin: 5px 0; font-size: 12px; color: #666;">
+							<?php echo esc_html(sprintf(__('Registered: %s', 'wc-payment-monitor'), date_i18n(get_option('date_format'), strtotime($site_registration_data['registered_at'])))); ?>
+						</p>
+					<?php endif; ?>
+				<?php else: ?>
+					<p style="margin: 5px 0; font-size: 14px; color: #f0ad4e;">
+						<span class="dashicons dashicons-warning" style="color: #f0ad4e;"></span>
+						<?php esc_html_e('Site not registered - alerts will not be sent', 'wc-payment-monitor'); ?>
+					</p>
+				<?php endif; ?>
 			<?php endif; ?>
 		<?php elseif ('invalid' === $license_status): ?>
 			<p style="color: #dc3232;">
@@ -590,7 +609,7 @@ class WC_Payment_Monitor_Admin
 			$payment_gateways = WC_Payment_Gateways::instance();
 			$gateways = $payment_gateways->get_available_payment_gateways();
 			foreach ($gateways as $gateway_id => $gateway) {
-				$active_gateways[$gateway_id] = $gateway->get_title();
+				$active_gateways[$gateway_id] = WC_Payment_Monitor::get_friendly_gateway_name( $gateway_id );
 			}
 		}
 		
@@ -1427,12 +1446,21 @@ class WC_Payment_Monitor_Admin
 					'success'
 				);
 			} else {
-				// Build error message without debug info
+				// Build error message with debug info for troubleshooting
 				$error_msg = sprintf(
 					/* translators: %s: error message */
 					__('License validation failed: %s', 'wc-payment-monitor'),
 					$result['message']
 				);
+
+				// Add debug info if available
+				if ( isset( $result['debug_info'] ) && ! empty( $result['debug_info'] ) ) {
+					$error_msg .= sprintf(
+						/* translators: %s: debug info */
+						__(' Debug: %s', 'wc-payment-monitor'),
+						$result['debug_info']
+					);
+				}
 
 				add_settings_error(
 					'wc_payment_monitor_options',
@@ -1516,7 +1544,7 @@ class WC_Payment_Monitor_Admin
 								printf(
 									'<option value="%s">%s</option>',
 									esc_attr($gateway_id),
-									esc_html($gateway->get_title())
+									esc_html(WC_Payment_Monitor::get_friendly_gateway_name( $gateway_id ))
 								);
 							}
 							?>

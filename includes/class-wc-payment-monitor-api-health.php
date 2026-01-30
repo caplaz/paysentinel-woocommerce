@@ -235,7 +235,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 
 					$item = array(
 						'gateway_id'                 => $gateway_id,
-						'gateway_name'               => $gateway->title,
+						'gateway_name'               => WC_Payment_Monitor::get_friendly_gateway_name( $gateway_id ),
 						'health_percentage'          => floatval( $health->success_rate ),
 						'success_rate'               => floatval( $health->success_rate ),
 						'success_rate_24h'           => floatval( $health->success_rate ),
@@ -339,7 +339,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 
 			$response_data = array(
 				'gateway_id'                 => $gateway_id,
-				'gateway_name'               => $gateway->title,
+				'gateway_name'               => WC_Payment_Monitor::get_friendly_gateway_name( $gateway_id ),
 				'period'                     => $period,
 				'health_percentage'          => floatval( $health->success_rate ),
 				'success_rate'               => floatval( $health->success_rate ),

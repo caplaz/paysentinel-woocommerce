@@ -4,18 +4,27 @@
  * Plugin URI: https://github.com/your-username/wc-payment-monitor
  * Description: Real-time monitoring, alerting, and recovery capabilities for WooCommerce payment gateway failures.
  * Version: 1.0.0
- * Author: Your Name
+ * Author: Caplaz
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: wc-payment-monitor
  * Domain Path: /languages
  * Requires at least: 5.0
- * Tested up to: 6.4
+ * Tested up to: 6.7
  * Requires PHP: 7.4
  * WC requires at least: 5.0
- * WC tested up to: 8.0
+ * WC tested up to: 9.5
  */
+
+// Declare WooCommerce feature compatibility
+add_action( 'before_woocommerce_init', function() {
+	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'product_block_editor', __FILE__, true );
+	}
+} );
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -212,6 +221,87 @@ class WC_Payment_Monitor {
 		if ( is_admin() ) {
 			new WC_Payment_Monitor_Admin();
 		}
+	}
+
+	/**
+	 * Get friendly gateway name for display
+	 *
+	 * @param string $gateway_id The gateway ID.
+	 * @return string Friendly gateway name.
+	 */
+	public static function get_friendly_gateway_name( $gateway_id ) {
+		// Friendly name mapping for common payment gateways
+		$friendly_names = array(
+			// WooCommerce Payments sub-gateways
+			'woocommerce_payments_affirm'     => 'WooCommerce Payments - Affirm',
+			'woocommerce_payments_klarna'     => 'WooCommerce Payments - Klarna',
+			'woocommerce_payments_afterpay'   => 'WooCommerce Payments - Afterpay',
+			'woocommerce_payments_clearpay'   => 'WooCommerce Payments - Clearpay',
+			'woocommerce_payments_woocommerce_payments' => 'WooCommerce Payments - Card',
+			'woocommerce_payments'            => 'WooCommerce Payments',
+
+			// Stripe sub-gateways
+			'stripe'                         => 'Stripe',
+			'stripe_affirm'                  => 'Stripe - Affirm',
+			'stripe_klarna'                  => 'Stripe - Klarna',
+			'stripe_afterpay'                => 'Stripe - Afterpay',
+			'stripe_clearpay'                => 'Stripe - Clearpay',
+			'stripe_alipay'                  => 'Stripe - Alipay',
+			'stripe_wechat_pay'              => 'Stripe - WeChat Pay',
+			'stripe_bancontact'              => 'Stripe - Bancontact',
+			'stripe_eps'                     => 'Stripe - EPS',
+			'stripe_giropay'                 => 'Stripe - Giropay',
+			'stripe_ideal'                   => 'Stripe - iDEAL',
+			'stripe_p24'                     => 'Stripe - Przelewy24',
+			'stripe_sepa'                    => 'Stripe - SEPA Direct Debit',
+			'stripe_sofort'                  => 'Stripe - Sofort',
+
+			// PayPal
+			'paypal'                         => 'PayPal',
+			'ppec_paypal'                    => 'PayPal Express Checkout',
+			'paypal_pro'                     => 'PayPal Pro',
+			'paypal_pro_payflow'             => 'PayPal Pro Payflow',
+
+			// Square
+			'square_credit_card'             => 'Square - Credit Card',
+			'square'                         => 'Square',
+
+			// Other common gateways
+			'cod'                            => 'Cash on Delivery',
+			'cheque'                         => 'Check Payment',
+			'bacs'                           => 'Direct Bank Transfer',
+			'authorize_net'                  => 'Authorize.Net',
+			'braintree'                      => 'Braintree',
+			'braintree_paypal'               => 'Braintree - PayPal',
+			'braintree_credit_card'          => 'Braintree - Credit Card',
+			'eway'                           => 'eWAY',
+			'mollie'                         => 'Mollie',
+			'mollie_ideal'                   => 'Mollie - iDEAL',
+			'mollie_creditcard'              => 'Mollie - Credit Card',
+			'klarna_checkout'                => 'Klarna Checkout',
+			'klarna_payments'                => 'Klarna Payments',
+			'affirm'                         => 'Affirm',
+			'afterpay'                       => 'Afterpay',
+			'clearpay'                       => 'Clearpay',
+		);
+
+		// Check if we have a friendly name mapping
+		if ( isset( $friendly_names[ $gateway_id ] ) ) {
+			return $friendly_names[ $gateway_id ];
+		}
+
+		// Try to get the name from WooCommerce payment gateways
+		if ( class_exists( 'WC_Payment_Gateways' ) ) {
+			$wc_gateways = WC_Payment_Gateways::instance();
+			$gateways    = $wc_gateways->get_available_payment_gateways();
+
+			if ( isset( $gateways[ $gateway_id ] ) ) {
+				return $gateways[ $gateway_id ]->get_title();
+			}
+		}
+
+		// Fallback to gateway ID if name not found
+		return ucfirst( str_replace( '_', ' ', $gateway_id ) );
 	}
 
 	/**

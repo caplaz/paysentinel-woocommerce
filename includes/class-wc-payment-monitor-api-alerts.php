@@ -268,6 +268,7 @@ class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 			'id'          => intval( $alert['id'] ),
 			'alert_type'  => $alert['alert_type'],
 			'gateway_id'  => $alert['gateway_id'],
+			'gateway_name' => WC_Payment_Monitor::get_friendly_gateway_name( $alert['gateway_id'] ),
 			'title'       => $title,
 			'message'     => $alert['message'],
 			'severity'    => $alert['severity'],

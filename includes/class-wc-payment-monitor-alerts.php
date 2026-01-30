@@ -442,6 +442,13 @@ class WC_Payment_Monitor_Alerts {
 		$tier               = $this->get_license_tier();
 		$gateway_id         = isset( $alert_data['gateway_id'] ) ? $alert_data['gateway_id'] : '';
 
+		// Check if site is registered - alerts only work for registered sites
+		$license = new WC_Payment_Monitor_License();
+		if ( ! $license->is_site_registered() ) {
+			error_log( 'WC Payment Monitor: Cannot send alert - site not registered with license' );
+			return false;
+		}
+
 		// Determine which channels to use - check per-gateway config first (Pro+ feature)
 		$channels = $this->get_alert_channels_for_gateway( $gateway_id, $settings, $tier );
 		
@@ -756,17 +763,7 @@ class WC_Payment_Monitor_Alerts {
 	 * @return string Gateway name
 	 */
 	private function get_gateway_name( $gateway_id ) {
-		if ( class_exists( 'WC_Payment_Gateways' ) ) {
-			$wc_gateways = WC_Payment_Gateways::instance();
-			$gateways    = $wc_gateways->get_available_payment_gateways();
-
-			if ( isset( $gateways[ $gateway_id ] ) ) {
-				return $gateways[ $gateway_id ]->get_title();
-			}
-		}
-
-		// Fallback to gateway ID if name not found
-		return ucfirst( str_replace( '_', ' ', $gateway_id ) );
+		return WC_Payment_Monitor::get_friendly_gateway_name( $gateway_id );
 	}
 
 	/**
@@ -924,7 +921,7 @@ class WC_Payment_Monitor_Alerts {
 	private function is_premium_feature_available() {
 		// Use License class for validation
 		$license = new WC_Payment_Monitor_License();
-		$is_valid = $license->is_license_valid();
+		$is_valid = 'valid' === $license->get_license_status();
 
 		// Allow filtering for testing or custom license validation
 		$is_premium = apply_filters(
@@ -982,6 +979,12 @@ class WC_Payment_Monitor_Alerts {
 		
 		if ( empty( $license_key ) ) {
 			error_log( 'WC Payment Monitor: Cannot send alert to API - no license key' );
+			return false;
+		}
+
+		// Check if site is registered - alerts only work for registered sites
+		if ( ! $license->is_site_registered() ) {
+			error_log( 'WC Payment Monitor: Cannot send alert to API - site not registered with license' );
 			return false;
 		}
 
