@@ -1467,18 +1467,14 @@ class WC_Payment_Monitor_Admin
 					);
 				}
 			} else {
-				// Build error message with debug info for troubleshooting
-				$error_msg = sprintf(
-					/* translators: %s: error message */
-					__('License validation failed: %s', 'wc-payment-monitor'),
-					$result['message']
-				);
+				// Use the user-friendly error message directly
+				$error_msg = $result['message'];
 
-				// Add debug info if available
-				if ( isset( $result['debug_info'] ) && ! empty( $result['debug_info'] ) ) {
+				// Add debug info only if WP_DEBUG is enabled and user is admin
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG && current_user_can( 'manage_options' ) && isset( $result['debug_info'] ) && ! empty( $result['debug_info'] ) ) {
 					$error_msg .= sprintf(
 						/* translators: %s: debug info */
-						__(' Debug: %s', 'wc-payment-monitor'),
+						__( ' (Debug: %s)', 'wc-payment-monitor' ),
 						$result['debug_info']
 					);
 				}

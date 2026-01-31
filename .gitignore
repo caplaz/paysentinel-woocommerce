@@ -10,6 +10,7 @@ wp-content/wp-cache-config.php
 *.log
 .DS_Store
 Thumbs.db
+wc-payment-monitor.zip
 
 # Development
 node_modules/

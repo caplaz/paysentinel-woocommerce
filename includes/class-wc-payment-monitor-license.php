@@ -117,9 +117,10 @@ class WC_Payment_Monitor_License {
 
 		// Handle response
 		if ( 200 !== $response_code ) {
+			$user_message = $this->get_user_friendly_error_message( $response_code, $data );
 			return array(
 				'valid'      => false,
-				'message'    => isset( $data['message'] ) ? $data['message'] : sprintf( __( 'HTTP %d: License validation failed', 'wc-payment-monitor' ), $response_code ),
+				'message'    => $user_message,
 				'data'       => $data,
 				'debug_info' => $debug_info,
 			);
@@ -507,6 +508,69 @@ class WC_Payment_Monitor_License {
 				</p>
 			</div>
 			<?php
+		}
+	}
+
+	/**
+	 * Get user-friendly error message based on HTTP response code and API data
+	 *
+	 * @param int   $response_code HTTP response code
+	 * @param array $data          Decoded JSON response data
+	 * @return string User-friendly error message
+	 */
+	private function get_user_friendly_error_message( $response_code, $data ) {
+		// Check for specific error messages from API
+		if ( isset( $data['error'] ) ) {
+			switch ( $data['error'] ) {
+				case 'License not found':
+					return __( 'Invalid license key. Please check your license key and try again.', 'wc-payment-monitor' );
+
+				case 'License expired':
+					return __( 'Your license has expired. Please renew your license to continue using premium features.', 'wc-payment-monitor' );
+
+				case 'License suspended':
+					return __( 'Your license has been suspended. Please contact support for assistance.', 'wc-payment-monitor' );
+
+				case 'Too many activations':
+					return __( 'This license key has reached its activation limit. Please contact support to increase your limit.', 'wc-payment-monitor' );
+
+				case 'Invalid domain':
+					return __( 'This license key is not valid for this domain. Please check your license restrictions.', 'wc-payment-monitor' );
+
+				default:
+					return sprintf(
+						/* translators: %s: error message from API */
+						__( 'License validation failed: %s', 'wc-payment-monitor' ),
+						$data['error']
+					);
+			}
+		}
+
+		// Handle HTTP status codes
+		switch ( $response_code ) {
+			case 400:
+				return __( 'Invalid license request. Please check your license key format.', 'wc-payment-monitor' );
+
+			case 401:
+				return __( 'License authentication failed. Please check your license key.', 'wc-payment-monitor' );
+
+			case 403:
+				return __( 'License access denied. Your license may be invalid or expired.', 'wc-payment-monitor' );
+
+			case 404:
+				return __( 'License server not found. Please try again later or contact support.', 'wc-payment-monitor' );
+
+			case 429:
+				return __( 'Too many license validation attempts. Please wait a few minutes and try again.', 'wc-payment-monitor' );
+
+			case 500:
+			case 502:
+			case 503:
+			case 504:
+				return __( 'License server is temporarily unavailable. Please try again later.', 'wc-payment-monitor' );
+
+			default:
+				return __( 'Unable to validate license. Please check your internet connection and try again.', 'wc-payment-monitor' );
 		}
 	}
 
