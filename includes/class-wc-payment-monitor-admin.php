@@ -1430,11 +1430,12 @@ class WC_Payment_Monitor_Admin
 	 */
 	public function validate_license_on_save($old_value, $new_value)
 	{
-		// Check if license key has changed
+		// Check if license key has changed or if we need to validate existing key
 		$old_key = isset($old_value['license_key']) ? $old_value['license_key'] : '';
 		$new_key = isset($new_value['license_key']) ? $new_value['license_key'] : '';
 
-		if ($old_key !== $new_key && !empty($new_key)) {
+		// Always validate if there's a license key (not just when it changes)
+		if (!empty($new_key)) {
 			// Validate new license key
 			$result = $this->license->save_and_validate_license($new_key);
 
@@ -1445,6 +1446,26 @@ class WC_Payment_Monitor_Admin
 					__('License key validated successfully!', 'wc-payment-monitor'),
 					'success'
 				);
+
+				// Show site registration status
+				if ($result['site_registered']) {
+					add_settings_error(
+						'wc_payment_monitor_options',
+						'site_registered',
+						__('Site is registered with your license.', 'wc-payment-monitor'),
+						'success'
+					);
+				} else {
+					add_settings_error(
+						'wc_payment_monitor_options',
+						'site_not_registered',
+						sprintf(
+							__('Site registration failed: %s. Some features may not work properly.', 'wc-payment-monitor'),
+							isset($result['site_registration_reason']) ? $result['site_registration_reason'] : 'Unknown reason'
+						),
+						'warning'
+					);
+				}
 			} else {
 				// Build error message with debug info for troubleshooting
 				$error_msg = sprintf(
@@ -1469,6 +1490,15 @@ class WC_Payment_Monitor_Admin
 					'error'
 				);
 			}
+		} elseif (!empty($old_key)) {
+			// License key was removed, deactivate
+			$this->license->deactivate_license();
+			add_settings_error(
+				'wc_payment_monitor_options',
+				'license_deactivated',
+				__('License key removed. Plugin features have been deactivated.', 'wc-payment-monitor'),
+				'info'
+			);
 		}
 	}
 

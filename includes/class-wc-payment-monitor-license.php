@@ -49,9 +49,10 @@ class WC_Payment_Monitor_License {
 	 *
 	 * @param string $license_key License key to validate
 	 * @param string $site_url Site URL (optional, uses current site if not provided)
+	 * @param string $action Action to perform ('validate' or 'register_site')
 	 * @return array Response with 'valid', 'message', and 'data' keys
 	 */
-	public function validate_license( $license_key, $site_url = '' ) {
+	public function validate_license( $license_key, $site_url = '', $action = 'validate' ) {
 		// Sanitize inputs
 		$license_key = sanitize_text_field( $license_key );
 		$site_url    = $site_url ? esc_url_raw( $site_url ) : get_site_url();
@@ -72,6 +73,7 @@ class WC_Payment_Monitor_License {
 			array(
 				'license_key' => $license_key,
 				'site_url'    => $site_url,
+				'action'      => $action,
 			)
 		);
 
@@ -154,6 +156,28 @@ class WC_Payment_Monitor_License {
 	}
 
 	/**
+	 * Register site with license on the server
+	 *
+	 * @param string $license_key License key
+	 * @return array Registration result with 'success' and 'reason' keys
+	 */
+	private function register_site_with_license( $license_key ) {
+		$result = $this->validate_license( $license_key, '', 'register_site' );
+
+		if ( $result['valid'] && isset( $result['site_registered'] ) && $result['site_registered'] ) {
+			return array(
+				'success' => true,
+				'reason'  => isset( $result['message'] ) ? $result['message'] : 'Site registered successfully',
+			);
+		}
+
+		return array(
+			'success' => false,
+			'reason'  => isset( $result['message'] ) ? $result['message'] : 'Site registration failed',
+		);
+	}
+
+	/**
 	 * Normalize site URL to ensure it's a valid HTTPS URL
 	 *
 	 * @param string $site_url The site URL to normalize
@@ -223,12 +247,21 @@ class WC_Payment_Monitor_License {
 		// Validate license
 		$result = $this->validate_license( $license_key );
 
-		// For valid licenses, ensure the site is registered
-		// This handles the case where the API may not have the site registered yet
-		// but the license itself should allow site registration
-		if ( $result['valid'] ) {
-			$result['site_registered'] = true;
-			$result['message'] = __( 'License validated and site registered successfully!', 'wc-payment-monitor' );
+		// For valid licenses, if site is not registered, try to register it
+		if ( $result['valid'] && ! $result['site_registered'] ) {
+			$registration_result = $this->register_site_with_license( $license_key );
+			if ( $registration_result['success'] ) {
+				$result['site_registered'] = true;
+				$result['site_registration_reason'] = $registration_result['reason'];
+				$result['message'] = __( 'License validated and site registered successfully!', 'wc-payment-monitor' );
+			} else {
+				// Site registration failed, but license is still valid
+				$result['site_registered'] = false;
+				$result['site_registration_reason'] = $registration_result['reason'];
+				$result['message'] = __( 'License is valid, but site registration failed. Some features may not work properly.', 'wc-payment-monitor' );
+			}
+		} elseif ( $result['valid'] && $result['site_registered'] ) {
+			$result['message'] = __( 'License validated and site is registered!', 'wc-payment-monitor' );
 		}
 
 		// Save license key and status
