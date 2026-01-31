@@ -3,9 +3,9 @@
  * Plugin Name: WooCommerce Payment Monitor
  * Plugin URI: https://github.com/your-username/wc-payment-monitor
  * Description: Real-time monitoring, alerting, and recovery capabilities for WooCommerce payment gateway failures.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Caplaz
- * Author URI: https://yourwebsite.com
+ * Author URI: https://www.caplaz.com
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: wc-payment-monitor
