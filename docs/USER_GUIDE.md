@@ -49,6 +49,10 @@ View a detailed log of every payment attempt under **Payment Monitor > Transacti
 
 The plugin intelligently handles failed payments:
 
+- **Real Transaction Recovery**: Instead of simulating outcomes, the plugin leverages your installed official gateway extensions (Stripe, PayPal, etc.) to securely re-process payments using stored tokens.
+- **Requirements**:
+  - A supported gateway extension must be active.
+  - The order must have a saved payment method (token).
 - **Soft Declines** (e.g., Timeout, Network Error): Automatically retries up to 3 times on a schedule (1h, 6h, 24h).
 - **Hard Declines** (e.g., Stolen Card, Fraud): Stops retries immediately and sends a recovery email to the customer with a direct payment link.
 

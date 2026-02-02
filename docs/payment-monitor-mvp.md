@@ -1,4 +1,5 @@
 # WooCommerce Payment Failure Monitor
+
 ## MVP Technical Specification v1.0
 
 **Document Version:** 1.0  
@@ -11,17 +12,21 @@
 ## 1. EXECUTIVE SUMMARY
 
 ### 1.1 Product Vision
+
 A WordPress plugin that monitors WooCommerce payment gateway health in real-time, alerts store owners when payments fail, and provides actionable diagnostics to recover lost revenue.
 
 ### 1.2 Core Value Proposition
+
 "Stop losing sales to payment failures. Monitor gateway health, get instant alerts, and recover failed transactions automatically."
 
 ### 1.3 Target Users
+
 - WooCommerce store owners (annual revenue: $50K - $2M)
 - Store managers responsible for operations
 - Technical administrators managing payment integrations
 
 ### 1.4 Success Metrics (MVP)
+
 - 1,000 plugin installations in first 90 days
 - 5% conversion to paid tier
 - 80% user retention after 30 days
@@ -68,22 +73,26 @@ A WordPress plugin that monitors WooCommerce payment gateway health in real-time
 ### 2.2 Technology Stack
 
 **Core Platform:**
+
 - WordPress: 6.4+
 - WooCommerce: 8.0+
 - PHP: 7.4+ (8.0+ recommended)
 - MySQL: 5.7+ / MariaDB: 10.3+
 
 **Frontend:**
+
 - React: 18.x (for admin dashboard)
 - Chart.js: 4.x (for analytics visualization)
 - Tailwind CSS: 3.x (via CDN, core utilities only)
 
 **Backend:**
+
 - WordPress REST API
 - WooCommerce REST API
 - WordPress Cron (for scheduled tasks)
 
 **External Services:**
+
 - Stripe API v2023-10-16
 - PayPal REST API
 - Square API v2023-10-18
@@ -96,6 +105,7 @@ A WordPress plugin that monitors WooCommerce payment gateway health in real-time
 ### 3.1 Custom Tables
 
 #### Table: `wp_wc_payment_monitor_transactions`
+
 Stores transaction monitoring data.
 
 ```sql
@@ -123,6 +133,7 @@ CREATE TABLE `wp_wc_payment_monitor_transactions` (
 ```
 
 #### Table: `wp_wc_payment_monitor_gateway_health`
+
 Stores gateway health metrics.
 
 ```sql
@@ -144,6 +155,7 @@ CREATE TABLE `wp_wc_payment_monitor_gateway_health` (
 ```
 
 #### Table: `wp_wc_payment_monitor_alerts`
+
 Stores alert history.
 
 ```sql
@@ -165,6 +177,7 @@ CREATE TABLE `wp_wc_payment_monitor_alerts` (
 ```
 
 ### 3.2 WordPress Options
+
 Store plugin settings in `wp_options`:
 
 ```php
@@ -200,6 +213,7 @@ Store plugin settings in `wp_options`:
 ### 4.1 Feature: Real-Time Transaction Monitoring
 
 #### Requirements
+
 - **FR-001**: Plugin MUST hook into WooCommerce payment process
 - **FR-002**: Plugin MUST log all payment attempts (success/failure)
 - **FR-003**: Plugin MUST capture failure reason and error codes
@@ -214,24 +228,24 @@ Store plugin settings in `wp_options`:
  * Hook into WooCommerce payment events
  */
 class WC_Payment_Monitor_Logger {
-    
+
     public function __construct() {
         // Hook successful payments
         add_action('woocommerce_payment_complete', [$this, 'log_success'], 10, 1);
-        
+
         // Hook failed payments
         add_action('woocommerce_order_status_failed', [$this, 'log_failure'], 10, 1);
-        
+
         // Hook pending payments
         add_action('woocommerce_order_status_pending', [$this, 'log_pending'], 10, 1);
     }
-    
+
     /**
      * Log successful payment
      */
     public function log_success($order_id) {
         $order = wc_get_order($order_id);
-        
+
         $data = [
             'order_id' => $order_id,
             'gateway_id' => $order->get_payment_method(),
@@ -243,17 +257,17 @@ class WC_Payment_Monitor_Logger {
             'customer_ip' => $order->get_customer_ip_address(),
             'created_at' => current_time('mysql'),
         ];
-        
+
         $this->save_transaction($data);
         $this->update_gateway_health($data['gateway_id'], 'success');
     }
-    
+
     /**
      * Log failed payment
      */
     public function log_failure($order_id) {
         $order = wc_get_order($order_id);
-        
+
         // Extract failure reason from order notes
         $notes = wc_get_order_notes([
             'order_id' => $order_id,
@@ -261,9 +275,9 @@ class WC_Payment_Monitor_Logger {
             'orderby' => 'date_created_gmt',
             'order' => 'DESC',
         ]);
-        
+
         $failure_reason = !empty($notes) ? $notes[0]->content : 'Unknown error';
-        
+
         $data = [
             'order_id' => $order_id,
             'gateway_id' => $order->get_payment_method(),
@@ -276,14 +290,14 @@ class WC_Payment_Monitor_Logger {
             'customer_ip' => $order->get_customer_ip_address(),
             'created_at' => current_time('mysql'),
         ];
-        
+
         $this->save_transaction($data);
         $this->update_gateway_health($data['gateway_id'], 'failed');
-        
+
         // Trigger failure alert if threshold exceeded
         $this->check_alert_threshold($data['gateway_id']);
     }
-    
+
     /**
      * Save transaction to database
      */
@@ -292,7 +306,7 @@ class WC_Payment_Monitor_Logger {
         $table = $wpdb->prefix . 'wc_payment_monitor_transactions';
         $wpdb->insert($table, $data);
     }
-    
+
     /**
      * Update gateway health metrics
      */
@@ -305,6 +319,7 @@ class WC_Payment_Monitor_Logger {
 ### 4.2 Feature: Gateway Health Monitoring
 
 #### Requirements
+
 - **FR-010**: Plugin MUST calculate success rates for 1hr, 24hr, 7day periods
 - **FR-011**: Plugin MUST detect when success rate drops below threshold
 - **FR-012**: Plugin MUST identify gateway downtime
@@ -319,7 +334,7 @@ class WC_Payment_Monitor_Logger {
  * Gateway health calculator
  */
 class WC_Payment_Monitor_Health {
-    
+
     /**
      * Calculate health metrics for all periods
      */
@@ -329,41 +344,41 @@ class WC_Payment_Monitor_Health {
             '24hour' => 86400,
             '7day' => 604800,
         ];
-        
+
         foreach ($periods as $period => $seconds) {
             $this->calculate_period_health($gateway_id, $period, $seconds);
         }
     }
-    
+
     /**
      * Calculate health for specific period
      */
     private function calculate_period_health($gateway_id, $period, $seconds) {
         global $wpdb;
         $table = $wpdb->prefix . 'wc_payment_monitor_transactions';
-        
+
         $cutoff = date('Y-m-d H:i:s', time() - $seconds);
-        
+
         // Get transaction counts
         $stats = $wpdb->get_row($wpdb->prepare("
-            SELECT 
+            SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful,
                 SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
             FROM {$table}
-            WHERE gateway_id = %s 
+            WHERE gateway_id = %s
             AND created_at >= %s
         ", $gateway_id, $cutoff));
-        
+
         $total = (int) $stats->total;
         $successful = (int) $stats->successful;
         $failed = (int) $stats->failed;
-        
+
         $success_rate = $total > 0 ? ($successful / $total) * 100 : 0;
-        
+
         // Save health data
         $health_table = $wpdb->prefix . 'wc_payment_monitor_gateway_health';
-        
+
         $wpdb->insert($health_table, [
             'gateway_id' => $gateway_id,
             'period' => $period,
@@ -373,21 +388,21 @@ class WC_Payment_Monitor_Health {
             'success_rate' => round($success_rate, 2),
             'calculated_at' => current_time('mysql'),
         ]);
-        
+
         return [
             'success_rate' => $success_rate,
             'total' => $total,
             'failed' => $failed,
         ];
     }
-    
+
     /**
      * Get current health status
      */
     public function get_health_status($gateway_id, $period = '1hour') {
         global $wpdb;
         $table = $wpdb->prefix . 'wc_payment_monitor_gateway_health';
-        
+
         return $wpdb->get_row($wpdb->prepare("
             SELECT *
             FROM {$table}
@@ -402,6 +417,7 @@ class WC_Payment_Monitor_Health {
 ### 4.3 Feature: Alert System
 
 #### Requirements
+
 - **FR-020**: Plugin MUST send email alerts when success rate drops below threshold
 - **FR-021**: Plugin MUST support multiple alert channels (email, SMS, Slack)
 - **FR-022**: Plugin MUST prevent alert fatigue (rate limiting)
@@ -416,16 +432,16 @@ class WC_Payment_Monitor_Health {
  * Alert management system
  */
 class WC_Payment_Monitor_Alerts {
-    
+
     private $rate_limit = 3600; // Don't send same alert more than once per hour
-    
+
     /**
      * Check if alert should be triggered
      */
     public function check_and_send($gateway_id, $health_data) {
         $settings = get_option('wc_payment_monitor_settings');
         $threshold = $settings['alert_threshold'] ?? 85;
-        
+
         if ($health_data['success_rate'] < $threshold) {
             $this->trigger_alert([
                 'type' => 'low_success_rate',
@@ -441,7 +457,7 @@ class WC_Payment_Monitor_Alerts {
             ]);
         }
     }
-    
+
     /**
      * Trigger alert through configured channels
      */
@@ -450,48 +466,48 @@ class WC_Payment_Monitor_Alerts {
         if ($this->is_rate_limited($alert_data)) {
             return;
         }
-        
+
         // Save alert to database
         $alert_id = $this->save_alert($alert_data);
-        
+
         // Send through configured channels
         $settings = get_option('wc_payment_monitor_settings');
-        
+
         // Email
         if (!empty($settings['alert_email'])) {
             $this->send_email_alert($alert_data, $settings['alert_email']);
         }
-        
+
         // SMS (Pro feature)
         if (!empty($settings['alert_phone']) && $this->is_pro_user()) {
             $this->send_sms_alert($alert_data, $settings['alert_phone']);
         }
-        
+
         // Slack (Pro feature)
         if (!empty($settings['slack_webhook']) && $this->is_pro_user()) {
             $this->send_slack_alert($alert_data, $settings['slack_webhook']);
         }
-        
+
         // Update alert as notified
         $this->mark_alert_notified($alert_id);
     }
-    
+
     /**
      * Send email alert
      */
     private function send_email_alert($alert_data, $email) {
-        $subject = sprintf('[Payment Alert] %s - %s', 
-            ucfirst($alert_data['severity']), 
+        $subject = sprintf('[Payment Alert] %s - %s',
+            ucfirst($alert_data['severity']),
             $alert_data['gateway']
         );
-        
+
         $message = $this->get_email_template($alert_data);
-        
+
         $headers = ['Content-Type: text/html; charset=UTF-8'];
-        
+
         wp_mail($email, $subject, $message, $headers);
     }
-    
+
     /**
      * Email template
      */
@@ -507,13 +523,13 @@ class WC_Payment_Monitor_Alerts {
                 .critical { border-left-color: #dc3545; }
                 .warning { border-left-color: #ffc107; }
                 .info { border-left-color: #17a2b8; }
-                .button { 
-                    display: inline-block; 
-                    padding: 10px 20px; 
-                    background: #007bff; 
-                    color: white; 
-                    text-decoration: none; 
-                    border-radius: 4px; 
+                .button {
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background: #007bff;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 4px;
                 }
             </style>
         </head>
@@ -524,7 +540,7 @@ class WC_Payment_Monitor_Alerts {
                 <p><strong>Severity:</strong> <?php echo esc_html(ucfirst($alert_data['severity'])); ?></p>
                 <p><strong>Message:</strong> <?php echo esc_html($alert_data['message']); ?></p>
                 <p><strong>Time:</strong> <?php echo esc_html(current_time('Y-m-d H:i:s')); ?></p>
-                
+
                 <p style="margin-top: 20px;">
                     <a href="<?php echo admin_url('admin.php?page=wc-payment-monitor'); ?>" class="button">
                         View Dashboard
@@ -536,29 +552,29 @@ class WC_Payment_Monitor_Alerts {
         <?php
         return ob_get_clean();
     }
-    
+
     /**
      * Check rate limiting
      */
     private function is_rate_limited($alert_data) {
         global $wpdb;
         $table = $wpdb->prefix . 'wc_payment_monitor_alerts';
-        
+
         $recent = $wpdb->get_var($wpdb->prepare("
             SELECT COUNT(*)
             FROM {$table}
-            WHERE alert_type = %s 
+            WHERE alert_type = %s
             AND gateway_id = %s
             AND created_at >= %s
-        ", 
+        ",
             $alert_data['type'],
             $alert_data['gateway'],
             date('Y-m-d H:i:s', time() - $this->rate_limit)
         ));
-        
+
         return $recent > 0;
     }
-    
+
     /**
      * Calculate alert severity
      */
@@ -573,6 +589,7 @@ class WC_Payment_Monitor_Alerts {
 ### 4.4 Feature: Admin Dashboard
 
 #### Requirements
+
 - **FR-030**: Plugin MUST provide visual dashboard in WordPress admin
 - **FR-031**: Dashboard MUST show real-time gateway health status
 - **FR-032**: Dashboard MUST display recent failed transactions
@@ -602,7 +619,7 @@ admin/
 **React Dashboard Component (GatewayHealth.jsx):**
 
 ```javascript
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 const GatewayHealth = () => {
   const [gateways, setGateways] = useState([]);
@@ -617,60 +634,67 @@ const GatewayHealth = () => {
 
   const fetchGatewayHealth = async () => {
     try {
-      const response = await fetch('/wp-json/wc-payment-monitor/v1/gateway-health');
+      const response = await fetch(
+        "/wp-json/wc-payment-monitor/v1/gateway-health",
+      );
       const data = await response.json();
       setGateways(data);
       setLoading(false);
     } catch (error) {
-      console.error('Failed to fetch gateway health:', error);
+      console.error("Failed to fetch gateway health:", error);
     }
   };
 
   const getStatusColor = (successRate) => {
-    if (successRate >= 95) return 'bg-green-500';
-    if (successRate >= 85) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (successRate >= 95) return "bg-green-500";
+    if (successRate >= 85) return "bg-yellow-500";
+    return "bg-red-500";
   };
 
   const getStatusText = (successRate) => {
-    if (successRate >= 95) return 'Healthy';
-    if (successRate >= 85) return 'Degraded';
-    return 'Critical';
+    if (successRate >= 95) return "Healthy";
+    if (successRate >= 85) return "Degraded";
+    return "Critical";
   };
 
   if (loading) {
-    return <div className="p-4">Loading gateway health...</div>;
+    return <div className='p-4'>Loading gateway health...</div>;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
       {gateways.map((gateway) => (
-        <div key={gateway.id} className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold capitalize">{gateway.name}</h3>
-            <span className={`px-3 py-1 rounded-full text-white text-sm ${getStatusColor(gateway.success_rate)}`}>
+        <div key={gateway.id} className='bg-white rounded-lg shadow p-6'>
+          <div className='flex items-center justify-between mb-4'>
+            <h3 className='text-lg font-semibold capitalize'>{gateway.name}</h3>
+            <span
+              className={`px-3 py-1 rounded-full text-white text-sm ${getStatusColor(gateway.success_rate)}`}>
               {getStatusText(gateway.success_rate)}
             </span>
           </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Success Rate (24h)</span>
-              <span className="font-semibold">{gateway.success_rate}%</span>
+
+          <div className='space-y-2'>
+            <div className='flex justify-between'>
+              <span className='text-gray-600'>Success Rate (24h)</span>
+              <span className='font-semibold'>{gateway.success_rate}%</span>
             </div>
-            
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Transactions</span>
-              <span className="font-semibold">{gateway.total_transactions}</span>
+
+            <div className='flex justify-between'>
+              <span className='text-gray-600'>Total Transactions</span>
+              <span className='font-semibold'>
+                {gateway.total_transactions}
+              </span>
             </div>
-            
-            <div className="flex justify-between">
-              <span className="text-gray-600">Failed</span>
-              <span className="font-semibold text-red-600">{gateway.failed_transactions}</span>
+
+            <div className='flex justify-between'>
+              <span className='text-gray-600'>Failed</span>
+              <span className='font-semibold text-red-600'>
+                {gateway.failed_transactions}
+              </span>
             </div>
-            
+
             {gateway.last_failure && (
-              <div className="text-sm text-gray-500 mt-3">
+              <div className='text-sm text-gray-500 mt-3'>
                 Last failure: {new Date(gateway.last_failure).toLocaleString()}
               </div>
             )}
@@ -687,13 +711,20 @@ export default GatewayHealth;
 ### 4.5 Feature: Payment Retry Logic
 
 #### Requirements
+
 - **FR-040**: Plugin MUST support configurable retry schedules
-- **FR-041**: Plugin MUST use stored payment methods for retry
+- **FR-041**: Plugin MUST use stored payment methods for retry (Leveraging official Gateway Extensions)
 - **FR-042**: Plugin MUST track retry attempts and success rates
 - **FR-043**: Plugin MUST notify customers of retry attempts
 - **FR-044**: Plugin MUST respect maximum retry limits
 
 #### Implementation
+
+The retry engine acts as a coordinator, delegating the actual transaction processing to the installed and active WooCommerce Payment Gateway extensions (e.g., WooCommerce Stripe Gateway, WooCommerce PayPal Payments). This ensures:
+
+1.  **PCI Compliance**: Tokens are handled securely by certified extensions.
+2.  **Compatibility**: Retries utilize the exact same flow as Subscription Renewals (`scheduled_subscription_payment` method) or standard Checkout (`process_payment`).
+3.  **Accuracy**: Success and Failure are determined by the gateway's real response, capturing detailed error codes (e.g., `card_declined`, `insufficient_funds`) directly from order metadata and logs.
 
 ```php
 <?php
@@ -701,94 +732,99 @@ export default GatewayHealth;
  * Automatic payment retry system
  */
 class WC_Payment_Monitor_Retry {
-    
+
     /**
      * Schedule retry for failed payment
      */
     public function schedule_retry($transaction_id) {
         $settings = get_option('wc_payment_monitor_settings');
-        
+
         if (!$settings['enable_auto_retry']) {
             return false;
         }
-        
+
         $transaction = $this->get_transaction($transaction_id);
-        
+
         // Don't retry if max attempts reached
         if ($transaction->retry_count >= 3) {
             return false;
         }
-        
+
         // Get retry schedule (in seconds)
         $retry_schedule = $settings['retry_schedule'] ?? [3600, 21600, 86400];
         $next_retry = $retry_schedule[$transaction->retry_count];
-        
+
         // Schedule WordPress cron event
         wp_schedule_single_event(
             time() + $next_retry,
             'wc_payment_monitor_retry',
             [$transaction_id]
         );
-        
+
         return true;
     }
-    
+
     /**
      * Attempt payment retry
      */
     public function attempt_retry($transaction_id) {
         $transaction = $this->get_transaction($transaction_id);
         $order = wc_get_order($transaction->order_id);
-        
+
         if (!$order) {
             return false;
         }
-        
+
         // Get payment gateway
         $gateway = WC()->payment_gateways->payment_gateways()[$transaction->gateway_id];
-        
+
         if (!$gateway) {
-            return false;
+            return false; // Gateway extension not active
         }
-        
+
         // Increment retry count
         $this->increment_retry_count($transaction_id);
-        
-        // Attempt payment using stored payment method
-        $result = $gateway->process_payment($order->get_id());
-        
-        if ($result['result'] === 'success') {
+
+        // Attempt payment leveraged from official extension logic
+        // 1. Try 'scheduled_subscription_payment' (Preferred for background/off-session)
+        // 2. Fallback to 'process_payment' with stored token injection
+
+        // Note: The below is a logical representation, actual method handles specific API nuances
+        $result = $this->process_gateway_payment($gateway, $order);
+
+        if ($result['success']) {
             // Update transaction status
             $this->update_transaction_status($transaction_id, 'success');
-            
+
             // Send success notification
             $this->send_retry_success_email($order);
-            
+
             return true;
         } else {
             // Update with new failure reason
             $this->update_transaction_status($transaction_id, 'failed');
-            
+            // Log specific gateway error codes captured from order meta/notes
+
             // Schedule next retry if within limit
             $this->schedule_retry($transaction_id);
-            
+
             return false;
         }
     }
-    
+
     /**
      * Send retry success notification
      */
     private function send_retry_success_email($order) {
         $mailer = WC()->mailer();
-        
+
         $subject = sprintf('Payment Successful for Order #%s', $order->get_order_number());
-        
+
         $message = sprintf(
             'Good news! Your payment for order #%s has been successfully processed after an initial failure. Your order is now being prepared for shipment.',
             $order->get_order_number()
         );
-        
+
         $mailer->send(
             $order->get_billing_email(),
             $subject,
@@ -826,10 +862,10 @@ register_rest_route('wc-payment-monitor/v1', '/gateway-health', [
 function wcpm_get_gateway_health() {
     global $wpdb;
     $table = $wpdb->prefix . 'wc_payment_monitor_gateway_health';
-    
+
     // Get latest health for each gateway
     $gateways = $wpdb->get_results("
-        SELECT 
+        SELECT
             gh.*,
             g.title as gateway_name
         FROM (
@@ -838,12 +874,12 @@ function wcpm_get_gateway_health() {
             WHERE period = '24hour'
             GROUP BY gateway_id
         ) latest
-        JOIN {$table} gh ON gh.gateway_id = latest.gateway_id 
+        JOIN {$table} gh ON gh.gateway_id = latest.gateway_id
             AND gh.calculated_at = latest.latest
-        LEFT JOIN {$wpdb->prefix}woocommerce_payment_tokenmeta g 
+        LEFT JOIN {$wpdb->prefix}woocommerce_payment_tokenmeta g
             ON g.meta_value = gh.gateway_id
     ");
-    
+
     return rest_ensure_response($gateways);
 }
 
@@ -941,20 +977,22 @@ register_rest_route('wc-payment-monitor/v1', '/alerts/(?P<id>\d+)/resolve', [
 ### 6.1 Data Protection
 
 **Payment Credentials:**
+
 - Store API keys encrypted using WordPress encryption functions
 - Never log sensitive data (full card numbers, CVV)
 - Use WooCommerce's existing payment token system
 
 **Code Example:**
+
 ```php
 function wcpm_encrypt_credential($value) {
     if (!function_exists('openssl_encrypt')) {
         return base64_encode($value); // Fallback
     }
-    
+
     $encryption_key = wp_salt('auth');
     $iv = openssl_random_pseudo_bytes(16);
-    
+
     $encrypted = openssl_encrypt(
         $value,
         'AES-256-CBC',
@@ -962,7 +1000,7 @@ function wcpm_encrypt_credential($value) {
         0,
         $iv
     );
-    
+
     return base64_encode($iv . $encrypted);
 }
 
@@ -970,12 +1008,12 @@ function wcpm_decrypt_credential($encrypted) {
     if (!function_exists('openssl_decrypt')) {
         return base64_decode($encrypted); // Fallback
     }
-    
+
     $data = base64_decode($encrypted);
     $encryption_key = wp_salt('auth');
     $iv = substr($data, 0, 16);
     $encrypted_value = substr($data, 16);
-    
+
     return openssl_decrypt(
         $encrypted_value,
         'AES-256-CBC',
@@ -1007,36 +1045,38 @@ function wcpm_decrypt_credential($encrypted) {
 ### 7.1 Unit Tests
 
 **Test Coverage Required:**
+
 - Database operations (CRUD)
 - Health calculations
 - Alert triggering logic
 - Retry scheduling
 
 **Example Test:**
+
 ```php
 class Test_Gateway_Health extends WP_UnitTestCase {
-    
+
     public function test_success_rate_calculation() {
         // Create test transactions
         $this->create_test_transaction('stripe', 'success');
         $this->create_test_transaction('stripe', 'success');
         $this->create_test_transaction('stripe', 'failed');
-        
+
         // Calculate health
         $health = new WC_Payment_Monitor_Health();
         $result = $health->calculate_health('stripe');
-        
+
         // Assert 66.67% success rate
         $this->assertEquals(66.67, $result['success_rate']);
     }
-    
+
     public function test_alert_rate_limiting() {
         $alert = new WC_Payment_Monitor_Alerts();
-        
+
         // Send first alert
         $sent1 = $alert->trigger_alert([...]);
         $this->assertTrue($sent1);
-        
+
         // Try to send duplicate immediately
         $sent2 = $alert->trigger_alert([...]);
         $this->assertFalse($sent2); // Should be rate limited
@@ -1047,6 +1087,7 @@ class Test_Gateway_Health extends WP_UnitTestCase {
 ### 7.2 Integration Tests
 
 **Test Scenarios:**
+
 1. Complete payment flow (success)
 2. Failed payment logging
 3. Health metric calculation after transactions
@@ -1079,24 +1120,28 @@ class Test_Gateway_Health extends WP_UnitTestCase {
 ### 8.1 Development Phases
 
 **Phase 1: Foundation (Weeks 1-4)**
+
 - Database schema implementation
 - Core hooks and logging
 - Basic health calculation
 - Unit tests
 
 **Phase 2: Features (Weeks 5-8)**
+
 - Alert system
 - Retry logic
 - REST API endpoints
 - Dashboard UI
 
 **Phase 3: Polish (Weeks 9-10)**
+
 - UI/UX refinements
 - Performance optimization
 - Documentation
 - Integration tests
 
 **Phase 4: Beta (Weeks 11-12)**
+
 - Beta testing with 20-50 stores
 - Bug fixes
 - Performance tuning
@@ -1105,6 +1150,7 @@ class Test_Gateway_Health extends WP_UnitTestCase {
 ### 8.2 Launch Checklist
 
 **Pre-Launch:**
+
 ```
 [ ] Code review completed
 [ ] Security audit passed
@@ -1119,6 +1165,7 @@ class Test_Gateway_Health extends WP_UnitTestCase {
 ```
 
 **WordPress.org Submission:**
+
 ```
 [ ] Plugin name available
 [ ] Meets WordPress coding standards
@@ -1133,18 +1180,21 @@ class Test_Gateway_Health extends WP_UnitTestCase {
 ### 8.3 Rollout Strategy
 
 **Week 1-2: Soft Launch**
+
 - WordPress.org release (free tier only)
 - Limited announcement (existing audience)
 - Monitor for critical bugs
 - Gather initial feedback
 
 **Week 3-4: Public Launch**
+
 - Premium tiers available
 - Full marketing campaign
 - Press releases
 - Community engagement
 
 **Week 5-8: Growth**
+
 - Content marketing
 - Paid advertising
 - Partnership outreach
@@ -1157,6 +1207,7 @@ class Test_Gateway_Health extends WP_UnitTestCase {
 ### 9.1 Application Metrics
 
 **Track:**
+
 - Plugin installations (total, active)
 - Premium conversions (free → paid)
 - Churn rate
@@ -1164,13 +1215,14 @@ class Test_Gateway_Health extends WP_UnitTestCase {
 - Customer lifetime value (LTV)
 
 **Implementation:**
+
 ```php
 // Anonymous usage tracking (opt-in)
 function wcpm_send_usage_stats() {
     if (!get_option('wcpm_allow_tracking')) {
         return;
     }
-    
+
     $stats = [
         'plugin_version' => WCPM_VERSION,
         'wp_version' => get_bloginfo('version'),
@@ -1180,7 +1232,7 @@ function wcpm_send_usage_stats() {
         'total_orders_last_30_days' => $this->get_order_count(30),
         'license_tier' => get_option('wc_payment_monitor_license')['tier'],
     ];
-    
+
     wp_remote_post('https://api.yoursite.com/v1/stats', [
         'body' => json_encode($stats),
         'headers' => ['Content-Type' => 'application/json'],
@@ -1196,12 +1248,14 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 ### 9.2 Performance Metrics
 
 **Monitor:**
+
 - Database query time (<50ms per query)
 - Page load impact (<100ms overhead)
 - Memory usage (<5MB)
 - API response times (<200ms)
 
 **Error Tracking:**
+
 - Integrate Sentry or similar for error monitoring
 - Track PHP errors, warnings, notices
 - Monitor failed API calls to payment gateways
@@ -1213,11 +1267,13 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 ### 10.1 Update Schedule
 
 **Monthly:**
+
 - Bug fixes
 - Minor feature improvements
 - Security patches
 
 **Quarterly:**
+
 - Major feature releases
 - Performance optimizations
 - Gateway additions
@@ -1225,11 +1281,13 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 ### 10.2 Support Channels
 
 **Free Tier:**
+
 - WordPress.org support forums
 - Documentation/FAQ
 - Email support (48-hour response)
 
 **Premium Tiers:**
+
 - Priority email support (24-hour response)
 - Live chat (Pro/Enterprise)
 - Phone support (Enterprise only)
@@ -1237,6 +1295,7 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 ### 10.3 Documentation Requirements
 
 **User Documentation:**
+
 - Getting started guide
 - Gateway setup tutorials
 - Dashboard walkthrough
@@ -1244,6 +1303,7 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 - FAQ (50+ questions)
 
 **Developer Documentation:**
+
 - API reference
 - Hooks and filters
 - Extension development guide
@@ -1256,17 +1316,20 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 ### 11.1 MVP Success Metrics (First 90 Days)
 
 **Adoption:**
+
 - ✅ 1,000+ plugin installations
 - ✅ 50+ active premium customers
 - ✅ 80%+ user retention after 30 days
 
 **Technical:**
+
 - ✅ 4.5+ star average rating (WordPress.org)
 - ✅ <5 critical bugs reported
 - ✅ <100ms performance impact
 - ✅ 99.9% uptime
 
 **Business:**
+
 - ✅ $5,000+ MRR
 - ✅ 5% free-to-paid conversion
 - ✅ Positive unit economics (LTV > CAC)
@@ -1274,6 +1337,7 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 ### 11.2 Key Performance Indicators (KPIs)
 
 **Leading Indicators:**
+
 - Daily active installations
 - Dashboard engagement (daily active users)
 - Alert open rates
@@ -1281,6 +1345,7 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 - Feature request frequency
 
 **Lagging Indicators:**
+
 - Monthly recurring revenue (MRR)
 - Customer lifetime value (LTV)
 - Customer acquisition cost (CAC)
@@ -1293,21 +1358,21 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 
 ### 12.1 Technical Risks
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Gateway API changes | High | Medium | Version locking, fallback handling, monitoring |
-| Performance issues | High | Low | Load testing, query optimization, caching |
-| Security vulnerability | Critical | Low | Security audit, regular updates, bug bounty |
-| Plugin conflicts | Medium | High | Extensive compatibility testing, defensive coding |
+| Risk                   | Impact   | Probability | Mitigation                                        |
+| ---------------------- | -------- | ----------- | ------------------------------------------------- |
+| Gateway API changes    | High     | Medium      | Version locking, fallback handling, monitoring    |
+| Performance issues     | High     | Low         | Load testing, query optimization, caching         |
+| Security vulnerability | Critical | Low         | Security audit, regular updates, bug bounty       |
+| Plugin conflicts       | Medium   | High        | Extensive compatibility testing, defensive coding |
 
 ### 12.2 Business Risks
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Low adoption | High | Medium | Free tier for viral growth, strong marketing |
-| Payment gateway partnership issues | Medium | Low | Work within public APIs, clear positioning |
-| Competitor emerges | Medium | Medium | First-mover advantage, continuous innovation |
-| Support overwhelm | Medium | Medium | Excellent docs, community forums, chatbot |
+| Risk                               | Impact | Probability | Mitigation                                   |
+| ---------------------------------- | ------ | ----------- | -------------------------------------------- |
+| Low adoption                       | High   | Medium      | Free tier for viral growth, strong marketing |
+| Payment gateway partnership issues | Medium | Low         | Work within public APIs, clear positioning   |
+| Competitor emerges                 | Medium | Medium      | First-mover advantage, continuous innovation |
+| Support overwhelm                  | Medium | Medium      | Excellent docs, community forums, chatbot    |
 
 ---
 
@@ -1316,29 +1381,32 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 ### 13.1 Third-Party Dependencies
 
 **Required:**
+
 - WordPress 6.4+
 - WooCommerce 8.0+
 - PHP 7.4+
 - MySQL 5.7+
 
 **Optional:**
+
 - Twilio (SMS alerts)
 - Slack (webhook alerts)
 
 ### 13.2 Gateway Support Matrix
 
-| Gateway | MVP Support | Auth Method | API Docs |
-|---------|-------------|-------------|----------|
-| Stripe | ✅ Yes | API Key | https://stripe.com/docs/api |
-| PayPal | ✅ Yes | OAuth 2.0 | https://developer.paypal.com |
-| Square | ✅ Yes | OAuth 2.0 | https://developer.squareup.com |
-| WooCommerce Payments | ✅ Yes | API Key | WC native |
-| Authorize.net | 📅 Phase 2 | API Key | https://developer.authorize.net |
-| Braintree | 📅 Phase 2 | API Key | https://developer.paypal.com/braintree |
+| Gateway              | MVP Support | Auth Method | API Docs                               |
+| -------------------- | ----------- | ----------- | -------------------------------------- |
+| Stripe               | ✅ Yes      | API Key     | https://stripe.com/docs/api            |
+| PayPal               | ✅ Yes      | OAuth 2.0   | https://developer.paypal.com           |
+| Square               | ✅ Yes      | OAuth 2.0   | https://developer.squareup.com         |
+| WooCommerce Payments | ✅ Yes      | API Key     | WC native                              |
+| Authorize.net        | 📅 Phase 2  | API Key     | https://developer.authorize.net        |
+| Braintree            | 📅 Phase 2  | API Key     | https://developer.paypal.com/braintree |
 
 ### 13.3 Browser/Device Support
 
 **Admin Dashboard:**
+
 - Chrome 90+
 - Firefox 88+
 - Safari 14+
@@ -1366,22 +1434,22 @@ if (!wp_next_scheduled('wcpm_send_usage_stats')) {
 
 ## 15. REVISION HISTORY
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2026-01-08 | Technical Team | Initial MVP specification |
+| Version | Date       | Author         | Changes                   |
+| ------- | ---------- | -------------- | ------------------------- |
+| 1.0     | 2026-01-08 | Technical Team | Initial MVP specification |
 
 ---
 
 ## 16. SIGN-OFF
 
-**Technical Lead:** _____________________  Date: __________
+**Technical Lead:** **********\_********** Date: ****\_\_****
 
-**Product Owner:** _____________________  Date: __________
+**Product Owner:** **********\_********** Date: ****\_\_****
 
-**QA Lead:** _____________________  Date: __________
+**QA Lead:** **********\_********** Date: ****\_\_****
 
 ---
 
 **END OF DOCUMENT**
 
-*This technical specification is a living document and will be updated as requirements evolve during development.*
+_This technical specification is a living document and will be updated as requirements evolve during development._

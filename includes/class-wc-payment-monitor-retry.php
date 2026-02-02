@@ -363,39 +363,146 @@ class WC_Payment_Monitor_Retry {
 	 * @return array Processing result
 	 */
 	private function process_gateway_payment( $gateway, $order, $payment_method ) {
-		// This is a simplified implementation
-		// In a real implementation, you would need to handle each gateway's specific API
+		// Attempt to use official extensions' off-session mechanisms first (e.g. Subscriptions support)
+		if ( method_exists( $gateway, 'scheduled_subscription_payment' ) ) {
+			try {
+				// The scheduled_subscription_payment method typically returns void
+				// and throws an exception on failure, or updates order status.
+				// We need to check the order status after the call.
+				
+				// Ensure global WC object is set if extensions rely on it
+				if ( ! isset( $GLOBALS['woocommerce'] ) && function_exists( 'WC' ) ) {
+					$GLOBALS['woocommerce'] = WC();
+				}
 
-		// For demonstration, we'll simulate a payment attempt
-		// In practice, you would call the gateway's API with the stored payment method
+				// Trigger the payment
+				$gateway->scheduled_subscription_payment( $order->get_total(), $order );
 
-		// Simulate success/failure based on gateway health
-		$health         = new WC_Payment_Monitor_Health();
-		$gateway_health = $health->get_health_status( $gateway->id, '1hour' );
+				// Refresh order to check status changes made by the gateway
+				$order = wc_get_order( $order->get_id() ); // Force reload
+				
+				if ( $order->has_status( 'processing' ) || $order->has_status( 'completed' ) ) {
+					return array(
+						'success'        => true,
+						'transaction_id' => $order->get_transaction_id(),
+						'message'        => __( 'Payment retry successful', 'wc-payment-monitor' ),
+					);
+				} else {
+					// Retrieve error from order notes or logic
+					return $this->capture_gateway_error( $order );
+				}
+				
+			} catch ( Exception $e ) {
+				return array(
+					'success' => false,
+					'message' => $e->getMessage(),
+				);
+			}
+		} 
+		
+		// Fallback: Standard Process Payment with a Token (if supported)
+		// This is riskier as process_payment often assumes a user session (nonces, redirects)
+		// but many token-capable gateways handle it gracefully if token_id is present in $_POST or passed props.
+		
+		try {
+			// Some gateways look for $_POST['payment_token']
+			if ( ! empty( $payment_method['token_id'] ) ) {
+				$_POST['payment_token'] = $payment_method['token_id'];
+			}
 
-		// Higher chance of success if gateway is healthy
-		$success_probability = 0.3; // Base 30% chance
-		if ( $gateway_health && $gateway_health->success_rate > 80 ) {
-			$success_probability = 0.7; // 70% chance if gateway is healthy
-		}
+			// Capture any potential output from the gateway to avoid header errors
+			ob_start();
+			$result = $gateway->process_payment( $order->get_id() );
+			ob_end_clean();
 
-		$is_successful = ( mt_rand() / mt_getrandmax() ) < $success_probability;
+			// Clean up
+			unset( $_POST['payment_token'] );
 
-		if ( $is_successful ) {
-			// Simulate successful payment
-			$transaction_id = 'retry_' . time() . '_' . $order->get_id();
+			if ( isset( $result['result'] ) && 'success' === $result['result'] ) {
+				// Success
+				// Note: process_payment might require a redirect URL, but since we are
+				// in background, we care if the payment itself succeeded.
+				// We check if order status moved to processing/completed.
+				
+				$order = wc_get_order( $order->get_id() ); // Reload
+				if ( $order->has_status( 'processing' ) || $order->has_status( 'completed' ) ) {
+					return array(
+						'success'        => true,
+						'transaction_id' => $order->get_transaction_id(),
+						'message'        => __( 'Payment retry successful', 'wc-payment-monitor' ),
+					);
+				}
+			}
 
-			return array(
-				'success'        => true,
-				'transaction_id' => $transaction_id,
-				'message'        => 'Payment retry successful',
-			);
-		} else {
+			// If we got here, it failed or is pending redirect (which counts as failed for background retry)
+			return $this->capture_gateway_error( $order );
+
+		} catch ( Exception $e ) {
 			return array(
 				'success' => false,
-				'message' => 'Payment retry failed - insufficient funds or card declined',
+				'message' => $e->getMessage(),
 			);
 		}
+	}
+
+	/**
+	 * Capture specific gateway error details from order
+	 * 
+	 * @param WC_Order $order Order Object
+	 * @return array Failure details
+	 */
+	private function capture_gateway_error( $order ) {
+		// 1. Check Order Meta for known gateway error keys
+		
+		// Stripe specific error capture
+		if ( $order->get_meta( '_stripe_error_message' ) ) {
+			return array(
+				'success' => false,
+				'message' => $order->get_meta( '_stripe_error_message' ),
+				'code'    => $order->get_meta( '_stripe_error_code' )
+			);
+		} 
+		
+		// Stripe Intent errors
+		if ( $order->get_meta( '_stripe_intent_error_message' ) ) {
+			return array(
+				'success' => false,
+				'message' => $order->get_meta( '_stripe_intent_error_message' ),
+				'code'    => 'stripe_intent_error'
+			);
+		}
+
+		// PayPal specific error capture (often stored as _paypal_status associated meta)
+		// Assuming standard logs or meta if available.
+		
+		// 2. Fallback: Parse recent Order Notes
+		// We look for notices added by gateways "Payment failed: [Reason]"
+		$notes = wc_get_order_notes( array( 
+			'order_id' => $order->get_id(), 
+			'limit' => 5, 
+			'orderby' => 'date_created_gmt', 
+			'order' => 'DESC'
+		) );
+
+		if ( ! empty( $notes ) ) {
+			foreach ( $notes as $note ) {
+				// Look for failure language
+				if ( stripos( $note->content, 'failed' ) !== false || stripos( $note->content, 'declined' ) !== false ) {
+					return array(
+						'success' => false,
+						'message' => strip_tags( $note->content ),
+						'code'    => 'gateway_failure_note'
+					);
+				}
+			}
+		}
+
+		// 3. Fallback generic message
+		return array(
+			'success' => false,
+			'message' => __( 'Payment retry failed. Please check gateway logs for details.', 'wc-payment-monitor' ),
+			'code'    => 'unknown_error'
+		);
 	}
 
 	/**
