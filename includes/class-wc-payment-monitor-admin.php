@@ -654,7 +654,7 @@ class WC_Payment_Monitor_Admin
 							<?php 
 								$next_tier = ($tier === 'free') ? 'Starter' : (($tier === 'starter') ? 'Pro' : 'Agency');
 							?>
-							<a href="https://paysentinel.caplaz.com/pricing" target="_blank" class="upgrade-button">
+							<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="upgrade-button">
 								<span class="dashicons dashicons-star-filled"></span>
 								<?php echo esc_html(sprintf(__('Upgrade to %s', 'wc-payment-monitor'), $next_tier)); ?>
 							</a>
@@ -666,7 +666,7 @@ class WC_Payment_Monitor_Admin
 						<?php esc_html_e('Enter a valid license key to unlock real-time monitoring and SMS/Slack alerts.', 'wc-payment-monitor'); ?>
 					</p>
 					<div style="margin-top: 15px;">
-						<a href="https://paysentinel.caplaz.com/pricing" target="_blank" class="button button-primary">
+						<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="button button-primary">
 							<?php esc_html_e('Get a License Key', 'wc-payment-monitor'); ?>
 						</a>
 					</div>
