@@ -537,61 +537,153 @@ class WC_Payment_Monitor_Admin
 		$license_key = isset($options['license_key']) ? sanitize_text_field($options['license_key']) : '';
 		$license_status = $this->license->get_license_status();
 		$license_data = $this->license->get_license_data();
+		$tier = $this->license->get_license_tier();
+		
+		$tier_colors = array(
+			'free'    => '#646970',
+			'starter' => '#0073aa',
+			'pro'     => '#d63638',
+			'agency'  => '#9b51e0',
+		);
+		$badge_color = isset($tier_colors[$tier]) ? $tier_colors[$tier] : '#0073aa';
 		?>
-		<div style="display: flex; align-items: center; gap: 10px;">
-			<input type="password" id="wc_payment_monitor_license_key" name="wc_payment_monitor_options[license_key]"
-				value="<?php echo esc_attr($license_key); ?>" class="regular-text" />
-			<button type="button" class="button"
-				onclick="var field = document.getElementById('wc_payment_monitor_license_key'); var type = field.type === 'password' ? 'text' : 'password'; field.type = type; this.textContent = type === 'password' ? 'Show' : 'Hide';"
-				style="min-width: 60px;">
-				<?php esc_html_e('Show', 'wc-payment-monitor'); ?>
-			</button>
-		</div>
-		<p class="description">
-			<?php esc_html_e('Enter your license key to enable premium features.', 'wc-payment-monitor'); ?></p>
-		<?php if ('valid' === $license_status): ?>
-			<p style="color: #46b450;">
-				<span class="dashicons dashicons-yes-alt" style="color: #46b450;"></span>
-				<?php esc_html_e('License is active and valid', 'wc-payment-monitor'); ?>
-			</p>
-			<?php if ($license_data): ?>
-				<?php if (isset($license_data['plan'])): ?>
-					<p style="margin: 10px 0; font-size: 16px; font-weight: bold; color: #0073aa;">
-						<?php echo esc_html(ucwords($license_data['plan'])); ?> Plan
-					</p>
-				<?php endif; ?>
-				<?php if (isset($license_data['expiration_ts'])): ?>
-					<p style="margin: 5px 0; font-size: 14px;">
-						<?php echo esc_html(sprintf(__('Expires: %s', 'wc-payment-monitor'), date_i18n(get_option('date_format'), strtotime($license_data['expiration_ts'])))); ?>
-					</p>
-				<?php endif; ?>
-				<?php
-				$site_registered = $this->license->is_site_registered();
-				$site_registration_data = $this->license->get_site_registration_data();
-				if ($site_registered): ?>
-					<p style="margin: 5px 0; font-size: 14px; color: #46b450;">
-						<span class="dashicons dashicons-admin-site" style="color: #46b450;"></span>
-						<?php esc_html_e('Site is registered with license', 'wc-payment-monitor'); ?>
-					</p>
-					<?php if ($site_registration_data && isset($site_registration_data['registered_at'])): ?>
-						<p style="margin: 5px 0; font-size: 12px; color: #666;">
-							<?php echo esc_html(sprintf(__('Registered: %s', 'wc-payment-monitor'), date_i18n(get_option('date_format'), strtotime($site_registration_data['registered_at'])))); ?>
-						</p>
-					<?php endif; ?>
+		<style>
+			.license-field-wrapper {
+				max-width: 500px;
+				background: #fff;
+				border: 1px solid #ccd0d4;
+				border-radius: 4px;
+				overflow: hidden;
+				box-shadow: 0 1px 1px rgba(0,0,0,.04);
+			}
+			.license-header {
+				padding: 15px 20px;
+				background: #f8f9fa;
+				border-bottom: 1px solid #ccd0d4;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+			.license-status-badge {
+				padding: 4px 12px;
+				border-radius: 12px;
+				font-size: 11px;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				color: #fff;
+			}
+			.license-body {
+				padding: 20px;
+			}
+			.license-input-group {
+				display: flex;
+				gap: 10px;
+				margin-bottom: 15px;
+			}
+			.license-footer {
+				padding: 12px 20px;
+				background: #fdfdfd;
+				border-top: 1px solid #f0f0f1;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				font-size: 12px;
+			}
+			.upgrade-button {
+				background-color: #46b450;
+				border-color: #46b450;
+				color: white;
+				text-decoration: none;
+				padding: 6px 14px;
+				border-radius: 4px;
+				font-weight: 600;
+				display: inline-flex;
+				align-items: center;
+				transition: all 0.2s;
+			}
+			.upgrade-button:hover {
+				background-color: #389140;
+				color: white;
+			}
+			.upgrade-button .dashicons {
+				margin-right: 5px;
+				font-size: 18px;
+				width: 18px;
+				height: 18px;
+			}
+		</style>
+
+		<div class="license-field-wrapper">
+			<div class="license-header">
+				<div style="display: flex; align-items: center; gap: 10px;">
+					<span class="dashicons dashicons-admin-network" style="color: <?php echo esc_attr($badge_color); ?>;"></span>
+					<span style="font-weight: 600; color: #23282d;"><?php esc_html_e('Subscription Plan', 'wc-payment-monitor'); ?></span>
+				</div>
+				<span class="license-status-badge" style="background: <?php echo esc_attr($badge_color); ?>;">
+					<?php echo esc_html(ucwords($tier)); ?>
+				</span>
+			</div>
+
+			<div class="license-body">
+				<div class="license-input-group">
+					<input type="password" id="wc_payment_monitor_license_key" name="wc_payment_monitor_options[license_key]"
+						value="<?php echo esc_attr($license_key); ?>" style="flex-grow: 1; padding: 8px;" placeholder="<?php esc_html_e('PA-XXXX-XXXX-XXXX', 'wc-payment-monitor'); ?>" />
+					<button type="button" class="button"
+						onclick="var field = document.getElementById('wc_payment_monitor_license_key'); var type = field.type === 'password' ? 'text' : 'password'; field.type = type; this.textContent = type === 'password' ? 'Show' : 'Hide';"
+						style="min-width: 60px;">
+						<?php esc_html_e('Show', 'wc-payment-monitor'); ?>
+					</button>
+				</div>
+
+				<?php if ('valid' === $license_status): ?>
+					<div style="display: flex; justify-content: space-between; align-items: flex-end;">
+						<div>
+							<p style="margin: 0; color: #46b450; font-size: 13px; font-weight: 500;">
+								<span class="dashicons dashicons-yes-alt" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
+								<?php esc_html_e('Active protection enabled', 'wc-payment-monitor'); ?>
+							</p>
+							<?php if (isset($license_data['expiration_ts'])): ?>
+								<p style="margin: 5px 0 0; font-size: 12px; color: #646970;">
+									<?php echo esc_html(sprintf(__('Renews on: %s', 'wc-payment-monitor'), date_i18n(get_option('date_format'), strtotime($license_data['expiration_ts'])))); ?>
+								</p>
+							<?php endif; ?>
+						</div>
+
+						<?php if ($tier !== 'agency'): ?>
+							<?php 
+								$next_tier = ($tier === 'free') ? 'Starter' : (($tier === 'starter') ? 'Pro' : 'Agency');
+							?>
+							<a href="https://paysentinel.caplaz.com/pricing" target="_blank" class="upgrade-button">
+								<span class="dashicons dashicons-star-filled"></span>
+								<?php echo esc_html(sprintf(__('Upgrade to %s', 'wc-payment-monitor'), $next_tier)); ?>
+							</a>
+						<?php endif; ?>
+					</div>
 				<?php else: ?>
-					<p style="margin: 5px 0; font-size: 14px; color: #f0ad4e;">
-						<span class="dashicons dashicons-warning" style="color: #f0ad4e;"></span>
-						<?php esc_html_e('Site not registered - alerts will not be sent', 'wc-payment-monitor'); ?>
+					<p style="margin: 0; color: #d63638; font-size: 13px;">
+						<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
+						<?php esc_html_e('Enter a valid license key to unlock real-time monitoring and SMS/Slack alerts.', 'wc-payment-monitor'); ?>
 					</p>
+					<div style="margin-top: 15px;">
+						<a href="https://paysentinel.caplaz.com/pricing" target="_blank" class="button button-primary">
+							<?php esc_html_e('Get a License Key', 'wc-payment-monitor'); ?>
+						</a>
+					</div>
 				<?php endif; ?>
+			</div>
+
+			<?php if ('valid' === $license_status && $this->license->is_site_registered()): ?>
+				<div class="license-footer">
+					<span style="color: #646970;">
+						<span class="dashicons dashicons-admin-site" style="font-size: 14px; width: 14px; height: 14px; vertical-align: text-bottom;"></span>
+						<?php echo esc_html(parse_url(get_site_url(), PHP_URL_HOST)); ?>
+					</span>
+					<span style="color: #46b450; font-weight: 500;"><?php esc_html_e('Verified', 'wc-payment-monitor'); ?></span>
+				</div>
 			<?php endif; ?>
-		<?php elseif ('invalid' === $license_status): ?>
-			<p style="color: #dc3232;">
-				<span class="dashicons dashicons-warning" style="color: #dc3232;"></span>
-				<?php esc_html_e('License is invalid or expired', 'wc-payment-monitor'); ?>
-			</p>
-		<?php endif; ?>
-	<?php
+		</div>
+		<?php
 	}
 
 	/**
