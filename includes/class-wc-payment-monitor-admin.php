@@ -229,6 +229,15 @@ class WC_Payment_Monitor_Admin
 			'wc_payment_monitor_settings'
 		);
 
+		// Add settings fields - License Key first (most important)
+		add_settings_field(
+			'license_key',
+			__('License Key', 'wc-payment-monitor'),
+			array($this, 'render_field_license_key'),
+			'wc_payment_monitor_settings',
+			'wc_payment_monitor_main'
+		);
+
 		// Add settings fields
 		add_settings_field(
 			'enable_monitoring',
@@ -266,14 +275,6 @@ class WC_Payment_Monitor_Admin
 			'max_retry_attempts',
 			__('Max Retry Attempts', 'wc-payment-monitor'),
 			array($this, 'render_field_max_retry_attempts'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
-
-		add_settings_field(
-			'license_key',
-			__('License Key', 'wc-payment-monitor'),
-			array($this, 'render_field_license_key'),
 			'wc_payment_monitor_settings',
 			'wc_payment_monitor_main'
 		);
@@ -372,11 +373,127 @@ class WC_Payment_Monitor_Admin
 	public function render_field_alert_threshold()
 	{
 		$options = get_option('wc_payment_monitor_options', array());
-		$threshold = isset($options['alert_threshold']) ? floatval($options['alert_threshold']) : 20;
+		$threshold = isset($options['alert_threshold']) ? floatval($options['alert_threshold']) : 85;
 		?>
-		<input type="number" name="wc_payment_monitor_options[alert_threshold]" value="<?php echo esc_attr($threshold); ?>"
-			min="1" max="100" step="0.1" />
-		<p class="description"><?php esc_html_e('Failure rate percentage to trigger alerts.', 'wc-payment-monitor'); ?></p>
+		<style>
+			.wc-payment-monitor-threshold-ui {
+				max-width: 450px;
+				background: #fff;
+				border: 1px solid #ccd0d4;
+				padding: 20px;
+				border-radius: 4px;
+				box-shadow: 0 1px 1px rgba(0,0,0,.04);
+				margin-bottom: 20px;
+			}
+			.threshold-slider-container {
+				position: relative;
+				padding: 20px 0 10px;
+			}
+			.threshold-bar-background {
+				height: 12px;
+				width: 100%;
+				border-radius: 6px;
+				background: linear-gradient(to right, 
+					#d63638 0%, #d63638 50%, 
+					#dba617 50%, #dba617 80%, 
+					#ffba00 80%, #ffba00 90%, 
+					#46b450 90%, #46b450 100%);
+			}
+			#alert-threshold-slider {
+				-webkit-appearance: none;
+				width: 100%;
+				background: transparent;
+				position: relative;
+				margin-top: -16px;
+				z-index: 2;
+				cursor: pointer;
+				display: block;
+			}
+			#alert-threshold-slider:focus {
+				outline: none;
+			}
+			#alert-threshold-slider::-webkit-slider-thumb {
+				-webkit-appearance: none;
+				border: 2px solid #fff;
+				height: 20px;
+				width: 20px;
+				border-radius: 50%;
+				background: #2271b1;
+				cursor: pointer;
+				margin-top: -2px;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+			}
+			#alert-threshold-slider::-moz-range-thumb {
+				border: 2px solid #fff;
+				height: 18px;
+				width: 18px;
+				border-radius: 50%;
+				background: #2271b1;
+				cursor: pointer;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+			}
+		</style>
+
+		<div class="wc-payment-monitor-threshold-ui">
+			<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+				<label for="alert-threshold-slider" style="margin: 0; font-weight: 600; font-size: 14px;"><?php esc_html_e('Alert Sensitivity', 'wc-payment-monitor'); ?></label>
+				<span style="background: #2271b1; color: #fff; padding: 2px 10px; border-radius: 12px; font-weight: 600; font-size: 14px; min-width: 40px; text-align: center;">
+					<span id="threshold-val"><?php echo esc_attr($threshold); ?></span>%
+				</span>
+			</div>
+
+			<div class="threshold-slider-container">
+				<div class="threshold-bar-background"></div>
+				<input type="range" 
+					name="wc_payment_monitor_options[alert_threshold]" 
+					id="alert-threshold-slider"
+					value="<?php echo esc_attr($threshold); ?>" 
+					min="50" max="100" step="1" />
+			</div>
+
+			<div style="display: flex; justify-content: space-between; font-size: 11px; color: #8c8f94; margin-bottom: 25px; padding: 0 2px;">
+				<span>50%</span>
+				<span>75%</span>
+				<span>90%</span>
+				<span>95%</span>
+				<span>100%</span>
+			</div>
+
+			<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; border-top: 1px solid #f0f0f1; padding-top: 15px;">
+				<div style="display: flex; align-items: center;">
+					<span style="width: 12px; height: 12px; background: #d63638; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
+					<span><?php esc_html_e('High Severity (< 75%)', 'wc-payment-monitor'); ?></span>
+				</div>
+				<div style="display: flex; align-items: center;">
+					<span style="width: 12px; height: 12px; background: #dba617; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
+					<span><?php esc_html_e('Warning (75-89%)', 'wc-payment-monitor'); ?></span>
+				</div>
+				<div style="display: flex; align-items: center;">
+					<span style="width: 12px; height: 12px; background: #ffba00; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
+					<span><?php esc_html_e('Info (90-94%)', 'wc-payment-monitor'); ?></span>
+				</div>
+				<div style="display: flex; align-items: center;">
+					<span style="width: 12px; height: 12px; background: #46b450; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
+					<span><?php esc_html_e('Healthy (≥ 95%)', 'wc-payment-monitor'); ?></span>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				const slider = document.getElementById('alert-threshold-slider');
+				const display = document.getElementById('threshold-val');
+				if (slider && display) {
+					slider.addEventListener('input', function() {
+						display.textContent = this.value;
+					});
+				}
+			});
+		</script>
+
+		<p class="description">
+			<?php esc_html_e('Adjust the slider to set your notification threshold. You will only receive alerts if the gateway success rate falls below this percentage.', 'wc-payment-monitor'); ?>
+		</p>
 		<?php
 	}
 
@@ -390,6 +507,9 @@ class WC_Payment_Monitor_Admin
 		?>
 		<input type="checkbox" name="wc_payment_monitor_options[retry_enabled]" value="1" <?php checked($enabled, 1); ?> />
 		<label><?php esc_html_e('Automatically retry failed payments', 'wc-payment-monitor'); ?></label>
+		<p class="description">
+			<?php esc_html_e('When enabled, failed payments are automatically retried using stored payment methods. Retries are scheduled at 1 hour, 6 hours, and 24 hours. Only retriable failures are attempted (excludes fraud, expired cards, etc.).', 'wc-payment-monitor'); ?>
+		</p>
 		<?php
 	}
 
@@ -1056,6 +1176,26 @@ class WC_Payment_Monitor_Admin
 				submit_button();
 				?>
 			</form>
+			
+			<div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border: 1px solid #e1e1e1; border-radius: 4px;">
+				<h3 style="margin-top: 0; color: #23282d;"><?php esc_html_e('How Payment Monitor Works', 'wc-payment-monitor'); ?></h3>
+				<p style="margin-bottom: 10px;">
+					<strong><?php esc_html_e('Monitoring:', 'wc-payment-monitor'); ?></strong> 
+					<?php esc_html_e('Tracks payment gateway success rates and triggers alerts when performance drops below thresholds.', 'wc-payment-monitor'); ?>
+				</p>
+				<p style="margin-bottom: 10px;">
+					<strong><?php esc_html_e('Alerts:', 'wc-payment-monitor'); ?></strong> 
+					<?php esc_html_e('Sends notifications via email, SMS, or Slack when payment issues are detected.', 'wc-payment-monitor'); ?>
+				</p>
+				<p style="margin-bottom: 10px;">
+					<strong><?php esc_html_e('Auto-Retry:', 'wc-payment-monitor'); ?></strong> 
+					<?php esc_html_e('Automatically retries failed payments using stored payment methods (excludes fraud/expired cards).', 'wc-payment-monitor'); ?>
+				</p>
+				<p style="margin-bottom: 0;">
+					<strong><?php esc_html_e('License:', 'wc-payment-monitor'); ?></strong> 
+					<?php esc_html_e('Required for premium features like SMS alerts, Slack integration, and advanced analytics.', 'wc-payment-monitor'); ?>
+				</p>
+			</div>
 		</div>
 		<?php
 	}
@@ -1135,7 +1275,7 @@ class WC_Payment_Monitor_Admin
 		$defaults = array(
 			'enable_monitoring' => 1,
 			'health_check_interval' => 5,
-			'alert_threshold' => 20,
+			'alert_threshold' => 85,
 			'retry_enabled' => 1,
 			'max_retry_attempts' => 3,
 			'license_key' => '',
