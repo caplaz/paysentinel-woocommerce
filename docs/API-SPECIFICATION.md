@@ -1,304 +1,89 @@
-# PaySentinel API Specification
-
-## For Centralized Alert Delivery & License Management
-
-**Version:** 1.0  
-**Last Updated:** January 26, 2026  
-**Author:** Technical Team
-
----
+# PaySentinel API Reference
 
 ## Overview
 
-This document specifies the API endpoints required on `paysentinel.caplaz.com` to support the PRO alert system with centralized SMS/Slack delivery and enhanced license management.
+PaySentinel provides a REST API for license management, device tracking, alerts, and subscription management. All API endpoints require authentication and are rate-limited.
 
-### Architecture Summary
+**Base URL**: `https://your-domain.com/api`
 
-```
-┌─────────────────────────────────────────┐
-│     WordPress Plugin                     │
-│  (WooCommerce Payment Monitor)          │
-│                                          │
-│  1. Detects payment failure              │
-│  2. Checks license tier                  │
-│  3. POSTs to paysentinel.caplaz.com/api │
-└────────────────┬─────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────┐
-│   paysentinel.caplaz.com API            │
-│                                          │
-│  1. Validates license + quota            │
-│  2. Routes to Twilio/Slack APIs          │
-│  3. Tracks usage + updates quota         │
-│  4. Returns delivery status              │
-└────────────────┬─────────────────────────┘
-                 │
-         ┌───────┴────────┐
-         ▼                ▼
-   ┌─────────┐      ┌─────────┐
-   │ Twilio  │      │  Slack  │
-   │   API   │      │   API   │
-   └─────────┘      └─────────┘
+**Authentication**: Supabase JWT token (automatically handled by browser cookies for dashboard users)
+
+---
+
+## Authentication
+
+### Requirements
+
+- **Session-based**: Most endpoints require an authenticated user session
+- **License Validation**: Some endpoints require a valid license key
+- **Rate Limiting**: Applied per endpoint (see individual endpoint docs)
+
+### Error Responses
+
+```json
+{
+  "error": "Error message",
+  "status": 401
+}
 ```
 
 ---
 
-## API Endpoints
+## Endpoints
 
-### 1. POST `/api/alerts`
+### 1. Get User Licenses
 
-**Purpose:** Centralized alert delivery for SMS, Slack, and enhanced email.
+Retrieve all licenses associated with the authenticated user.
 
-**Authentication:** License key in request body (validated against database)
+**Endpoint**: `GET /api/licenses`
 
-**Rate Limiting:** 100 requests/minute per license key
+**Authentication**: Required (user session)
 
-#### Request
+**Rate Limit**: 30 requests/minute
 
-**Headers:**
-
-```
-Content-Type: application/json
-```
-
-**Body:**
+**Response** (200):
 
 ```json
 {
-  "license_key": "XXXX-XXXX-XXXX-XXXX",
-  "site_url": "https://example.com",
-  "contact": {
-    "email": "admin@example.com",
-    "phone": "+1234567890",
-    "slack_workspace": "T01234567"
-  },
-  "channels": ["email", "sms", "slack"],
-  "alert": {
-    "type": "low_success_rate",
-    "gateway": "stripe",
-    "severity": "high",
-    "success_rate": 45.2,
-    "failed_count": 65,
-    "total_count": 120,
-    "timestamp": "2026-01-26T10:30:00Z",
-    "message": "Stripe success rate dropped to 45.20% (65/120 transactions failed)"
-  }
-}
-```
-
-**Field Descriptions:**
-
-- `license_key` (string, required): Plugin license key
-- `site_url` (string, required): WordPress site URL for tracking
-- `contact` (object, required): Contact information
-  - `email` (string, optional): Email address
-  - `phone` (string, optional): Phone number with country code (E.164 format)
-  - `slack_workspace` (string, optional): Slack workspace ID or webhook URL
-- `channels` (array, required): Channels to send alert through
-  - Valid values: `"email"`, `"sms"`, `"slack"`
-- `alert` (object, required): Alert details
-  - `type` (string): Alert type (`low_success_rate`, `gateway_down`, `gateway_error`)
-  - `gateway` (string): Gateway ID (`stripe`, `paypal`, `square`, `wc_payments`)
-  - `severity` (string): Severity level (`high`, `warning`, `info`, `critical`)
-  - `success_rate` (float, optional): Success rate percentage
-  - `failed_count` (int): Number of failed transactions
-  - `total_count` (int): Total transactions
-  - `timestamp` (string): ISO 8601 timestamp
-  - `message` (string): Human-readable alert message
-
-#### Response
-
-**Success (200 OK):**
-
-```json
-{
-  "success": true,
-  "delivered": {
-    "email": {
-      "status": "sent",
-      "message_id": "msg_abc123"
-    },
-    "sms": {
-      "status": "sent",
-      "message_id": "SM123abc"
-    },
-    "slack": {
-      "status": "sent",
-      "channel": "#alerts"
+  "licenses": [
+    {
+      "id": "lic_1234567890",
+      "key": "XXXX-XXXX-XXXX-XXXX",
+      "status": "active",
+      "expires_at": "2026-12-31T23:59:59Z",
+      "price_id": "price_1234567890",
+      "product_id": "prod_1234567890",
+      "created_at": "2026-01-01T00:00:00Z",
+      "sites": [
+        {
+          "id": "site_123",
+          "name": "example.com",
+          "created_at": "2026-01-15T10:30:00Z"
+        }
+      ]
     }
-  },
-  "quota": {
-    "sms_remaining": 85,
-    "sms_limit": 100,
-    "sms_reset_date": "2026-02-01"
-  }
+  ]
 }
 ```
 
-**Field Descriptions:**
+**Error Responses**:
 
-- `success` (bool): Overall success status
-- `delivered` (object): Per-channel delivery status
-  - Each channel returns `status` (sent/failed) and optional metadata
-- `quota` (object): Current quota information
-  - `sms_remaining` (int): SMS remaining this billing period
-  - `sms_limit` (int): Total SMS limit per billing period
-  - `sms_reset_date` (string): Date when quota resets
-
-**Error Responses:**
-
-**401 Unauthorized:**
-
-```json
-{
-  "error": "invalid_license",
-  "message": "License key is invalid or expired",
-  "code": "LICENSE_INVALID"
-}
-```
-
-**402 Payment Required (Quota Exceeded):**
-
-```json
-{
-  "error": "quota_exceeded",
-  "message": "SMS quota exceeded for this billing period",
-  "quota": {
-    "sms_used": 100,
-    "sms_limit": 100,
-    "sms_reset_date": "2026-02-01"
-  },
-  "upgrade_url": "https://paysentinel.caplaz.com/upgrade"
-}
-```
-
-**400 Bad Request:**
-
-```json
-{
-  "error": "missing_contact_info",
-  "message": "Phone number required for SMS alerts",
-  "field": "contact.phone"
-}
-```
-
-**403 Forbidden (Feature Not Available):**
-
-```json
-{
-  "error": "feature_not_available",
-  "message": "Slack alerts require Pro plan or higher",
-  "current_plan": "starter",
-  "required_plan": "pro",
-  "upgrade_url": "https://paysentinel.caplaz.com/upgrade"
-}
-```
-
-**500 Internal Server Error:**
-
-```json
-{
-  "error": "delivery_failed",
-  "message": "Failed to deliver alerts",
-  "details": {
-    "sms": "Twilio API error: Invalid phone number",
-    "slack": "success",
-    "email": "success"
-  }
-}
-```
-
-#### Processing Logic
-
-1. **Validate License:**
-   - Check license key exists in database
-   - Verify license is active and not expired
-   - Get license plan tier (starter/pro/agency)
-
-2. **Check Feature Access:**
-   - Email: Always allowed (Free+)
-   - SMS: Starter+ plans
-   - Slack: Pro+ plans
-   - Return 403 if feature not available in plan
-
-3. **Check Quota:**
-   - If SMS requested, check monthly quota
-   - Return 402 if quota exceeded
-   - Allow grace period (e.g., 5% overage)
-
-4. **Validate Contact Info:**
-   - Ensure required contact info is present for requested channels
-   - Validate phone number format (E.164)
-   - Return 400 if contact info missing/invalid
-
-5. **Send Alerts:**
-   - **Email:** Send via your transactional email service (SendGrid/Mailgun/SES)
-   - **SMS:** Send via Twilio API using your Twilio account
-   - **Slack:** Post to Slack webhook or use Slack API
-
-6. **Update Quota:**
-   - Increment SMS usage counter for this license
-   - Store delivery metadata (timestamp, status, message_id)
-
-7. **Return Status:**
-   - Return per-channel delivery status
-   - Include updated quota information
-   - Log any partial failures
-
-#### Database Schema Recommendations
-
-**Table: `license_alert_usage`**
-
-```sql
-CREATE TABLE license_alert_usage (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  license_key VARCHAR(255) NOT NULL,
-  site_url VARCHAR(500),
-  channel VARCHAR(50),
-  alert_type VARCHAR(100),
-  delivered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  status VARCHAR(50),
-  message_id VARCHAR(255),
-  error_message TEXT,
-  INDEX idx_license_key (license_key),
-  INDEX idx_delivered_at (delivered_at)
-);
-```
-
-**Table: `license_quota`**
-
-```sql
-CREATE TABLE license_quota (
-  license_key VARCHAR(255) PRIMARY KEY,
-  sms_limit INT NOT NULL,
-  sms_used INT DEFAULT 0,
-  quota_reset_date DATE NOT NULL,
-  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-```
+- `401`: Unauthorized (not logged in)
+- `500`: Internal server error
 
 ---
 
-### 2. POST `/api/validate-license` (Enhanced)
+### 2. Validate License
 
-**Purpose:** Validate license and return plan features + quota information.
+Validate a license key and register a site URL.
 
-**Changes from Current Implementation:**
+**Endpoint**: `POST /api/validate-license`
 
-- Add `plan` field in response
-- Add `features` object with feature flags
-- Add `quota` object with current usage
+**Authentication**: None required
 
-#### Request
+**Rate Limit**: 20 requests/minute per IP
 
-**Headers:**
-
-```
-Content-Type: application/json
-```
-
-**Body:**
+**Request Body**:
 
 ```json
 {
@@ -307,299 +92,478 @@ Content-Type: application/json
 }
 ```
 
-#### Response
-
-**Success (200 OK):**
+**Response** (200):
 
 ```json
 {
-  "valid": true,
-  "expiration_ts": 1740528000,
+  "expiration_ts": "2026-02-20T20:57:11.000Z",
   "plan": "pro",
   "features": {
-    "sms_alerts": 500,
+    "sites_limit": 10,
+    "sms_alerts": true,
     "slack_alerts": true,
-    "better_email_delivery": true,
-    "per_gateway_config": true,
-    "advanced_analytics": true,
-    "unlimited_gateways": true,
-    "history_days": 90,
-    "industry_benchmarks": true,
-    "proactive_gateway_alerts": true
+    "api_access": true
   },
   "quota": {
-    "sms_used_this_month": 15,
-    "sms_limit": 500,
-    "sms_reset_date": "2026-02-01"
-  }
+    "sms": {
+      "used": 45,
+      "limit": 100,
+      "remaining": 55,
+      "reset_date": "2026-02-01T00:00:00Z"
+    }
+  },
+  "site_registration": {
+    "registered": true
+  },
+  "message": "License is valid. Site is registered."
 }
 ```
 
-**Field Descriptions:**
+**Notes on Response Format**:
 
-- `valid` (bool): License validity status
-- `expiration_ts` (int): Unix timestamp of license expiration
-- `plan` (string): Plan tier (`free`, `starter`, `pro`, `agency`)
-- `features` (object): Feature flags and limits
-  - Boolean features: `true` if available, `false` if not
-  - Numeric features: Integer limit (e.g., `sms_alerts: 500`)
-- `quota` (object): Current usage and limits
-  - `sms_used_this_month` (int): SMS sent this billing period
-  - `sms_limit` (int): Total SMS allowed per period
-  - `sms_reset_date` (string): Date quota resets (YYYY-MM-DD)
+- `expiration_ts`: ISO 8601 date string (not Unix timestamp as per specification)
+- No top-level `valid` field - success (200) indicates license is valid
+- `plan`: Lowercase plan name derived from `price_id`
+- `quota`: SMS usage tracking (null if no quota initialized)
 
-**Error (401 Unauthorized):**
+**Error Responses**:
+
+- `400`: Missing required fields or invalid URL format
+- `403`: Invalid license key, expired license, or device limit exceeded
+- `429`: Rate limit exceeded
+- `500`: Internal server error
+
+**Error Response Format**:
 
 ```json
 {
-  "valid": false,
-  "error": "invalid_license",
-  "message": "License key is invalid or expired"
+  "error": "License expired",
+  "details": "Devices registered: 5" // Optional additional info
 }
 ```
 
-#### Feature Matrix by Plan
+---
 
-| Feature                    | Free  | Starter | Pro   | Agency        |
-| -------------------------- | ----- | ------- | ----- | ------------- |
-| `sms_alerts`               | 0     | 100     | 500   | 1000 (shared) |
-| `slack_alerts`             | false | false   | true  | true          |
-| `better_email_delivery`    | false | true    | true  | true          |
-| `per_gateway_config`       | false | false   | true  | true          |
-| `advanced_analytics`       | false | false   | true  | true          |
-| `unlimited_gateways`       | false | false   | true  | true          |
-| `history_days`             | 30    | 30      | 90    | 90            |
-| `industry_benchmarks`      | false | false   | true  | true          |
-| `proactive_gateway_alerts` | false | false   | true  | true          |
-| `multi_site_dashboard`     | false | false   | false | true          |
-| `white_label_reports`      | false | false   | false | true          |
+### 3. Manage Connected Sites
+
+**Endpoint**: `DELETE /api/sites`
+
+**Authentication**: Required (user session)
+
+**Rate Limit**: 10 requests/minute
+
+**Request Body**:
+
+```json
+{
+  "device_id": "device_123",
+  "license_key": "XXXX-XXXX-XXXX-XXXX"
+}
+```
+
+**Response** (200):
+
+```json
+{
+  "success": true
+}
+```
+
+**Error Responses**:
+
+- `400`: Missing device_id or license_key
+- `401`: Unauthorized
+- `404`: Device not found (via PayBee API)
+- `500`: Internal server error
 
 ---
 
-## Implementation Priority
+### 4. Send Alerts
 
-### Phase 1 (MVP)
+Send SMS or Slack notifications for license events.
 
-1. ✅ Enhanced `/api/validate-license` with plan and features
-2. ✅ Basic `/api/alerts` endpoint with SMS delivery via Twilio
-3. ✅ Quota tracking and enforcement
+**Endpoint**: `POST /api/alerts`
 
-### Phase 2
+**Authentication**: License key validation
 
-4. Slack delivery via webhooks
-5. Enhanced email delivery via SendGrid/Mailgun
-6. Admin dashboard for monitoring delivery status
+**Rate Limit**: 10 requests/minute per license
 
-### Phase 3
-
-7. Discord/Teams integration
-8. Delivery analytics and reporting
-9. Webhook for alert notifications
-
----
-
-## Security Considerations
-
-### License Validation
-
-- Store hashed license keys in database
-- Validate site_url matches licensed domain
-- Implement brute-force protection on validation endpoint
-
-### API Authentication
-
-- License key is sufficient for MVP
-- Consider adding HMAC signature in Phase 2
-- Rate limit by IP + license key
-
-### Data Privacy
-
-- Do not log customer PII (transaction IDs, amounts, customer names)
-- Only store aggregate metrics (success rates, failure counts)
-- Allow opt-out of analytics via plugin setting
-
-### Quota Management
-
-- Enforce hard limits to prevent abuse
-- Send warning emails at 80% quota usage
-- Provide grace period for accidental overages
-
----
-
-## Testing Endpoints
-
-### POST `/api/alerts/test`
-
-Test alert delivery without consuming quota.
-
-**Request:**
+**Request Body**:
 
 ```json
 {
   "license_key": "XXXX-XXXX-XXXX-XXXX",
-  "channel": "sms",
-  "contact": {
-    "phone": "+1234567890"
+  "alert_type": "SMS",
+  "recipient": "+1234567890",
+  "message": "License validation failed for site.com",
+  "site_url": "https://site.com",
+  "data": {
+    "error_code": "INVALID_LICENSE",
+    "attempt_count": 3
   }
 }
 ```
 
-**Response:**
+**SMS Alert Body** (alternative):
 
 ```json
 {
-  "success": true,
-  "message": "Test SMS sent successfully",
-  "details": {
-    "message_id": "SMtest123",
-    "delivered_at": "2026-01-26T10:30:00Z"
+  "license_key": "XXXX-XXXX-XXXX-XXXX",
+  "alert_type": "SMS",
+  "recipient": "+1234567890",
+  "message": "Alert message here"
+}
+```
+
+**Slack Alert Body** (alternative):
+
+```json
+{
+  "license_key": "XXXX-XXXX-XXXX-XXXX",
+  "alert_type": "SLACK",
+  "integration_id": "int_1234567890",
+  "message": "Alert message here"
+}
+```
+
+**Response** (200) - SMS:
+
+```json
+{
+  "delivered": true,
+  "channel": "SMS",
+  "message_id": "SM1234567890",
+  "quota": {
+    "used": 1,
+    "limit": 100,
+    "remaining": 99,
+    "reset_date": "2026-02-01T00:00:00Z"
   }
 }
 ```
 
----
-
-## Error Codes Reference
-
-| Code                    | HTTP Status | Description                                |
-| ----------------------- | ----------- | ------------------------------------------ |
-| `LICENSE_INVALID`       | 401         | License key is invalid or expired          |
-| `LICENSE_SUSPENDED`     | 403         | License suspended (payment failure, etc.)  |
-| `FEATURE_NOT_AVAILABLE` | 403         | Feature not included in current plan       |
-| `QUOTA_EXCEEDED`        | 402         | Monthly quota limit reached                |
-| `MISSING_CONTACT_INFO`  | 400         | Required contact information missing       |
-| `INVALID_PHONE_NUMBER`  | 400         | Phone number format invalid                |
-| `DELIVERY_FAILED`       | 500         | Alert delivery failed (external API error) |
-| `RATE_LIMIT_EXCEEDED`   | 429         | Too many requests                          |
-
----
-
-## Monitoring & Observability
-
-### Metrics to Track
-
-- Alert delivery success/failure rates per channel
-- Average API response time
-- Quota usage per license
-- License validation request volume
-- Failed deliveries by reason
-
-### Alerts for Operations
-
-- SMS delivery failure rate > 5%
-- Twilio API errors
-- Quota exceeded for > 10% of licenses
-- API response time > 2 seconds
-
----
-
-## Migration from Direct Integration
-
-### Plugin Changes Already Made
-
-1. ✅ Removed Twilio credential fields from settings
-2. ✅ Removed Slack webhook field from settings
-3. ✅ Added `alert_phone_number` field
-4. ✅ Added `alert_slack_workspace` field
-5. ✅ Refactored `send_notifications()` to use `send_to_api()`
-6. ✅ Added tier-based feature gating
-
-### Backward Compatibility
-
-- Legacy `send_sms_notification()` and `send_slack_notification()` methods maintained for test endpoints
-- Existing test endpoints in plugin will call new API
-- Old settings will be migrated on plugin update
-
----
-
-## Next Steps
-
-### For Website Development
-
-1. Implement `/api/validate-license` enhancement
-2. Implement `/api/alerts` endpoint
-3. Set up Twilio account and obtain credentials
-4. Create database tables for quota tracking
-5. Implement quota reset cron job (monthly)
-6. Set up monitoring and alerting
-
-### For Plugin Development
-
-1. ✅ Plugin code changes complete
-2. Test API integration with staging environment
-3. Add error handling for API failures
-4. Implement quota warning UI in admin dashboard
-5. Add "Connect Slack" OAuth flow UI
-6. Update user documentation
-
----
-
-## Questions for Discussion
-
-1. **Slack Integration UX:** Should users enter Slack webhook URL directly, or implement OAuth flow through your website?
-   - **Recommendation:** Start with webhook URL (simpler), add OAuth in Phase 2
-
-2. **Email Delivery:** Should Free tier email also go through API for better deliverability?
-   - **Recommendation:** Keep Free tier local (`wp_mail()`), route Starter+ through API
-
-3. **Hard vs Soft Quota Limits:** Should API reject requests at quota, or allow overage with warning?
-   - **Recommendation:** Hard limit with 5% grace period, email warnings at 80% usage
-
-4. **Quota Reset:** Monthly on calendar date, or rolling 30-day window?
-   - **Recommendation:** Calendar month reset (simpler billing)
-
-5. **Delivery Retries:** Should API retry failed deliveries, or just return error to plugin?
-   - **Recommendation:** API does single attempt, plugin shows admin notice for failures
-
----
-
-## Appendix: Sample Alert Messages
-
-### SMS Format (160 chars max)
-
-```
-HIGH ALERT: Stripe gateway success rate dropped to 45.2% (65/120 failed). Check dashboard: https://example.com/wp-admin
-```
-
-### Slack Format
+**Response** (200) - Slack:
 
 ```json
 {
-  "text": "🚨 *HIGH Payment Alert* 🚨",
-  "attachments": [
+  "delivered": true,
+  "channel": "SLACK"
+}
+```
+
+**Error Responses**:
+
+- `400`: Missing required fields or invalid alert_type
+- `401`: Invalid license key or expired license
+- `403`: Alert type not available on current plan, or Slack integration disabled
+- `404`: Slack integration not found
+- `429`: Rate limit exceeded
+- `500`: Alert delivery failed
+
+---
+
+### 5. Create Checkout Session
+
+Create a Stripe checkout session for subscription purchase.
+
+**Endpoint**: `POST /api/checkout`
+
+**Authentication**: Required (user session)
+
+**Rate Limit**: 5 requests/minute
+
+**Request Body**:
+
+```json
+{
+  "priceId": "price_1234567890"
+}
+```
+
+**Response** (200):
+
+```json
+{
+  "url": "https://checkout.stripe.com/pay/cs_test_...",
+  "session_id": "cs_test_1234567890"
+}
+```
+
+**Error Responses**:
+
+- `400`: Missing priceId
+- `401`: Unauthorized
+- `500`: Checkout creation failed
+
+---
+
+### 6. Update Subscription
+
+Change the user's subscription plan.
+
+**Endpoint**: `POST /api/update-subscription`
+
+**Authentication**: Required (user session)
+
+**Rate Limit**: 3 requests/minute
+
+**Request Body**:
+
+```json
+{
+  "priceId": "price_1234567890"
+}
+```
+
+**Response** (200):
+
+```json
+{
+  "message": "Subscription updated",
+  "subscriptionId": "sub_1234567890",
+  "licenseId": "lic_1234567890",
+  "status": "active"
+}
+```
+
+**Error Responses**:
+
+- `400`: Missing priceId
+- `401`: Unauthorized
+- `500`: Subscription update failed
+
+---
+
+### 7. Manage Integrations
+
+Get or create external service integrations (Slack webhooks, etc.).
+
+**Endpoint**: `GET /api/integrations`
+
+**Authentication**: Required (user session)
+
+**Rate Limit**: 30 requests/minute
+
+**Response** (200):
+
+```json
+{
+  "integrations": [
     {
-      "color": "#dc3545",
-      "title": "Stripe Gateway Issue Detected",
-      "fields": [
-        { "title": "Success Rate", "value": "45.2%", "short": true },
-        { "title": "Failed", "value": "65/120", "short": true },
-        { "title": "Gateway", "value": "Stripe", "short": true },
-        { "title": "Severity", "value": "HIGH", "short": true }
-      ],
-      "actions": [
-        {
-          "type": "button",
-          "text": "View Dashboard",
-          "url": "https://example.com/wp-admin/admin.php?page=wc-payment-monitor"
-        }
-      ]
+      "id": "int_1234567890",
+      "name": "Production Alerts",
+      "type": "slack",
+      "webhook_url": "https://hooks.slack.com/...",
+      "created_at": "2026-01-15T10:30:00Z",
+      "last_used": "2026-01-30T14:20:00Z"
     }
   ]
 }
 ```
 
-### Email Format (HTML)
+**Endpoint**: `POST /api/integrations`
 
-```html
-<h2>Payment Gateway Alert - HIGH</h2>
-<p>Your Stripe payment gateway is experiencing issues.</p>
-<div
-  style="background: #f8d7da; padding: 15px; border-left: 4px solid #dc3545;">
-  <strong>Success Rate:</strong> 45.2%<br />
-  <strong>Failed Transactions:</strong> 65 out of 120<br />
-  <strong>Time:</strong> January 26, 2026 10:30 AM
-</div>
-<a href="https://example.com/wp-admin/admin.php?page=wc-payment-monitor"
-  >View Dashboard</a
->
+**Request Body**:
+
+```json
+{
+  "name": "Production Alerts",
+  "type": "slack",
+  "webhook_url": "https://hooks.slack.com/services/..."
+}
 ```
+
+**Response** (200):
+
+```json
+{
+  "integration": {
+    "id": "int_1234567890",
+    "name": "Production Alerts",
+    "type": "slack",
+    "webhook_url": "https://hooks.slack.com/...",
+    "created_at": "2026-01-31T12:00:00Z"
+  }
+}
+```
+
+**Error Responses**:
+
+- `400`: Missing required fields
+- `401`: Unauthorized
+- `500`: Database error
+
+---
+
+### 8. Email Subscription
+
+Subscribe to the PaySentinel waitlist (marketing endpoint).
+
+**Endpoint**: `POST /api/subscribe`
+
+**Authentication**: None required
+
+**Rate Limit**: 5 requests/minute per IP
+
+**Request Body**:
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response** (200):
+
+```json
+{
+  "success": true,
+  "message": "Successfully subscribed!"
+}
+```
+
+**Error Responses**:
+
+- `400`: Invalid email address
+- `500`: Email sending failed
+
+---
+
+## Rate Limiting
+
+All endpoints implement rate limiting to prevent abuse:
+
+| Endpoint                   | Limit      | Window      |
+| -------------------------- | ---------- | ----------- |
+| `/api/licenses`            | 30 req/min | Per user    |
+| `/api/validate-license`    | 20 req/min | Per IP      |
+| `/api/alerts`              | 10 req/min | Per license |
+| `/api/checkout`            | 5 req/min  | Per user    |
+| `/api/update-subscription` | 3 req/min  | Per user    |
+| `/api/integrations`        | 30 req/min | Per user    |
+| `/api/subscribe`           | 5 req/min  | Per IP      |
+
+Rate limit headers are included in responses:
+
+```
+X-RateLimit-Limit: 30
+X-RateLimit-Remaining: 29
+X-RateLimit-Reset: 1640995200
+Retry-After: 60 (when exceeded)
+```
+
+---
+
+## Error Codes
+
+### HTTP Status Codes
+
+- `200`: Success
+- `201`: Created
+- `400`: Bad Request (validation error)
+- `401`: Unauthorized (invalid auth/license)
+- `403`: Forbidden (insufficient permissions/plan)
+- `404`: Not Found
+- `429`: Too Many Requests (rate limited)
+- `500`: Internal Server Error
+
+### Common Error Messages
+
+- `"Missing required fields: field1, field2"`
+- `"Invalid license key"`
+- `"License expired"`
+- `"Rate limit exceeded. Maximum X requests per minute"`
+- `"Alert type not available on your plan"`
+- `"Failed to send email"`
+
+---
+
+## SDK Examples
+
+### JavaScript/Node.js
+
+```javascript
+// Validate a license
+const response = await fetch("/api/validate-license", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    license_key: "XXXX-XXXX-XXXX-XXXX",
+    site_url: "https://mysite.com",
+  }),
+});
+
+const result = await response.json();
+if (result.valid) {
+  console.log("License is valid!", result.license);
+}
+```
+
+### cURL Examples
+
+```bash
+# Validate license
+curl -X POST /api/validate-license \
+  -H "Content-Type: application/json" \
+  -d '{
+    "license_key": "XXXX-XXXX-XXXX-XXXX",
+    "site_url": "https://mysite.com"
+  }'
+
+# Send SMS alert
+curl -X POST /api/alerts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "license_key": "XXXX-XXXX-XXXX-XXXX",
+    "alert_type": "SMS",
+    "recipient": "+1234567890",
+    "message": "License validation failed"
+  }'
+```
+
+---
+
+## Webhooks
+
+PaySentinel can send webhooks to your application for license events:
+
+### Supported Events
+
+- `license.created`
+- `license.expired`
+- `license.renewed`
+- `device.activated`
+- `device.deactivated`
+- `quota.exceeded`
+
+### Webhook Payload
+
+```json
+{
+  "event": "license.created",
+  "data": {
+    "license_id": "lic_1234567890",
+    "license_key": "XXXX-XXXX-XXXX-XXXX",
+    "user_email": "user@example.com",
+    "price_id": "price_1234567890",
+    "created_at": "2026-01-31T12:00:00Z"
+  },
+  "timestamp": "2026-01-31T12:00:00Z"
+}
+```
+
+Configure webhooks in your PayBee dashboard or through the integrations API.
+
+---
+
+## Support
+
+For API support or questions:
+
+- Check the [Testing Documentation](TESTING.md) for endpoint test examples
+- Review the [Project Overview](PROJECT_OVERVIEW.md) for architecture details
+- Contact support at support@paysentinel.com
+
+---
+
+_Last updated: January 31, 2026_

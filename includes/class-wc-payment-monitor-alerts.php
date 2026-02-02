@@ -1001,23 +1001,37 @@ class WC_Payment_Monitor_Alerts {
 			$contact['slack_workspace'] = $settings['alert_slack_workspace'];
 		}
 
-		// Prepare alert payload
+		// Prepare alert payload according to API spec
+		// The API expects a simple structure with license_key, alert_type, recipient/integration_id, and message
+		$message = $this->create_alert_message( $alert_data );
+		
 		$payload = array(
 			'license_key' => $license_key,
 			'site_url'    => get_site_url(),
-			'contact'     => $contact,
-			'channels'    => $channels,
-			'alert'       => array(
-				'type'          => $alert_data['alert_type'],
+			'message'     => $message,
+			'data'        => array(
+				'alert_type'    => $alert_data['alert_type'],
 				'gateway'       => $alert_data['gateway_id'],
 				'severity'      => $alert_data['severity'],
 				'success_rate'  => isset( $alert_data['success_rate'] ) ? $alert_data['success_rate'] : null,
 				'failed_count'  => isset( $alert_data['failed_transactions'] ) ? $alert_data['failed_transactions'] : 0,
 				'total_count'   => isset( $alert_data['total_transactions'] ) ? $alert_data['total_transactions'] : 0,
 				'timestamp'     => current_time( 'c' ),
-				'message'       => $this->create_alert_message( $alert_data ),
 			),
 		);
+		
+		// Add channel-specific fields
+		if ( in_array( 'sms', $channels ) && ! empty( $contact['phone'] ) ) {
+			$payload['alert_type'] = 'SMS';
+			$payload['recipient'] = $contact['phone'];
+		} elseif ( in_array( 'slack', $channels ) && ! empty( $contact['slack_workspace'] ) ) {
+			$payload['alert_type'] = 'SLACK';
+			$payload['integration_id'] = $contact['slack_workspace'];
+		} else {
+			// Default to email or first available channel
+			$payload['alert_type'] = 'EMAIL';
+			$payload['recipient'] = $contact['email'];
+		}
 
 		// Send to API
 		$url = 'https://paysentinel.caplaz.com/api/alerts';
@@ -1044,9 +1058,12 @@ class WC_Payment_Monitor_Alerts {
 
 		// Handle different response codes
 		if ( 200 === $response_code ) {
-			// Success - log quota info if available
-			if ( isset( $response_data['quota'] ) ) {
-				update_option( 'wc_payment_monitor_sms_quota', $response_data['quota'] );
+			// Success - log delivery status and quota info if available
+			if ( isset( $response_data['delivered'] ) && $response_data['delivered'] ) {
+				// Alert delivered successfully
+				if ( isset( $response_data['quota'] ) ) {
+					update_option( 'wc_payment_monitor_sms_quota', $response_data['quota'] );
+				}
 			}
 			return true;
 		} elseif ( 402 === $response_code ) {
@@ -1254,62 +1271,20 @@ class WC_Payment_Monitor_Alerts {
 			);
 		}
 
-		// This would typically make an API call to your license server
-		// For now, we'll implement a simple validation
-		$license_server_url = 'https://your-license-server.com/api/validate';
-
-		$args = array(
-			'method'  => 'POST',
-			'headers' => array(
-				'Content-Type' => 'application/json',
-			),
-			'body'    => json_encode(
-				array(
-					'license_key' => $license_key,
-					'domain'      => home_url(),
-					'product'     => 'wc-payment-monitor',
-				)
-			),
-			'timeout' => 30,
-		);
-
-		$response = wp_remote_post( $license_server_url, $args );
-
-		if ( is_wp_error( $response ) ) {
+		// Use the main license validation class instead of duplicate API call
+		$license_obj = new WC_Payment_Monitor_License();
+		$result = $license_obj->validate_license( $license_key );
+		
+		if ( $result['valid'] ) {
 			return array(
-				'valid'   => false,
-				'message' => __( 'Unable to validate license. Please try again later.', 'wc-payment-monitor' ),
+				'valid'   => true,
+				'message' => __( 'License validated successfully', 'wc-payment-monitor' ),
+				'expires' => isset( $result['data']['expiration_ts'] ) ? $result['data']['expiration_ts'] : null,
 			);
-		}
-
-		$response_code = wp_remote_retrieve_response_code( $response );
-		$response_body = wp_remote_retrieve_body( $response );
-
-		if ( $response_code === 200 ) {
-			$data = json_decode( $response_body, true );
-
-			if ( $data && isset( $data['valid'] ) && $data['valid'] ) {
-				// Update license status
-				update_option( 'wc_payment_monitor_license_status', 'active' );
-				update_option( 'wc_payment_monitor_license_expires', $data['expires'] ?? '' );
-
-				return array(
-					'valid'   => true,
-					'message' => __( 'License validated successfully', 'wc-payment-monitor' ),
-					'expires' => $data['expires'] ?? null,
-				);
-			} else {
-				update_option( 'wc_payment_monitor_license_status', 'invalid' );
-
-				return array(
-					'valid'   => false,
-					'message' => $data['message'] ?? __( 'Invalid license key', 'wc-payment-monitor' ),
-				);
-			}
 		} else {
 			return array(
 				'valid'   => false,
-				'message' => __( 'License validation failed. Please contact support.', 'wc-payment-monitor' ),
+				'message' => isset( $result['message'] ) ? $result['message'] : __( 'Invalid license key', 'wc-payment-monitor' ),
 			);
 		}
 	}

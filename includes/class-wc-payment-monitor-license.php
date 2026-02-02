@@ -68,12 +68,11 @@ class WC_Payment_Monitor_License {
 			);
 		}
 
-		// Prepare request
+		// Prepare request - API only expects license_key and site_url
 		$body = wp_json_encode(
 			array(
 				'license_key' => $license_key,
 				'site_url'    => $site_url,
-				'action'      => $action,
 			)
 		);
 
@@ -127,23 +126,37 @@ class WC_Payment_Monitor_License {
 		}
 
 		// Check if license is valid based on API response
-		// API returns expiration_ts if valid, or error message if invalid
-		$is_valid = isset( $data['expiration_ts'] ) && ! empty( $data['expiration_ts'] );
+		// For 200 responses, check if API provides explicit valid field, otherwise assume valid
+		$is_valid = isset( $data['valid'] ) ? (bool) $data['valid'] : true; // Assume valid for 200 responses unless explicitly false
 
-		// If there's an error message in response, it's invalid
-		if ( isset( $data['error'] ) || ( isset( $data['message'] ) && ! $is_valid ) ) {
+		// Only mark as invalid if there's a clear error indicator
+		if ( isset( $data['error'] ) ) {
 			$is_valid = false;
 		}
 
-		// Handle site registration response
+		// Check expiration if license data is available (actual API structure uses expiration_ts at root)
+		if ( $is_valid && isset( $data['expiration_ts'] ) && ! empty( $data['expiration_ts'] ) ) {
+			try {
+				$expires_timestamp = strtotime( $data['expiration_ts'] );
+				$current_time = current_time( 'timestamp' );
+				if ( $expires_timestamp <= $current_time ) {
+					$is_valid = false; // License expired
+				}
+			} catch ( Exception $e ) {
+				// If we can't parse the date, assume it's valid to avoid false negatives
+				$is_valid = true;
+			}
+		}
+
+		// Handle site registration from API response
 		$site_registered = false;
 		$site_registration_reason = '';
-
-		if ( $is_valid && isset( $data['site_registered'] ) ) {
-			$site_registered = (bool) $data['site_registered'];
-			if ( isset( $data['reason'] ) ) {
-				$site_registration_reason = $data['reason'];
-			}
+		
+		if ( $is_valid && isset( $data['site_registration']['registered'] ) ) {
+			$site_registered = (bool) $data['site_registration']['registered'];
+			$site_registration_reason = $site_registered ? 
+				__( 'Site is registered', 'wc-payment-monitor' ) : 
+				__( 'Site not registered', 'wc-payment-monitor' );
 		}
 
 		return array(
@@ -163,18 +176,19 @@ class WC_Payment_Monitor_License {
 	 * @return array Registration result with 'success' and 'reason' keys
 	 */
 	private function register_site_with_license( $license_key ) {
-		$result = $this->validate_license( $license_key, '', 'register_site' );
+		$result = $this->validate_license( $license_key );
 
-		if ( $result['valid'] && isset( $result['site_registered'] ) && $result['site_registered'] ) {
+		// According to API docs, validation automatically registers the site
+		if ( $result['valid'] ) {
 			return array(
 				'success' => true,
-				'reason'  => isset( $result['message'] ) ? $result['message'] : 'Site registered successfully',
+				'reason'  => isset( $result['message'] ) ? $result['message'] : __( 'Site registered successfully', 'wc-payment-monitor' ),
 			);
 		}
 
 		return array(
 			'success' => false,
-			'reason'  => isset( $result['message'] ) ? $result['message'] : 'Site registration failed',
+			'reason'  => isset( $result['message'] ) ? $result['message'] : __( 'Site registration failed - invalid license', 'wc-payment-monitor' ),
 		);
 	}
 
@@ -190,9 +204,9 @@ class WC_Payment_Monitor_License {
 
 		// If parsing failed, try to create a basic HTTPS URL
 		if ( ! $parsed || ! isset( $parsed['host'] ) ) {
-			// For localhost/development environments, use a placeholder
+			// For localhost/development environments, use a placeholder domain
 			if ( strpos( $site_url, 'localhost' ) !== false || strpos( $site_url, '127.0.0.1' ) !== false ) {
-				return 'https://localhost';
+				return 'https://dev.example.com';
 			}
 			// For other cases, try to extract domain-like string
 			$host = preg_replace( '/^https?:\/\//', '', $site_url );
@@ -210,8 +224,14 @@ class WC_Payment_Monitor_License {
 			$scheme = 'https';
 		}
 
+		// For localhost/development environments, use a placeholder domain
+		$host = $parsed['host'];
+		if ( $host === 'localhost' || $host === '127.0.0.1' ) {
+			$host = 'dev.example.com';
+		}
+
 		// Rebuild the URL
-		$normalized = $scheme . '://' . $parsed['host'];
+		$normalized = $scheme . '://' . $host;
 
 		// Add port if specified and not default
 		if ( isset( $parsed['port'] ) ) {
@@ -241,7 +261,8 @@ class WC_Payment_Monitor_License {
 		}
 
 		// If still invalid, return a basic HTTPS URL
-		return 'https://' . $parsed['host'];
+		$fallback_host = ( $parsed['host'] === 'localhost' || $parsed['host'] === '127.0.0.1' ) ? 'dev.example.com' : $parsed['host'];
+		return 'https://' . $fallback_host;
 	}
 
 	public function save_and_validate_license( $license_key ) {
