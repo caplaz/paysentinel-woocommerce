@@ -745,7 +745,7 @@ class WC_Payment_Monitor_Admin
 			if ($is_locked) {
 				printf(
 					__('SMS alerts delivered via PaySentinel servers. <strong>Requires Starter plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
-					'https://paysentinel.caplaz.com/plans'
+					'https://paysentinel.caplaz.com/pricing'
 				);
 			} else {
 				$quota = $this->license->get_sms_quota();
@@ -790,7 +790,7 @@ class WC_Payment_Monitor_Admin
 			if ($is_locked) {
 				printf(
 					__('Slack/Discord/Teams notifications delivered via PaySentinel. <strong>Requires Pro plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
-					'https://paysentinel.caplaz.com/plans'
+					'https://paysentinel.caplaz.com/pricing'
 				);
 			} else {
 				esc_html_e('Slack notifications delivered via PaySentinel servers. Click "Connect Slack" below to link your workspace.', 'wc-payment-monitor');
@@ -847,7 +847,7 @@ class WC_Payment_Monitor_Admin
 						<?php 
 						printf(
 							__('Per-gateway alert configuration requires Pro plan or higher. <a href="%s" target="_blank" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'wc-payment-monitor'),
-							'https://paysentinel.caplaz.com/plans'
+							'https://paysentinel.caplaz.com/pricing'
 						);
 						?>
 					</p>
