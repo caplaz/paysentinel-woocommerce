@@ -1,12 +1,10 @@
 <?php
+
 /**
  * Square Gateway Connector
  *
  * Handles connectivity checks with Square API
- *
- * @package WC_Payment_Monitor
  */
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -18,9 +16,8 @@ if (!defined('ABSPATH')) {
  */
 class WC_Payment_Monitor_Square_Connector extends WC_Payment_Monitor_Gateway_Connector
 {
-
-    const SQUARE_PRODUCTION_API = 'https://connect.squareup.com/v2';
-    const SQUARE_SANDBOX_API = 'https://connect.squareupsandbox.com/v2';
+    public const SQUARE_PRODUCTION_API = 'https://connect.squareup.com/v2';
+    public const SQUARE_SANDBOX_API = 'https://connect.squareupsandbox.com/v2';
 
     /**
      * Constructor
@@ -47,10 +44,10 @@ class WC_Payment_Monitor_Square_Connector extends WC_Payment_Monitor_Gateway_Con
      */
     protected function get_credentials()
     {
-        $square_settings = get_option('woocommerce_square_credit_card_settings', array());
+        $square_settings = get_option('woocommerce_square_credit_card_settings', []);
 
         if (!is_array($square_settings)) {
-            return array();
+            return [];
         }
 
         // Determine if sandbox or live. Square plugin often stores this in general settings or integration settings.
@@ -61,10 +58,10 @@ class WC_Payment_Monitor_Square_Connector extends WC_Payment_Monitor_Gateway_Con
         $sandbox = isset($square_settings['sandbox']) && 'yes' === $square_settings['sandbox'];
         $access_token = $sandbox ? ($square_settings['sandbox_token'] ?? '') : ($square_settings['token'] ?? '');
 
-        return array(
+        return [
             'access_token' => $access_token,
             'sandbox' => $sandbox,
-        );
+        ];
     }
 
     /**
@@ -77,16 +74,16 @@ class WC_Payment_Monitor_Square_Connector extends WC_Payment_Monitor_Gateway_Con
         $credentials = $this->get_credentials();
 
         if (empty($credentials['access_token'])) {
-            return array(
+            return [
                 'valid' => false,
                 'error' => 'Square Access Token not configured',
-            );
+            ];
         }
 
-        return array(
+        return [
             'valid' => true,
             'error' => null,
-        );
+        ];
     }
 
     /**
@@ -108,14 +105,14 @@ class WC_Payment_Monitor_Square_Connector extends WC_Payment_Monitor_Gateway_Con
         // Make request to Square Locations API (simplest read-only endpoint)
         $response = $this->make_http_request(
             $api_base . '/locations',
-            array(
+            [
                 'method' => 'GET',
-                'headers' => array(
+                'headers' => [
                     'Authorization' => 'Bearer ' . $credentials['access_token'],
                     'Content-Type' => 'application/json',
                     'Square-Version' => '2023-10-20', // Use a recent API version
-                ),
-            )
+                ],
+            ]
         );
 
         if (!$response['success']) {

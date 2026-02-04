@@ -1,11 +1,12 @@
 <?php
+
 /**
  * PHPUnit bootstrap file for WC Payment Monitor tests
  */
 
 // Composer autoloader
 if (file_exists(dirname(__DIR__) . '/vendor/autoload.php')) {
-	require_once dirname(__DIR__) . '/vendor/autoload.php';
+    require_once dirname(__DIR__) . '/vendor/autoload.php';
 }
 
 // Define test environment constants
@@ -18,7 +19,7 @@ define('WC_PAYMENT_MONITOR_VERSION', '1.0.0');
 // WordPress test environment setup
 $_tests_dir = getenv('WP_TESTS_DIR');
 if (!$_tests_dir) {
-	$_tests_dir = rtrim(sys_get_temp_dir(), '/\\') . '/wordpress-tests-lib';
+    $_tests_dir = rtrim(sys_get_temp_dir(), '/\\') . '/wordpress-tests-lib';
 }
 
 // Give access to tests_add_filter() function
@@ -31,19 +32,19 @@ require_once $_tests_dir . '/includes/functions.php';
  */
 function _manually_load_plugin()
 {
-	// Define WP_PLUGIN_DIR if not already defined
-	if (!defined('WP_PLUGIN_DIR')) {
-		define('WP_PLUGIN_DIR', '/tmp/wordpress/wp-content/plugins');
-	}
+    // Define WP_PLUGIN_DIR if not already defined
+    if (!defined('WP_PLUGIN_DIR')) {
+        define('WP_PLUGIN_DIR', '/tmp/wordpress/wp-content/plugins');
+    }
 
-	// Load WooCommerce FIRST
-	$wc_main = WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
-	if (file_exists($wc_main)) {
-		require_once $wc_main;
-	}
+    // Load WooCommerce FIRST
+    $wc_main = WP_PLUGIN_DIR . '/woocommerce/woocommerce.php';
+    if (file_exists($wc_main)) {
+        require_once $wc_main;
+    }
 
-	// Load the plugin being tested
-	require_once WC_PAYMENT_MONITOR_PLUGIN_FILE;
+    // Load the plugin being tested
+    require_once WC_PAYMENT_MONITOR_PLUGIN_FILE;
 }
 
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');
@@ -52,14 +53,14 @@ tests_add_filter('muplugins_loaded', '_manually_load_plugin');
 // This must happen after WooCommerce loads but during test setup.
 function _install_woocommerce_for_tests()
 {
-	if (class_exists('WC_Install')) {
-		WC_Install::install();
-	}
-	
-	// Create plugin tables
-	if (class_exists('WC_Payment_Monitor_Database')) {
-		(new WC_Payment_Monitor_Database())->create_tables();
-	}
+    if (class_exists('WC_Install')) {
+        WC_Install::install();
+    }
+
+    // Create plugin tables
+    if (class_exists('WC_Payment_Monitor_Database')) {
+        (new WC_Payment_Monitor_Database())->create_tables();
+    }
 }
 
 // Run installation on setup_theme hook - this is called during test bootstrap

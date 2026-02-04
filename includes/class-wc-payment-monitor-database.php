@@ -1,62 +1,66 @@
 <?php
+
 /**
  * Database management class
  */
 
 // Prevent direct access
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if (!defined('ABSPATH')) {
+    exit;
 }
 
-class WC_Payment_Monitor_Database {
+class WC_Payment_Monitor_Database
+{
+    /**
+     * Database version
+     */
+    public const DB_VERSION = '1.0.0';
 
-	/**
-	 * Database version
-	 */
-	const DB_VERSION = '1.0.0';
+    /**
+     * Table names
+     */
+    private $transactions_table;
+    private $gateway_health_table;
+    private $alerts_table;
+    private $gateway_connectivity_table;
 
-	/**
-	 * Table names
-	 */
-	private $transactions_table;
-	private $gateway_health_table;
-	private $alerts_table;
-	private $gateway_connectivity_table;
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        global $wpdb;
 
-	/**
-	 * Constructor
-	 */
-	public function __construct() {
-		global $wpdb;
+        $this->transactions_table           = $wpdb->prefix . 'payment_monitor_transactions';
+        $this->gateway_health_table         = $wpdb->prefix . 'payment_monitor_gateway_health';
+        $this->alerts_table                 = $wpdb->prefix . 'payment_monitor_alerts';
+        $this->gateway_connectivity_table   = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
+    }
 
-		$this->transactions_table           = $wpdb->prefix . 'payment_monitor_transactions';
-		$this->gateway_health_table         = $wpdb->prefix . 'payment_monitor_gateway_health';
-		$this->alerts_table                 = $wpdb->prefix . 'payment_monitor_alerts';
-		$this->gateway_connectivity_table   = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
-	}
+    /**
+     * Create all database tables
+     */
+    public function create_tables()
+    {
+        $this->create_transactions_table();
+        $this->create_gateway_health_table();
+        $this->create_alerts_table();
+        $this->create_gateway_connectivity_table();
 
-	/**
-	 * Create all database tables
-	 */
-	public function create_tables() {
-		$this->create_transactions_table();
-		$this->create_gateway_health_table();
-		$this->create_alerts_table();
-		$this->create_gateway_connectivity_table();
+        // Update database version
+        update_option('payment_monitor_db_version', self::DB_VERSION);
+    }
 
-		// Update database version
-		update_option( 'payment_monitor_db_version', self::DB_VERSION );
-	}
+    /**
+     * Create transactions table
+     */
+    private function create_transactions_table()
+    {
+        global $wpdb;
 
-	/**
-	 * Create transactions table
-	 */
-	private function create_transactions_table() {
-		global $wpdb;
+        $charset_collate = $wpdb->get_charset_collate();
 
-		$charset_collate = $wpdb->get_charset_collate();
-
-		$sql = "CREATE TABLE {$this->transactions_table} (
+        $sql = "CREATE TABLE {$this->transactions_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             order_id BIGINT(20) UNSIGNED NOT NULL,
             gateway_id VARCHAR(50) NOT NULL,
@@ -79,19 +83,20 @@ class WC_Payment_Monitor_Database {
             KEY idx_gateway_status_created (gateway_id, status, created_at)
         ) $charset_collate;";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
-	}
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
 
-	/**
-	 * Create gateway health table
-	 */
-	private function create_gateway_health_table() {
-		global $wpdb;
+    /**
+     * Create gateway health table
+     */
+    private function create_gateway_health_table()
+    {
+        global $wpdb;
 
-		$charset_collate = $wpdb->get_charset_collate();
+        $charset_collate = $wpdb->get_charset_collate();
 
-		$sql = "CREATE TABLE {$this->gateway_health_table} (
+        $sql = "CREATE TABLE {$this->gateway_health_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             gateway_id VARCHAR(50) NOT NULL,
             period ENUM('1hour', '24hour', '7day') NOT NULL,
@@ -108,19 +113,20 @@ class WC_Payment_Monitor_Database {
             KEY idx_calculated_at (calculated_at)
         ) $charset_collate;";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
-	}
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
 
-	/**
-	 * Create alerts table
-	 */
-	private function create_alerts_table() {
-		global $wpdb;
+    /**
+     * Create alerts table
+     */
+    private function create_alerts_table()
+    {
+        global $wpdb;
 
-		$charset_collate = $wpdb->get_charset_collate();
+        $charset_collate = $wpdb->get_charset_collate();
 
-		$sql = "CREATE TABLE {$this->alerts_table} (
+        $sql = "CREATE TABLE {$this->alerts_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             alert_type ENUM('gateway_down', 'low_success_rate', 'high_failure_count', 'gateway_error') NOT NULL,
             gateway_id VARCHAR(50) NOT NULL,
@@ -139,19 +145,20 @@ class WC_Payment_Monitor_Database {
             KEY idx_created_at (created_at)
         ) $charset_collate;";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
-	}
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
 
-	/**
-	 * Create gateway connectivity table
-	 */
-	private function create_gateway_connectivity_table() {
-		global $wpdb;
+    /**
+     * Create gateway connectivity table
+     */
+    private function create_gateway_connectivity_table()
+    {
+        global $wpdb;
 
-		$charset_collate = $wpdb->get_charset_collate();
+        $charset_collate = $wpdb->get_charset_collate();
 
-		$sql = "CREATE TABLE {$this->gateway_connectivity_table} (
+        $sql = "CREATE TABLE {$this->gateway_connectivity_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             gateway_id VARCHAR(50) NOT NULL,
             status ENUM('online', 'offline', 'unconfigured') NOT NULL,
@@ -166,304 +173,323 @@ class WC_Payment_Monitor_Database {
             KEY idx_gateway_checked (gateway_id, checked_at)
         ) $charset_collate;";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
-	}
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
 
-	/**
-	 * Drop all database tables
-	 */
-	public function drop_tables() {
-		global $wpdb;
+    /**
+     * Drop all database tables
+     */
+    public function drop_tables()
+    {
+        global $wpdb;
 
-		$wpdb->query( "DROP TABLE IF EXISTS {$this->transactions_table}" );
-		$wpdb->query( "DROP TABLE IF EXISTS {$this->gateway_health_table}" );
-		$wpdb->query( "DROP TABLE IF EXISTS {$this->alerts_table}" );
-		$wpdb->query( "DROP TABLE IF EXISTS {$this->gateway_connectivity_table}" );
+        $wpdb->query("DROP TABLE IF EXISTS {$this->transactions_table}");
+        $wpdb->query("DROP TABLE IF EXISTS {$this->gateway_health_table}");
+        $wpdb->query("DROP TABLE IF EXISTS {$this->alerts_table}");
+        $wpdb->query("DROP TABLE IF EXISTS {$this->gateway_connectivity_table}");
 
-		// Remove database version
-		delete_option( 'payment_monitor_db_version' );
-	}
+        // Remove database version
+        delete_option('payment_monitor_db_version');
+    }
 
-	/**
-	 * Get transactions table name
-	 */
-	public function get_transactions_table() {
-		return $this->transactions_table;
-	}
+    /**
+     * Get transactions table name
+     */
+    public function get_transactions_table()
+    {
+        return $this->transactions_table;
+    }
 
-	/**
-	 * Get gateway health table name
-	 */
-	public function get_gateway_health_table() {
-		return $this->gateway_health_table;
-	}
+    /**
+     * Get gateway health table name
+     */
+    public function get_gateway_health_table()
+    {
+        return $this->gateway_health_table;
+    }
 
-	/**
-	 * Get alerts table name
-	 */
-	public function get_alerts_table() {
-		return $this->alerts_table;
-	}
+    /**
+     * Get alerts table name
+     */
+    public function get_alerts_table()
+    {
+        return $this->alerts_table;
+    }
 
-	/**
-	 * Get gateway connectivity table name
-	 */
-	public function get_gateway_connectivity_table() {
-		return $this->gateway_connectivity_table;
-	}
+    /**
+     * Get gateway connectivity table name
+     */
+    public function get_gateway_connectivity_table()
+    {
+        return $this->gateway_connectivity_table;
+    }
 
-	/**
-	 * Check if tables exist
-	 */
-	public function tables_exist() {
-		global $wpdb;
+    /**
+     * Check if tables exist
+     */
+    public function tables_exist()
+    {
+        global $wpdb;
 
-		$tables = array(
-			$this->transactions_table,
-			$this->gateway_health_table,
-			$this->alerts_table,
-		);
+        $tables = [
+            $this->transactions_table,
+            $this->gateway_health_table,
+            $this->alerts_table,
+        ];
 
-		foreach ( $tables as $table ) {
-			$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
-			if ( $result !== $table ) {
-				return false;
-			}
-		}
+        foreach ($tables as $table) {
+            $result = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+            if ($result !== $table) {
+                return false;
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	/**
-	 * Get database version
-	 */
-	public function get_db_version() {
-		return get_option( 'payment_monitor_db_version', '0.0.0' );
-	}
+    /**
+     * Get database version
+     */
+    public function get_db_version()
+    {
+        return get_option('payment_monitor_db_version', '0.0.0');
+    }
 
-	/**
-	 * Check if database needs update
-	 */
-	public function needs_update() {
-		return version_compare( $this->get_db_version(), self::DB_VERSION, '<' );
-	}
+    /**
+     * Check if database needs update
+     */
+    public function needs_update()
+    {
+        return version_compare($this->get_db_version(), self::DB_VERSION, '<');
+    }
 
-	/**
-	 * Run database migrations
-	 *
-	 * @return bool True on success, false on failure
-	 */
-	public function run_migrations() {
-		$current_version = $this->get_db_version();
+    /**
+     * Run database migrations
+     *
+     * @return bool True on success, false on failure
+     */
+    public function run_migrations()
+    {
+        $current_version = $this->get_db_version();
 
-		// Migrations array: version => callable
-		$migrations = array(
-			'0.0.0' => array( $this, 'migrate_to_v1_0_0' ),
-		);
+        // Migrations array: version => callable
+        $migrations = [
+            '0.0.0' => [$this, 'migrate_to_v1_0_0'],
+        ];
 
-		foreach ( $migrations as $version => $migration ) {
-			if ( version_compare( $current_version, $version, '<=' ) ) {
-				if ( ! call_user_func( $migration ) ) {
-					return false;
-				}
-			}
-		}
+        foreach ($migrations as $version => $migration) {
+            if (version_compare($current_version, $version, '<=')) {
+                if (!call_user_func($migration)) {
+                    return false;
+                }
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	/**
-	 * Migrate to version 1.0.0
-	 *
-	 * @return bool True on success
-	 */
-	private function migrate_to_v1_0_0() {
-		// Create all tables from scratch or update existing ones
-		$this->create_tables();
-		return true;
-	}
+    /**
+     * Migrate to version 1.0.0
+     *
+     * @return bool True on success
+     */
+    private function migrate_to_v1_0_0()
+    {
+        // Create all tables from scratch or update existing ones
+        $this->create_tables();
+        return true;
+    }
 
-	/**
-	 * Verify table structure and integrity
-	 *
-	 * @return array Verification result with 'valid' bool and 'errors' array
-	 */
-	public function verify_table_structure() {
-		global $wpdb;
+    /**
+     * Verify table structure and integrity
+     *
+     * @return array Verification result with 'valid' bool and 'errors' array
+     */
+    public function verify_table_structure()
+    {
+        global $wpdb;
 
-		$errors      = array();
-		$tables_info = array(
-			$this->transactions_table   => array(
-				'required_columns' => array( 'id', 'order_id', 'gateway_id', 'status', 'created_at' ),
-				'required_indexes' => array( 'id', 'gateway_id', 'status' ),
-			),
-			$this->gateway_health_table => array(
-				'required_columns' => array( 'id', 'gateway_id', 'period', 'success_rate', 'calculated_at' ),
-				'required_indexes' => array( 'id', 'gateway_id' ),
-			),
-			$this->alerts_table         => array(
-				'required_columns' => array( 'id', 'alert_type', 'gateway_id', 'severity', 'created_at' ),
-				'required_indexes' => array( 'id', 'gateway_id' ),
-			),
-		);
+        $errors      = [];
+        $tables_info = [
+            $this->transactions_table   => [
+                'required_columns' => ['id', 'order_id', 'gateway_id', 'status', 'created_at'],
+                'required_indexes' => ['id', 'gateway_id', 'status'],
+            ],
+            $this->gateway_health_table => [
+                'required_columns' => ['id', 'gateway_id', 'period', 'success_rate', 'calculated_at'],
+                'required_indexes' => ['id', 'gateway_id'],
+            ],
+            $this->alerts_table         => [
+                'required_columns' => ['id', 'alert_type', 'gateway_id', 'severity', 'created_at'],
+                'required_indexes' => ['id', 'gateway_id'],
+            ],
+        ];
 
-		foreach ( $tables_info as $table => $info ) {
-			// Check if table exists
-			$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
-			if ( ! $table_exists ) {
-				$errors[] = "Table $table does not exist";
-				continue;
-			}
+        foreach ($tables_info as $table => $info) {
+            // Check if table exists
+            $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+            if (!$table_exists) {
+                $errors[] = "Table $table does not exist";
+                continue;
+            }
 
-			// Check required columns
-			$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$table}" );
-			foreach ( $info['required_columns'] as $column ) {
-				if ( ! in_array( $column, $columns, true ) ) {
-					$errors[] = "Missing column '$column' in table '$table'";
-				}
-			}
+            // Check required columns
+            $columns = $wpdb->get_col("SHOW COLUMNS FROM {$table}");
+            foreach ($info['required_columns'] as $column) {
+                if (!in_array($column, $columns, true)) {
+                    $errors[] = "Missing column '$column' in table '$table'";
+                }
+            }
 
-			// Check required indexes
-			$indexes = $wpdb->get_col( "SHOW INDEX FROM {$table}" );
-			foreach ( $info['required_indexes'] as $index ) {
-				if ( ! in_array( $index, $indexes, true ) ) {
-					$errors[] = "Missing index for column '$index' in table '$table'";
-				}
-			}
-		}
+            // Check required indexes
+            $indexes = $wpdb->get_col("SHOW INDEX FROM {$table}");
+            foreach ($info['required_indexes'] as $index) {
+                if (!in_array($index, $indexes, true)) {
+                    $errors[] = "Missing index for column '$index' in table '$table'";
+                }
+            }
+        }
 
-		return array(
-			'valid'          => empty( $errors ),
-			'errors'         => $errors,
-			'tables_checked' => count( $tables_info ),
-		);
-	}
+        return [
+            'valid'          => empty($errors),
+            'errors'         => $errors,
+            'tables_checked' => count($tables_info),
+        ];
+    }
 
-	/**
-	 * Get database statistics
-	 *
-	 * @return array Statistics for all tables
-	 */
-	public function get_database_stats() {
-		global $wpdb;
+    /**
+     * Get database statistics
+     *
+     * @return array Statistics for all tables
+     */
+    public function get_database_stats()
+    {
+        global $wpdb;
 
-		$stats = array();
+        $stats = [];
 
-		// Transactions statistics
-		$trans_count           = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->transactions_table}" );
-		$stats['transactions'] = array(
-			'total_records' => intval( $trans_count ),
-			'table_size'    => $wpdb->get_var( "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->transactions_table}'" ),
-		);
+        // Transactions statistics
+        $trans_count           = $wpdb->get_var("SELECT COUNT(*) FROM {$this->transactions_table}");
+        $stats['transactions'] = [
+            'total_records' => intval($trans_count),
+            'table_size'    => $wpdb->get_var("SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->transactions_table}'"),
+        ];
 
-		// Gateway health statistics
-		$health_count            = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->gateway_health_table}" );
-		$stats['gateway_health'] = array(
-			'total_records' => intval( $health_count ),
-			'table_size'    => $wpdb->get_var( "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->gateway_health_table}'" ),
-		);
+        // Gateway health statistics
+        $health_count            = $wpdb->get_var("SELECT COUNT(*) FROM {$this->gateway_health_table}");
+        $stats['gateway_health'] = [
+            'total_records' => intval($health_count),
+            'table_size'    => $wpdb->get_var("SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->gateway_health_table}'"),
+        ];
 
-		// Alerts statistics
-		$alerts_count    = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->alerts_table}" );
-		$stats['alerts'] = array(
-			'total_records' => intval( $alerts_count ),
-			'table_size'    => $wpdb->get_var( "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->alerts_table}'" ),
-		);
+        // Alerts statistics
+        $alerts_count    = $wpdb->get_var("SELECT COUNT(*) FROM {$this->alerts_table}");
+        $stats['alerts'] = [
+            'total_records' => intval($alerts_count),
+            'table_size'    => $wpdb->get_var("SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->alerts_table}'"),
+        ];
 
-		return $stats;
-	}
+        return $stats;
+    }
 
-	/**
-	 * Clean up old transaction records
-	 *
-	 * @param int $days Number of days to keep (default: 90)
-	 * @return int Number of records deleted
-	 */
-	public function cleanup_old_transactions( $days = 90 ) {
-		global $wpdb;
+    /**
+     * Clean up old transaction records
+     *
+     * @param int $days Number of days to keep (default: 90)
+     *
+     * @return int Number of records deleted
+     */
+    public function cleanup_old_transactions($days = 90)
+    {
+        global $wpdb;
 
-		if ( $days < 1 || $days > 365 ) {
-			return 0;
-		}
+        if ($days < 1 || $days > 365) {
+            return 0;
+        }
 
-		$cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
+        $cutoff_date = date('Y-m-d H:i:s', strtotime("-$days days"));
 
-		$deleted = $wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM {$this->transactions_table} WHERE created_at < %s",
-				$cutoff_date
-			)
-		);
+        $deleted = $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$this->transactions_table} WHERE created_at < %s",
+                $cutoff_date
+            )
+        );
 
-		return intval( $deleted );
-	}
+        return intval($deleted);
+    }
 
-	/**
-	 * Clean up old alert records
-	 *
-	 * @param int $days Number of days to keep (default: 30)
-	 * @return int Number of records deleted
-	 */
-	public function cleanup_old_alerts( $days = 30 ) {
-		global $wpdb;
+    /**
+     * Clean up old alert records
+     *
+     * @param int $days Number of days to keep (default: 30)
+     *
+     * @return int Number of records deleted
+     */
+    public function cleanup_old_alerts($days = 30)
+    {
+        global $wpdb;
 
-		if ( $days < 1 || $days > 365 ) {
-			return 0;
-		}
+        if ($days < 1 || $days > 365) {
+            return 0;
+        }
 
-		$cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
+        $cutoff_date = date('Y-m-d H:i:s', strtotime("-$days days"));
 
-		$deleted = $wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM {$this->alerts_table} WHERE is_resolved = 1 AND resolved_at < %s",
-				$cutoff_date
-			)
-		);
+        $deleted = $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$this->alerts_table} WHERE is_resolved = 1 AND resolved_at < %s",
+                $cutoff_date
+            )
+        );
 
-		return intval( $deleted );
-	}
+        return intval($deleted);
+    }
 
-	/**
-	 * Optimize all database tables
-	 *
-	 * @return array Optimization results
-	 */
-	public function optimize_tables() {
-		global $wpdb;
+    /**
+     * Optimize all database tables
+     *
+     * @return array Optimization results
+     */
+    public function optimize_tables()
+    {
+        global $wpdb;
 
-		$tables = array(
-			$this->transactions_table,
-			$this->gateway_health_table,
-			$this->alerts_table,
-		);
+        $tables = [
+            $this->transactions_table,
+            $this->gateway_health_table,
+            $this->alerts_table,
+        ];
 
-		$results = array();
+        $results = [];
 
-		foreach ( $tables as $table ) {
-			$result            = $wpdb->query( "OPTIMIZE TABLE {$table}" );
-			$results[ $table ] = $result !== false;
-		}
+        foreach ($tables as $table) {
+            $result            = $wpdb->query("OPTIMIZE TABLE {$table}");
+            $results[$table] = $result !== false;
+        }
 
-		return $results;
-	}
+        return $results;
+    }
 
-	/**
-	 * Get last database maintenance time
-	 *
-	 * @return string Last maintenance timestamp or 'never'
-	 */
-	public function get_last_maintenance() {
-		$time = get_option( 'payment_monitor_last_maintenance', false );
-		return $time ? date( 'Y-m-d H:i:s', intval( $time ) ) : 'never';
-	}
+    /**
+     * Get last database maintenance time
+     *
+     * @return string Last maintenance timestamp or 'never'
+     */
+    public function get_last_maintenance()
+    {
+        $time = get_option('payment_monitor_last_maintenance', false);
+        return $time ? date('Y-m-d H:i:s', intval($time)) : 'never';
+    }
 
-	/**
-	 * Record database maintenance
-	 *
-	 * @return bool True on success
-	 */
-	public function record_maintenance() {
-		return update_option( 'payment_monitor_last_maintenance', time() );
-	}
+    /**
+     * Record database maintenance
+     *
+     * @return bool True on success
+     */
+    public function record_maintenance()
+    {
+        return update_option('payment_monitor_last_maintenance', time());
+    }
 }

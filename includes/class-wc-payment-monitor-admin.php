@@ -5,376 +5,379 @@
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
-	exit;
+    exit;
 }
 
 class WC_Payment_Monitor_Admin
 {
+    /**
+     * Database instance
+     */
+    private $database;
 
-	/**
-	 * Database instance
-	 */
-	private $database;
+    /**
+     * Security instance
+     */
+    private $security;
 
-	/**
-	 * Security instance
-	 */
-	private $security;
+    /**
+     * License instance
+     */
+    private $license;
 
-	/**
-	 * License instance
-	 */
-	private $license;
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->database = new WC_Payment_Monitor_Database();
+        $this->security = new WC_Payment_Monitor_Security();
+        $this->license = new WC_Payment_Monitor_License();
+        $this->init_hooks();
+    }
 
-	/**
-	 * Constructor
-	 */
-	public function __construct()
-	{
-		$this->database = new WC_Payment_Monitor_Database();
-		$this->security = new WC_Payment_Monitor_Security();
-		$this->license = new WC_Payment_Monitor_License();
-		$this->init_hooks();
-	}
+    /**
+     * Initialize WordPress hooks
+     */
+    private function init_hooks()
+    {
+        add_action('admin_menu', [$this, 'register_menu_pages']);
+        add_action('admin_init', [$this, 'register_settings']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_scripts']);
+        add_action('update_option_wc_payment_monitor_options', [$this, 'validate_license_on_save'], 10, 2);
+        add_action('admin_init', [$this, 'handle_slack_callback']);
 
-	/**
-	 * Initialize WordPress hooks
-	 */
-	private function init_hooks()
-	{
-		add_action('admin_menu', array($this, 'register_menu_pages'));
-		add_action('admin_init', array($this, 'register_settings'));
-		add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-		add_action('update_option_wc_payment_monitor_options', array($this, 'validate_license_on_save'), 10, 2);
+        // Slack Test AJAX
+        add_action('wp_ajax_wc_payment_monitor_slack_test', [$this, 'handle_slack_test']);
 
-		// Admin actions
-		add_action('admin_post_wc_payment_monitor_retry', array($this, 'handle_manual_retry'));
-		add_action('admin_post_wc_payment_monitor_recovery', array($this, 'handle_recovery_email'));
-	}
+        // Admin actions
+        add_action('admin_post_wc_payment_monitor_retry', [$this, 'handle_manual_retry']);
+        add_action('admin_post_wc_payment_monitor_recovery', [$this, 'handle_recovery_email']);
+    }
 
-	/**
-	 * Enqueue admin scripts and styles
-	 */
-	public function enqueue_admin_scripts($hook)
-	{
-		// Only load on our plugin pages
-		if (strpos($hook, 'wc-payment-monitor') === false) {
-			return;
-		}
+    /**
+     * Enqueue admin scripts and styles
+     */
+    public function enqueue_admin_scripts($hook)
+    {
+        // Only load on our plugin pages
+        if (strpos($hook, 'wc-payment-monitor') === false) {
+            return;
+        }
 
-		// Ensure constants are defined
-		if (!defined('WC_PAYMENT_MONITOR_PLUGIN_URL') || !defined('WC_PAYMENT_MONITOR_VERSION')) {
-			return;
-		}
+        // Ensure constants are defined
+        if (!defined('WC_PAYMENT_MONITOR_PLUGIN_URL') || !defined('WC_PAYMENT_MONITOR_VERSION')) {
+            return;
+        }
 
-		// Enqueue WordPress REST API dependencies
-		wp_enqueue_script('wp-api-fetch');
-		wp_enqueue_script('wp-element');
-		wp_enqueue_script('wp-components');
-		wp_enqueue_script('wp-i18n');
+        // Enqueue WordPress REST API dependencies
+        wp_enqueue_script('wp-api-fetch');
+        wp_enqueue_script('wp-element');
+        wp_enqueue_script('wp-components');
+        wp_enqueue_script('wp-i18n');
 
-		// Enqueue Chart.js 4.x from CDN for data visualization
-		wp_register_script(
-			'chartjs',
-			'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
-			array(),
-			'4.4.1',
-			true
-		);
+        // Enqueue Chart.js 4.x from CDN for data visualization
+        wp_register_script(
+            'chartjs',
+            'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+            [],
+            '4.4.1',
+            true
+        );
 
-		// Enqueue our dashboard script
-		$dashboard_js_path = WC_PAYMENT_MONITOR_PLUGIN_DIR . 'assets/js/dashboard/index.js';
-		$dashboard_css_path = WC_PAYMENT_MONITOR_PLUGIN_DIR . 'assets/js/dashboard/index.css';
-		$js_ver = file_exists($dashboard_js_path) ? filemtime($dashboard_js_path) : WC_PAYMENT_MONITOR_VERSION;
-		$css_ver = file_exists($dashboard_css_path) ? filemtime($dashboard_css_path) : WC_PAYMENT_MONITOR_VERSION;
+        // Enqueue our dashboard script
+        $dashboard_js_path = WC_PAYMENT_MONITOR_PLUGIN_DIR . 'assets/js/dashboard/index.js';
+        $dashboard_css_path = WC_PAYMENT_MONITOR_PLUGIN_DIR . 'assets/js/dashboard/index.css';
+        $js_ver = file_exists($dashboard_js_path) ? filemtime($dashboard_js_path) : WC_PAYMENT_MONITOR_VERSION;
+        $css_ver = file_exists($dashboard_css_path) ? filemtime($dashboard_css_path) : WC_PAYMENT_MONITOR_VERSION;
 
-		wp_enqueue_script(
-			'wc-payment-monitor-dashboard',
-			WC_PAYMENT_MONITOR_PLUGIN_URL . 'assets/js/dashboard/index.js',
-			array('wp-api-fetch', 'wp-element', 'chartjs'),
-			$js_ver,
-			true
-		);
+        wp_enqueue_script(
+            'wc-payment-monitor-dashboard',
+            WC_PAYMENT_MONITOR_PLUGIN_URL . 'assets/js/dashboard/index.js',
+            ['wp-api-fetch', 'wp-element', 'chartjs'],
+            $js_ver,
+            true
+        );
 
-		// Enqueue our dashboard styles
-		wp_enqueue_style(
-			'wc-payment-monitor-dashboard',
-			WC_PAYMENT_MONITOR_PLUGIN_URL . 'assets/js/dashboard/index.css',
-			array(),
-			$css_ver
-		);
+        // Enqueue our dashboard styles
+        wp_enqueue_style(
+            'wc-payment-monitor-dashboard',
+            WC_PAYMENT_MONITOR_PLUGIN_URL . 'assets/js/dashboard/index.css',
+            [],
+            $css_ver
+        );
 
-		// Use wp_set_script_translations for REST API nonce
-		wp_set_script_translations(
-			'wc-payment-monitor-dashboard',
-			'wc-payment-monitor'
-		);
+        // Use wp_set_script_translations for REST API nonce
+        wp_set_script_translations(
+            'wc-payment-monitor-dashboard',
+            'wc-payment-monitor'
+        );
 
-		// Localize script with API data
-		wp_localize_script(
-			'wc-payment-monitor-dashboard',
-			'wcPaymentMonitor',
-			array(
-				'apiUrl' => rest_url('wc-payment-monitor/v1/'),
-				'nonce' => wp_create_nonce('wp_rest'),
-				'currentUser' => get_current_user_id(),
-				'restNonce' => sanitize_text_field(wp_create_nonce('wp_rest')),
-			)
-		);
-	}
+        // Localize script with API data
+        wp_localize_script(
+            'wc-payment-monitor-dashboard',
+            'wcPaymentMonitor',
+            [
+                'apiUrl' => rest_url('wc-payment-monitor/v1/'),
+                'nonce' => wp_create_nonce('wp_rest'),
+                'currentUser' => get_current_user_id(),
+                'restNonce' => sanitize_text_field(wp_create_nonce('wp_rest')),
+            ]
+        );
+    }
 
-	/**
-	 * Register admin menu and pages
-	 */
-	public function register_menu_pages()
-	{
-		// Check user capability
-		if (!current_user_can('manage_woocommerce')) {
-			return;
-		}
+    /**
+     * Register admin menu and pages
+     */
+    public function register_menu_pages()
+    {
+        // Check user capability
+        if (!current_user_can('manage_woocommerce')) {
+            return;
+        }
 
-		// Add main menu page
-		add_menu_page(
-			__('Payment Monitor', 'wc-payment-monitor'),
-			__('Payment Monitor', 'wc-payment-monitor'),
-			'manage_woocommerce',
-			'wc-payment-monitor',
-			array($this, 'render_dashboard_page'),
-			'dashicons-chart-line',
-			56
-		);
+        // Add main menu page
+        add_menu_page(
+            __('Payment Monitor', 'wc-payment-monitor'),
+            __('Payment Monitor', 'wc-payment-monitor'),
+            'manage_woocommerce',
+            'wc-payment-monitor',
+            [$this, 'render_dashboard_page'],
+            'dashicons-chart-line',
+            56
+        );
 
-		// Add dashboard submenu
-		add_submenu_page(
-			'wc-payment-monitor',
-			__('Dashboard', 'wc-payment-monitor'),
-			__('Dashboard', 'wc-payment-monitor'),
-			'manage_woocommerce',
-			'wc-payment-monitor',
-			array($this, 'render_dashboard_page')
-		);
+        // Add dashboard submenu
+        add_submenu_page(
+            'wc-payment-monitor',
+            __('Dashboard', 'wc-payment-monitor'),
+            __('Dashboard', 'wc-payment-monitor'),
+            'manage_woocommerce',
+            'wc-payment-monitor',
+            [$this, 'render_dashboard_page']
+        );
 
-		// Add gateway health submenu
-		add_submenu_page(
-			'wc-payment-monitor',
-			__('Gateway Health', 'wc-payment-monitor'),
-			__('Gateway Health', 'wc-payment-monitor'),
-			'manage_woocommerce',
-			'wc-payment-monitor-health',
-			array($this, 'render_health_page')
-		);
+        // Add gateway health submenu
+        add_submenu_page(
+            'wc-payment-monitor',
+            __('Gateway Health', 'wc-payment-monitor'),
+            __('Gateway Health', 'wc-payment-monitor'),
+            'manage_woocommerce',
+            'wc-payment-monitor-health',
+            [$this, 'render_health_page']
+        );
 
-		// Add transaction logs submenu
-		add_submenu_page(
-			'wc-payment-monitor',
-			__('Transactions', 'wc-payment-monitor'),
-			__('Transactions', 'wc-payment-monitor'),
-			'manage_woocommerce',
-			'wc-payment-monitor-transactions',
-			array($this, 'render_transactions_page')
-		);
+        // Add transaction logs submenu
+        add_submenu_page(
+            'wc-payment-monitor',
+            __('Transactions', 'wc-payment-monitor'),
+            __('Transactions', 'wc-payment-monitor'),
+            'manage_woocommerce',
+            'wc-payment-monitor-transactions',
+            [$this, 'render_transactions_page']
+        );
 
-		// Add alerts submenu
-		add_submenu_page(
-			'wc-payment-monitor',
-			__('Alerts', 'wc-payment-monitor'),
-			__('Alerts', 'wc-payment-monitor'),
-			'manage_woocommerce',
-			'wc-payment-monitor-alerts',
-			array($this, 'render_alerts_page')
-		);
+        // Add alerts submenu
+        add_submenu_page(
+            'wc-payment-monitor',
+            __('Alerts', 'wc-payment-monitor'),
+            __('Alerts', 'wc-payment-monitor'),
+            'manage_woocommerce',
+            'wc-payment-monitor-alerts',
+            [$this, 'render_alerts_page']
+        );
 
-		// Add diagnostic tools submenu
-		add_submenu_page(
-			'wc-payment-monitor',
-			__('Diagnostic Tools', 'wc-payment-monitor'),
-			__('Diagnostic Tools', 'wc-payment-monitor'),
-			'manage_woocommerce',
-			'wc-payment-monitor-diagnostics',
-			array($this, 'render_diagnostics_page')
-		);
+        // Add diagnostic tools submenu
+        add_submenu_page(
+            'wc-payment-monitor',
+            __('Diagnostic Tools', 'wc-payment-monitor'),
+            __('Diagnostic Tools', 'wc-payment-monitor'),
+            'manage_woocommerce',
+            'wc-payment-monitor-diagnostics',
+            [$this, 'render_diagnostics_page']
+        );
 
-		// Add settings submenu
-		add_submenu_page(
-			'wc-payment-monitor',
-			__('Settings', 'wc-payment-monitor'),
-			__('Settings', 'wc-payment-monitor'),
-			'manage_woocommerce',
-			'wc-payment-monitor-settings',
-			array($this, 'render_settings_page')
-		);
-	}
+        // Add settings submenu
+        add_submenu_page(
+            'wc-payment-monitor',
+            __('Settings', 'wc-payment-monitor'),
+            __('Settings', 'wc-payment-monitor'),
+            'manage_woocommerce',
+            'wc-payment-monitor-settings',
+            [$this, 'render_settings_page']
+        );
+    }
 
-	/**
-	 * Register plugin settings
-	 */
-	public function register_settings()
-	{
-		// Register setting group
-		register_setting(
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_options',
-			array(
-				'type' => 'object',
-				'sanitize_callback' => array($this->security, 'validate_admin_settings'),
-				'show_in_rest' => false,
-			)
-		);
+    /**
+     * Register plugin settings
+     */
+    public function register_settings()
+    {
+        // Register setting group
+        register_setting(
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_options',
+            [
+                'type' => 'object',
+                'sanitize_callback' => [$this->security, 'validate_admin_settings'],
+                'show_in_rest' => false,
+            ]
+        );
 
-		// Add settings section
-		add_settings_section(
-			'wc_payment_monitor_main',
-			__('Payment Monitor Settings', 'wc-payment-monitor'),
-			array($this, 'render_settings_section'),
-			'wc_payment_monitor_settings'
-		);
+        // Add settings section
+        add_settings_section(
+            'wc_payment_monitor_main',
+            __('Payment Monitor Settings', 'wc-payment-monitor'),
+            [$this, 'render_settings_section'],
+            'wc_payment_monitor_settings'
+        );
 
-		// Add settings fields - License Key first (most important)
-		add_settings_field(
-			'license_key',
-			__('License Key', 'wc-payment-monitor'),
-			array($this, 'render_field_license_key'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        // Add settings fields - License Key first (most important)
+        add_settings_field(
+            'license_key',
+            __('License Key', 'wc-payment-monitor'),
+            [$this, 'render_field_license_key'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		// Add settings fields
-		add_settings_field(
-			'enable_monitoring',
-			__('Enable Monitoring', 'wc-payment-monitor'),
-			array($this, 'render_field_enable_monitoring'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        // Add settings fields
+        add_settings_field(
+            'enable_monitoring',
+            __('Enable Monitoring', 'wc-payment-monitor'),
+            [$this, 'render_field_enable_monitoring'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		add_settings_field(
-			'health_check_interval',
-			__('Health Check Interval (minutes)', 'wc-payment-monitor'),
-			array($this, 'render_field_health_check_interval'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        add_settings_field(
+            'health_check_interval',
+            __('Health Check Interval (minutes)', 'wc-payment-monitor'),
+            [$this, 'render_field_health_check_interval'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		add_settings_field(
-			'alert_threshold',
-			__('Alert Threshold (%)', 'wc-payment-monitor'),
-			array($this, 'render_field_alert_threshold'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        add_settings_field(
+            'alert_threshold',
+            __('Alert Threshold (%)', 'wc-payment-monitor'),
+            [$this, 'render_field_alert_threshold'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		add_settings_field(
-			'retry_enabled',
-			__('Enable Payment Retry', 'wc-payment-monitor'),
-			array($this, 'render_field_retry_enabled'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        add_settings_field(
+            'retry_enabled',
+            __('Enable Payment Retry', 'wc-payment-monitor'),
+            [$this, 'render_field_retry_enabled'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		add_settings_field(
-			'max_retry_attempts',
-			__('Max Retry Attempts', 'wc-payment-monitor'),
-			array($this, 'render_field_max_retry_attempts'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        add_settings_field(
+            'max_retry_attempts',
+            __('Max Retry Attempts', 'wc-payment-monitor'),
+            [$this, 'render_field_max_retry_attempts'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		// Alert notification settings
-		add_settings_field(
-			'alert_email',
-			__('Alert Email Address', 'wc-payment-monitor'),
-			array($this, 'render_field_alert_email'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        // Alert notification settings
+        add_settings_field(
+            'alert_email',
+            __('Alert Email Address', 'wc-payment-monitor'),
+            [$this, 'render_field_alert_email'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		add_settings_field(
-			'alert_phone_number',
-			__('Alert Phone Number (SMS)', 'wc-payment-monitor'),
-			array($this, 'render_field_alert_phone_number'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        add_settings_field(
+            'alert_phone_number',
+            __('Alert Phone Number (SMS)', 'wc-payment-monitor'),
+            [$this, 'render_field_alert_phone_number'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		add_settings_field(
-			'alert_slack_workspace',
-			__('Slack Workspace ID', 'wc-payment-monitor'),
-			array($this, 'render_field_alert_slack_workspace'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        add_settings_field(
+            'alert_slack_workspace',
+            __('Slack Workspace ID', 'wc-payment-monitor'),
+            [$this, 'render_field_alert_slack_workspace'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		// Per-gateway alert configuration (Pro+ feature)
-		add_settings_field(
-			'gateway_alert_config',
-			__('Per-Gateway Alert Configuration', 'wc-payment-monitor'),
-			array($this, 'render_field_gateway_alert_config'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        // Per-gateway alert configuration (Pro+ feature)
+        add_settings_field(
+            'gateway_alert_config',
+            __('Per-Gateway Alert Configuration', 'wc-payment-monitor'),
+            [$this, 'render_field_gateway_alert_config'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		// Test mode settings
-		add_settings_field(
-			'enable_test_mode',
-			__('Enable Test Mode', 'wc-payment-monitor'),
-			array($this, 'render_field_enable_test_mode'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
+        // Test mode settings
+        add_settings_field(
+            'enable_test_mode',
+            __('Enable Test Mode', 'wc-payment-monitor'),
+            [$this, 'render_field_enable_test_mode'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
 
-		add_settings_field(
-			'test_failure_rate',
-			__('Test Failure Rate (%)', 'wc-payment-monitor'),
-			array($this, 'render_field_test_failure_rate'),
-			'wc_payment_monitor_settings',
-			'wc_payment_monitor_main'
-		);
-	}
+        add_settings_field(
+            'test_failure_rate',
+            __('Test Failure Rate (%)', 'wc-payment-monitor'),
+            [$this, 'render_field_test_failure_rate'],
+            'wc_payment_monitor_settings',
+            'wc_payment_monitor_main'
+        );
+    }
 
-	/**
-	 * Render settings section
-	 */
-	public function render_settings_section()
-	{
-		echo '<p>' . esc_html__('Configure Payment Monitor settings below.', 'wc-payment-monitor') . '</p>';
-	}
+    /**
+     * Render settings section
+     */
+    public function render_settings_section()
+    {
+        echo '<p>' . esc_html__('Configure Payment Monitor settings below.', 'wc-payment-monitor') . '</p>';
+    }
 
-	/**
-	 * Render enable monitoring field
-	 */
-	public function render_field_enable_monitoring()
-	{
-		$options = get_option('wc_payment_monitor_options', array());
-		$enabled = isset($options['enable_monitoring']) ? intval($options['enable_monitoring']) : 1;
-		?>
+    /**
+     * Render enable monitoring field
+     */
+    public function render_field_enable_monitoring()
+    {
+        $options = get_option('wc_payment_monitor_options', []);
+        $enabled = isset($options['enable_monitoring']) ? intval($options['enable_monitoring']) : 1;
+        ?>
 		<input type="checkbox" name="wc_payment_monitor_options[enable_monitoring]" value="1" <?php checked($enabled, 1); ?> />
 		<label><?php esc_html_e('Monitor payment gateway transactions', 'wc-payment-monitor'); ?></label>
 		<?php
-	}
+    }
 
-	/**
-	 * Render health check interval field
-	 */
-	public function render_field_health_check_interval()
-	{
-		$options = get_option('wc_payment_monitor_options', array());
-		$interval = isset($options['health_check_interval']) ? intval($options['health_check_interval']) : 5;
-		?>
+    /**
+     * Render health check interval field
+     */
+    public function render_field_health_check_interval()
+    {
+        $options = get_option('wc_payment_monitor_options', []);
+        $interval = isset($options['health_check_interval']) ? intval($options['health_check_interval']) : 5;
+        ?>
 		<input type="number" name="wc_payment_monitor_options[health_check_interval]"
 			value="<?php echo esc_attr($interval); ?>" min="1" max="1440" />
 		<p class="description">
 			<?php esc_html_e('How often to recalculate gateway health (in minutes).', 'wc-payment-monitor'); ?></p>
 		<?php
-	}
+    }
 
-	/**
-	 * Render alert threshold field
-	 */
-	public function render_field_alert_threshold()
-	{
-		$options = get_option('wc_payment_monitor_options', array());
-		$threshold = isset($options['alert_threshold']) ? floatval($options['alert_threshold']) : 85;
-		?>
+    /**
+     * Render alert threshold field
+     */
+    public function render_field_alert_threshold()
+    {
+        $options = get_option('wc_payment_monitor_options', []);
+        $threshold = isset($options['alert_threshold']) ? floatval($options['alert_threshold']) : 85;
+        ?>
 		<style>
 			.wc-payment-monitor-threshold-ui {
 				max-width: 450px;
@@ -495,58 +498,58 @@ class WC_Payment_Monitor_Admin
 			<?php esc_html_e('Adjust the slider to set your notification threshold. You will only receive alerts if the gateway success rate falls below this percentage.', 'wc-payment-monitor'); ?>
 		</p>
 		<?php
-	}
+    }
 
-	/**
-	 * Render retry enabled field
-	 */
-	public function render_field_retry_enabled()
-	{
-		$options = get_option('wc_payment_monitor_options', array());
-		$enabled = isset($options['retry_enabled']) ? intval($options['retry_enabled']) : 1;
-		?>
+    /**
+     * Render retry enabled field
+     */
+    public function render_field_retry_enabled()
+    {
+        $options = get_option('wc_payment_monitor_options', []);
+        $enabled = isset($options['retry_enabled']) ? intval($options['retry_enabled']) : 1;
+        ?>
 		<input type="checkbox" name="wc_payment_monitor_options[retry_enabled]" value="1" <?php checked($enabled, 1); ?> />
 		<label><?php esc_html_e('Automatically retry failed payments', 'wc-payment-monitor'); ?></label>
 		<p class="description">
 			<?php esc_html_e('When enabled, failed payments are automatically retried using stored payment methods. Retries are scheduled at 1 hour, 6 hours, and 24 hours. Only retriable failures are attempted (excludes fraud, expired cards, etc.).', 'wc-payment-monitor'); ?>
 		</p>
 		<?php
-	}
+    }
 
-	/**
-	 * Render max retry attempts field
-	 */
-	public function render_field_max_retry_attempts()
-	{
-		$options = get_option('wc_payment_monitor_options', array());
-		$attempts = isset($options['max_retry_attempts']) ? intval($options['max_retry_attempts']) : 3;
-		?>
+    /**
+     * Render max retry attempts field
+     */
+    public function render_field_max_retry_attempts()
+    {
+        $options = get_option('wc_payment_monitor_options', []);
+        $attempts = isset($options['max_retry_attempts']) ? intval($options['max_retry_attempts']) : 3;
+        ?>
 		<input type="number" name="wc_payment_monitor_options[max_retry_attempts]" value="<?php echo esc_attr($attempts); ?>"
 			min="1" max="10" />
 		<p class="description"><?php esc_html_e('Maximum number of retry attempts per transaction.', 'wc-payment-monitor'); ?>
 		</p>
 		<?php
-	}
+    }
 
-	/**
-	 * Render license key field
-	 */
-	public function render_field_license_key()
-	{
-		$options = get_option('wc_payment_monitor_options', array());
-		$license_key = isset($options['license_key']) ? sanitize_text_field($options['license_key']) : '';
-		$license_status = $this->license->get_license_status();
-		$license_data = $this->license->get_license_data();
-		$tier = $this->license->get_license_tier();
-		
-		$tier_colors = array(
-			'free'    => '#646970',
-			'starter' => '#0073aa',
-			'pro'     => '#d63638',
-			'agency'  => '#9b51e0',
-		);
-		$badge_color = isset($tier_colors[$tier]) ? $tier_colors[$tier] : '#0073aa';
-		?>
+    /**
+     * Render license key field
+     */
+    public function render_field_license_key()
+    {
+        $options = get_option('wc_payment_monitor_options', []);
+        $license_key = isset($options['license_key']) ? sanitize_text_field($options['license_key']) : '';
+        $license_status = $this->license->get_license_status();
+        $license_data = $this->license->get_license_data();
+        $tier = $this->license->get_license_tier();
+
+        $tier_colors = [
+            'free'    => '#646970',
+            'starter' => '#0073aa',
+            'pro'     => '#d63638',
+            'agency'  => '#9b51e0',
+        ];
+        $badge_color = isset($tier_colors[$tier]) ? $tier_colors[$tier] : '#0073aa';
+        ?>
 		<style>
 			.license-field-wrapper {
 				max-width: 500px;
@@ -651,9 +654,9 @@ class WC_Payment_Monitor_Admin
 						</div>
 
 						<?php if ($tier !== 'agency'): ?>
-							<?php 
-								$next_tier = ($tier === 'free') ? 'Starter' : (($tier === 'starter') ? 'Pro' : 'Agency');
-							?>
+							<?php
+                                $next_tier = ($tier === 'free') ? 'Starter' : (($tier === 'starter') ? 'Pro' : 'Agency');
+						    ?>
 							<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="upgrade-button">
 								<span class="dashicons dashicons-star-filled"></span>
 								<?php echo esc_html(sprintf(__('Upgrade to %s', 'wc-payment-monitor'), $next_tier)); ?>
@@ -684,16 +687,16 @@ class WC_Payment_Monitor_Admin
 			<?php endif; ?>
 		</div>
 		<?php
-	}
+    }
 
-	/**
-	 * Render enable test mode field
-	 */
-	public function render_field_enable_test_mode()
-	{
-		$options = get_option('wc_payment_monitor_settings', array());
-		$enabled = isset($options['enable_test_mode']) ? intval($options['enable_test_mode']) : 0;
-		?>
+    /**
+     * Render enable test mode field
+     */
+    public function render_field_enable_test_mode()
+    {
+        $options = get_option('wc_payment_monitor_settings', []);
+        $enabled = isset($options['enable_test_mode']) ? intval($options['enable_test_mode']) : 0;
+        ?>
 		<input type="checkbox" name="wc_payment_monitor_options[enable_test_mode]" value="1" <?php checked($enabled, 1); ?> />
 		<label><?php esc_html_e('Enable payment failure simulation for testing', 'wc-payment-monitor'); ?></label>
 		<p class="description" style="color: #d63638;">
@@ -701,34 +704,34 @@ class WC_Payment_Monitor_Admin
 			<?php esc_html_e('This will simulate random payment failures during checkout. Only enable on test/development sites!', 'wc-payment-monitor'); ?>
 		</p>
 		<?php
-	}
+    }
 
-	/**
-	 * Render alert email field
-	 */
-	public function render_field_alert_email()
-	{
-		$settings = get_option('wc_payment_monitor_settings', array());
-		$email = isset($settings['alert_email']) ? sanitize_email($settings['alert_email']) : get_option('admin_email');
-		?>
+    /**
+     * Render alert email field
+     */
+    public function render_field_alert_email()
+    {
+        $settings = get_option('wc_payment_monitor_settings', []);
+        $email = isset($settings['alert_email']) ? sanitize_email($settings['alert_email']) : get_option('admin_email');
+        ?>
 		<input type="email" name="wc_payment_monitor_options[alert_email]"
 			value="<?php echo esc_attr($email); ?>" class="regular-text" />
 		<p class="description">
 			<?php esc_html_e('Email address to receive payment failure alerts (Free tier - local delivery).', 'wc-payment-monitor'); ?>
 		</p>
 		<?php
-	}
+    }
 
-	/**
-	 * Render alert phone number field
-	 */
-	public function render_field_alert_phone_number()
-	{
-		$settings = get_option('wc_payment_monitor_settings', array());
-		$phone = isset($settings['alert_phone_number']) ? sanitize_text_field($settings['alert_phone_number']) : '';
-		$tier = $this->license->get_license_tier();
-		$is_locked = ! in_array($tier, array('starter', 'pro', 'agency'), true);
-		?>
+    /**
+     * Render alert phone number field
+     */
+    public function render_field_alert_phone_number()
+    {
+        $settings = get_option('wc_payment_monitor_settings', []);
+        $phone = isset($settings['alert_phone_number']) ? sanitize_text_field($settings['alert_phone_number']) : '';
+        $tier = $this->license->get_license_tier();
+        $is_locked = !in_array($tier, ['starter', 'pro', 'agency'], true);
+        ?>
 		<div style="position: relative;">
 			<input type="tel" name="wc_payment_monitor_options[alert_phone_number]"
 				value="<?php echo esc_attr($phone); ?>" class="regular-text"
@@ -742,114 +745,186 @@ class WC_Payment_Monitor_Admin
 		</div>
 		<p class="description">
 			<?php
-			if ($is_locked) {
-				printf(
-					__('SMS alerts delivered via PaySentinel servers. <strong>Requires Starter plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
-					'https://paysentinel.caplaz.com/plans'
-				);
-			} else {
-				$quota = $this->license->get_sms_quota();
-				if ($quota && isset($quota['sms_remaining'], $quota['sms_limit'])) {
-					printf(
-						__('SMS alerts delivered via PaySentinel servers. Quota: %d/%d remaining this month.', 'wc-payment-monitor'),
-						$quota['sms_remaining'],
-						$quota['sms_limit']
-					);
-				} else {
-					esc_html_e('SMS alerts delivered via PaySentinel servers. Enter your phone number with country code (e.g., +1234567890).', 'wc-payment-monitor');
-				}
-			}
-			?>
+            if ($is_locked) {
+                printf(
+                    __('SMS alerts delivered via PaySentinel servers. <strong>Requires Starter plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
+                    'https://paysentinel.caplaz.com/plans'
+                );
+            } else {
+                $quota = $this->license->get_sms_quota();
+                if ($quota && isset($quota['sms_remaining'], $quota['sms_limit'])) {
+                    printf(
+                        __('SMS alerts delivered via PaySentinel servers. Quota: %d/%d remaining this month.', 'wc-payment-monitor'),
+                        $quota['sms_remaining'],
+                        $quota['sms_limit']
+                    );
+                } else {
+                    esc_html_e('SMS alerts delivered via PaySentinel servers. Enter your phone number with country code (e.g., +1234567890).', 'wc-payment-monitor');
+                }
+            }
+        ?>
 		</p>
 		<?php
-	}
+    }
 
-	/**
-	 * Render alert Slack workspace field
-	 */
-	public function render_field_alert_slack_workspace()
-	{
-		$settings = get_option('wc_payment_monitor_settings', array());
-		$slack = isset($settings['alert_slack_workspace']) ? sanitize_text_field($settings['alert_slack_workspace']) : '';
-		$tier = $this->license->get_license_tier();
-		$is_locked = ! in_array($tier, array('pro', 'agency'), true);
-		?>
+    /**
+     * Render alert Slack workspace field
+     */
+    public function render_field_alert_slack_workspace()
+    {
+        $settings = get_option('wc_payment_monitor_settings', []);
+        $slack = isset($settings['alert_slack_workspace']) ? sanitize_text_field($settings['alert_slack_workspace']) : '';
+        $tier = $this->license->get_license_tier();
+        $is_locked = !in_array($tier, ['pro', 'agency'], true);
+        ?>
 		<div style="position: relative;">
 			<input type="text" name="wc_payment_monitor_options[alert_slack_workspace]"
 				value="<?php echo esc_attr($slack); ?>" class="regular-text"
 				placeholder="T01234567"
+				<?php echo ($is_locked || !empty($slack)) ? 'readonly' : ''; ?>
 				<?php echo $is_locked ? 'disabled' : ''; ?> />
 			<?php if ($is_locked): ?>
 				<span class="dashicons dashicons-lock" style="color: #d63638; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Pro plan or higher required', 'wc-payment-monitor'); ?>"></span>
+			<?php elseif (!empty($slack)): ?>
+				<span class="dashicons dashicons-yes-alt" style="color: #46b450; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Slack connected', 'wc-payment-monitor'); ?>"></span>
 			<?php else: ?>
 				<span class="dashicons dashicons-yes-alt" style="color: #46b450; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Feature available in your plan', 'wc-payment-monitor'); ?>"></span>
 			<?php endif; ?>
 		</div>
 		<p class="description">
 			<?php
-			if ($is_locked) {
-				printf(
-					__('Slack/Discord/Teams notifications delivered via PaySentinel. <strong>Requires Pro plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
-					'https://paysentinel.caplaz.com/plans'
-				);
-			} else {
-				esc_html_e('Slack notifications delivered via PaySentinel servers. Click "Connect Slack" below to link your workspace.', 'wc-payment-monitor');
-			}
-			?>
+            if ($is_locked) {
+                printf(
+                    __('Slack/Discord/Teams notifications delivered via PaySentinel. <strong>Requires Pro plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
+                    'https://paysentinel.caplaz.com/plans'
+                );
+            } elseif (!empty($slack)) {
+                esc_html_e('Your Slack workspace is connected. PaySentinel will deliver alerts to the configured channel.', 'wc-payment-monitor');
+            } else {
+                esc_html_e('Slack notifications delivered via PaySentinel servers. Click "Connect Slack" below to link your workspace.', 'wc-payment-monitor');
+            }
+        ?>
 		</p>
-		<?php if (!$is_locked): ?>
-			<button type="button" class="button button-secondary" style="margin-top: 10px;">
-				<?php esc_html_e('Connect Slack Workspace', 'wc-payment-monitor'); ?>
-			</button>
+		<?php if (!$is_locked):
+		    $options = get_option('wc_payment_monitor_options', []);
+		    $license_key = isset($options['license_key']) ? sanitize_text_field($options['license_key']) : '';
+		    $site_url = get_site_url();
+		    $return_url = admin_url('admin.php?page=wc-payment-monitor-settings&slack_auth=1');
+
+		    $status_info = '';
+		    if (!empty($slack)) {
+		        $status_endpoint = add_query_arg('integration_id', $slack, 'https://paysentinel.caplaz.com/api/integrations/slack/status');
+		        $status_response = $this->license->make_authenticated_request($status_endpoint, 'GET');
+		        if (!is_wp_error($status_response) && 200 === wp_remote_retrieve_response_code($status_response)) {
+		            $status_data = json_decode(wp_remote_retrieve_body($status_response), true);
+		            if (!empty($status_data['channel_name'])) {
+		                $status_info = sprintf(' <span style="color: #666;">(%s)</span>', esc_html($status_data['channel_name']));
+		            }
+		        } else {
+		            $status_info = ' <span style="color: #d63638;">(' . __('Offline or Revoked', 'wc-payment-monitor') . ')</span>';
+		        }
+		    }
+
+        $connect_url = add_query_arg(
+            [
+                'license_key' => $license_key,
+                'site_url'    => $site_url,
+                'return_url'  => rawurlencode($return_url),
+                'state'       => wp_create_nonce('slack_auth_nonce'),
+            ],
+            'https://paysentinel.caplaz.com/integrations/slack/connect'
+        );
+
+        $disconnect_url = admin_url('admin.php?page=wc-payment-monitor-settings&slack_disconnect=1&_wpnonce=' . wp_create_nonce('slack_disconnect_nonce'));
+        ?>
+			<div style="margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+				<a href="<?php echo esc_url($connect_url); ?>" class="button <?php echo !empty($slack) ? 'button-secondary' : 'button-primary'; ?>">
+					<?php !empty($slack) ? esc_html_e('Update Connection', 'wc-payment-monitor') : esc_html_e('Connect Slack Workspace', 'wc-payment-monitor'); ?>
+				</a>
+				<?php if (!empty($slack)): ?>
+					<button type="button" class="button button-secondary" id="wc-payment-monitor-slack-test">
+						<?php esc_html_e('Send Test Alert', 'wc-payment-monitor'); ?>
+					</button>
+					<div style="display: flex; align-items: center;">
+						<span class="dashicons dashicons-admin-links" style="color: #46b450; margin-left: 5px;"></span>
+						<span style="color: #46b450; font-weight: 500;"><?php esc_html_e('Connected', 'wc-payment-monitor'); ?></span>
+						<?php echo $status_info; ?>
+					</div>
+					<a href="<?php echo esc_url($disconnect_url); ?>" class="submitdelete deletion" style="text-decoration: none; margin-left: 10px;">
+						<?php esc_html_e('Disconnect', 'wc-payment-monitor'); ?>
+					</a>
+				<?php endif; ?>
+			</div>
+			<script>
+			jQuery(document).ready(function($) {
+				$('#wc-payment-monitor-slack-test').on('click', function(e) {
+					e.preventDefault();
+					var $btn = $(this);
+					$btn.prop('disabled', true).text('<?php esc_attr_e('Sending...', 'wc-payment-monitor'); ?>');
+					
+					$.post(ajaxurl, {
+						action: 'wc_payment_monitor_slack_test',
+						nonce: '<?php echo wp_create_nonce('wc_payment_monitor_admin_nonce'); ?>'
+					}, function(response) {
+						if (response.success) {
+							alert(response.data.message);
+						} else {
+							alert('Error: ' + response.data.message);
+						}
+						$btn.prop('disabled', false).text('<?php esc_attr_e('Send Test Alert', 'wc-payment-monitor'); ?>');
+					});
+				});
+			});
+			</script>
 		<?php endif; ?>
 		<?php
-	}
+    }
 
-	/**
-	 * Render per-gateway alert configuration field
-	 */
-	public function render_field_gateway_alert_config()
-	{
-		$settings = get_option('wc_payment_monitor_settings', array());
-		$gateway_config = isset($settings['gateway_alert_config']) ? $settings['gateway_alert_config'] : array();
-		$tier = $this->license->get_license_tier();
-		$is_locked = ! in_array($tier, array('pro', 'agency'), true);
-		
-		// Get active WooCommerce payment gateways
-		$active_gateways = array();
-		if (class_exists('WC_Payment_Gateways')) {
-			$payment_gateways = WC_Payment_Gateways::instance();
-			$gateways = $payment_gateways->get_available_payment_gateways();
-			foreach ($gateways as $gateway_id => $gateway) {
-				$active_gateways[$gateway_id] = WC_Payment_Monitor::get_friendly_gateway_name( $gateway_id );
-			}
-		}
-		
-		// Add common gateway IDs if not detected
-		$default_gateways = array(
-			'stripe' => 'Stripe',
-			'paypal' => 'PayPal',
-			'square' => 'Square',
-			'wc_payments' => 'WooCommerce Payments'
-		);
-		foreach ($default_gateways as $id => $name) {
-			if (!isset($active_gateways[$id])) {
-				$active_gateways[$id] = $name;
-			}
-		}
-		?>
+    /**
+     * Render per-gateway alert configuration field
+     */
+    public function render_field_gateway_alert_config()
+    {
+        $settings = get_option('wc_payment_monitor_settings', []);
+        $gateway_config = isset($settings['gateway_alert_config']) ? $settings['gateway_alert_config'] : [];
+        $tier = $this->license->get_license_tier();
+        $is_locked = !in_array($tier, ['pro', 'agency'], true);
+
+        // Get active WooCommerce payment gateways
+        $active_gateways = [];
+        if (class_exists('WC_Payment_Gateways')) {
+            $payment_gateways = WC_Payment_Gateways::instance();
+            $gateways = $payment_gateways->get_available_payment_gateways();
+            foreach ($gateways as $gateway_id => $gateway) {
+                $active_gateways[$gateway_id] = WC_Payment_Monitor::get_friendly_gateway_name($gateway_id);
+            }
+        }
+
+        // Add common gateway IDs if not detected
+        $default_gateways = [
+            'stripe' => 'Stripe',
+            'paypal' => 'PayPal',
+            'square' => 'Square',
+            'wc_payments' => 'WooCommerce Payments',
+        ];
+        foreach ($default_gateways as $id => $name) {
+            if (!isset($active_gateways[$id])) {
+                $active_gateways[$id] = $name;
+            }
+        }
+        ?>
 		<div style="position: relative;">
 			<?php if ($is_locked): ?>
 				<div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
 					<span class="dashicons dashicons-lock" style="color: #856404; float: left; margin-right: 10px; font-size: 24px;"></span>
 					<p style="margin: 0; color: #856404;">
 						<strong><?php esc_html_e('Pro Feature', 'wc-payment-monitor'); ?></strong><br>
-						<?php 
-						printf(
-							__('Per-gateway alert configuration requires Pro plan or higher. <a href="%s" target="_blank" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'wc-payment-monitor'),
-							'https://paysentinel.caplaz.com/plans'
-						);
-						?>
+						<?php
+                        printf(
+                            __('Per-gateway alert configuration requires Pro plan or higher. <a href="%s" target="_blank" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'wc-payment-monitor'),
+                            'https://paysentinel.caplaz.com/plans'
+                        );
+			    ?>
 					</p>
 				</div>
 			<?php else: ?>
@@ -870,11 +945,11 @@ class WC_Payment_Monitor_Admin
 				<tbody>
 					<?php foreach ($active_gateways as $gateway_id => $gateway_name): ?>
 						<?php
-						$config = isset($gateway_config[$gateway_id]) ? $gateway_config[$gateway_id] : array();
-						$enabled = isset($config['enabled']) ? (bool) $config['enabled'] : true;
-						$threshold = isset($config['threshold']) ? floatval($config['threshold']) : '';
-						$channels = isset($config['channels']) ? $config['channels'] : array('email');
-						?>
+			    $config = isset($gateway_config[$gateway_id]) ? $gateway_config[$gateway_id] : [];
+					    $enabled = isset($config['enabled']) ? (bool) $config['enabled'] : true;
+					    $threshold = isset($config['threshold']) ? floatval($config['threshold']) : '';
+					    $channels = isset($config['channels']) ? $config['channels'] : ['email'];
+					    ?>
 						<tr>
 							<td><strong><?php echo esc_html($gateway_name); ?></strong></td>
 							<td>
@@ -927,52 +1002,52 @@ class WC_Payment_Monitor_Admin
 			</table>
 		</div>
 		<?php
-	}
+    }
 
-	/**
-	 * Render test failure rate field
-	 */
-	public function render_field_test_failure_rate()
-	{
-		$options = get_option('wc_payment_monitor_settings', array());
-		$rate = isset($options['test_failure_rate']) ? intval($options['test_failure_rate']) : 10;
-		?>
+    /**
+     * Render test failure rate field
+     */
+    public function render_field_test_failure_rate()
+    {
+        $options = get_option('wc_payment_monitor_settings', []);
+        $rate = isset($options['test_failure_rate']) ? intval($options['test_failure_rate']) : 10;
+        ?>
 		<input type="number" name="wc_payment_monitor_options[test_failure_rate]" value="<?php echo esc_attr($rate); ?>"
 			min="0" max="100" />
 		<p class="description">
 			<?php esc_html_e('Percentage of payments to simulate as failures (only when test mode is enabled).', 'wc-payment-monitor'); ?>
 		</p>
 		<?php
-	}
+    }
 
-	/**
-	 * Render dashboard page
-	 */
-	public function render_dashboard_page()
-	{
-		if (!current_user_can('manage_woocommerce')) {
-			wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
-		}
+    /**
+     * Render dashboard page
+     */
+    public function render_dashboard_page()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
+        }
 
-		// Get license info for header display
-		$tier = $this->license->get_license_tier();
-		$quota = $this->license->get_sms_quota();
-		$tier_labels = array(
-			'free' => __('Free', 'wc-payment-monitor'),
-			'starter' => __('Starter', 'wc-payment-monitor'),
-			'pro' => __('Pro', 'wc-payment-monitor'),
-			'agency' => __('Agency', 'wc-payment-monitor')
-		);
-		$tier_colors = array(
-			'free' => '#6c757d',
-			'starter' => '#0073aa',
-			'pro' => '#46b450',
-			'agency' => '#9b51e0'
-		);
-		$tier_label = isset($tier_labels[$tier]) ? $tier_labels[$tier] : ucfirst($tier);
-		$tier_color = isset($tier_colors[$tier]) ? $tier_colors[$tier] : '#0073aa';
+        // Get license info for header display
+        $tier = $this->license->get_license_tier();
+        $quota = $this->license->get_sms_quota();
+        $tier_labels = [
+            'free' => __('Free', 'wc-payment-monitor'),
+            'starter' => __('Starter', 'wc-payment-monitor'),
+            'pro' => __('Pro', 'wc-payment-monitor'),
+            'agency' => __('Agency', 'wc-payment-monitor'),
+        ];
+        $tier_colors = [
+            'free' => '#6c757d',
+            'starter' => '#0073aa',
+            'pro' => '#46b450',
+            'agency' => '#9b51e0',
+        ];
+        $tier_label = isset($tier_labels[$tier]) ? $tier_labels[$tier] : ucfirst($tier);
+        $tier_color = isset($tier_colors[$tier]) ? $tier_colors[$tier] : '#0073aa';
 
-		?>
+        ?>
 		<div class="wrap">
 			<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
 				<h1 style="margin: 0;"><?php esc_html_e('Payment Monitor Dashboard', 'wc-payment-monitor'); ?></h1>
@@ -985,15 +1060,15 @@ class WC_Payment_Monitor_Admin
 					
 					<!-- SMS Quota Display -->
 					<?php if ($quota && isset($quota['sms_remaining'], $quota['sms_limit'])): ?>
-						<?php 
-						$usage_percent = ($quota['sms_limit'] > 0) ? (($quota['sms_limit'] - $quota['sms_remaining']) / $quota['sms_limit']) * 100 : 0;
-						$quota_color = '#46b450'; // green
-						if ($usage_percent >= 80) {
-							$quota_color = '#dc3232'; // red
-						} elseif ($usage_percent >= 60) {
-							$quota_color = '#f0b849'; // yellow
-						}
-						?>
+						<?php
+                        $usage_percent = ($quota['sms_limit'] > 0) ? (($quota['sms_limit'] - $quota['sms_remaining']) / $quota['sms_limit']) * 100 : 0;
+					    $quota_color = '#46b450'; // green
+					    if ($usage_percent >= 80) {
+					        $quota_color = '#dc3232'; // red
+					    } elseif ($usage_percent >= 60) {
+					        $quota_color = '#f0b849'; // yellow
+					    }
+        ?>
 						<div style="background: white; border: 1px solid #ddd; padding: 8px 16px; border-radius: 4px;">
 							<div style="display: flex; align-items: center; gap: 10px;">
 								<span class="dashicons dashicons-email" style="color: <?php echo esc_attr($quota_color); ?>; font-size: 20px; width: 20px; height: 20px;"></span>
@@ -1008,12 +1083,12 @@ class WC_Payment_Monitor_Admin
 							</div>
 							<?php if (isset($quota['sms_reset_date'])): ?>
 								<div style="font-size: 10px; color: #999; margin-top: 2px;">
-									<?php 
-									printf(
-										esc_html__('Resets: %s', 'wc-payment-monitor'),
-										esc_html(date_i18n(get_option('date_format'), strtotime($quota['sms_reset_date'])))
-									);
-									?>
+									<?php
+                    printf(
+                        esc_html__('Resets: %s', 'wc-payment-monitor'),
+                        esc_html(date_i18n(get_option('date_format'), strtotime($quota['sms_reset_date'])))
+                    );
+							    ?>
 								</div>
 							<?php endif; ?>
 						</div>
@@ -1021,9 +1096,9 @@ class WC_Payment_Monitor_Admin
 					
 					<!-- Quota Exceeded Warning -->
 					<?php
-					$quota_exceeded = get_option('wc_payment_monitor_quota_exceeded', false);
-					if ($quota_exceeded):
-					?>
+                    $quota_exceeded = get_option('wc_payment_monitor_quota_exceeded', false);
+        if ($quota_exceeded):
+            ?>
 						<div style="background: #dc3232; color: white; padding: 8px 16px; border-radius: 4px; font-size: 13px;">
 							<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; vertical-align: middle;"></span>
 							<?php esc_html_e('SMS Quota Exceeded', 'wc-payment-monitor'); ?>
@@ -1045,41 +1120,41 @@ class WC_Payment_Monitor_Admin
 			<div id="wc-payment-monitor-root"></div>
 		</div>
 		<?php
-	}
+    }
 
-	/**
-	 * Render gateway health page
-	 */
-	public function render_health_page()
-	{
-		if (!current_user_can('manage_woocommerce')) {
-			wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
-		}
+    /**
+     * Render gateway health page
+     */
+    public function render_health_page()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
+        }
 
-		?>
+        ?>
 		<div class="wrap">
 			<h1><?php esc_html_e('Gateway Health', 'wc-payment-monitor'); ?></h1>
 			<p><?php esc_html_e('Real-time health metrics for all payment gateways.', 'wc-payment-monitor'); ?></p>
 			<div id="wc-payment-monitor-health-container"></div>
 		</div>
 		<?php
-	}
+    }
 
-	/**
-	 * Render transactions page
-	 */
-	public function render_transactions_page()
-	{
-		if (!current_user_can('manage_woocommerce')) {
-			wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
-		}
+    /**
+     * Render transactions page
+     */
+    public function render_transactions_page()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
+        }
 
-		global $wpdb;
-		$table_name = $this->database->get_transactions_table();
-		$transactions = $wpdb->get_results("SELECT * FROM {$table_name} ORDER BY id DESC LIMIT 50");
+        global $wpdb;
+        $table_name = $this->database->get_transactions_table();
+        $transactions = $wpdb->get_results("SELECT * FROM {$table_name} ORDER BY id DESC LIMIT 50");
 
-		add_thickbox();
-		?>
+        add_thickbox();
+        ?>
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e('Transaction Log', 'wc-payment-monitor'); ?></h1>
 
@@ -1204,7 +1279,7 @@ class WC_Payment_Monitor_Admin
 										</div>
 									</div>
 
-									<?php if (in_array($t->status, array('failed', 'retry'))): ?>
+									<?php if (in_array($t->status, ['failed', 'retry'])): ?>
 										<a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=wc_payment_monitor_retry&order_id=' . $t->order_id), 'wc_payment_monitor_retry_' . $t->order_id)); ?>"
 											class="button button-small tip"
 											title="<?php esc_attr_e('Retry Payment Now', 'wc-payment-monitor'); ?>"
@@ -1228,45 +1303,45 @@ class WC_Payment_Monitor_Admin
 			</table>
 		</div>
 		<?php
-	}
+    }
 
-	/**
-	 * Render alerts page
-	 */
-	public function render_alerts_page()
-	{
-		if (!current_user_can('manage_woocommerce')) {
-			wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
-		}
+    /**
+     * Render alerts page
+     */
+    public function render_alerts_page()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
+        }
 
-		?>
+        ?>
 		<div class="wrap">
 			<h1><?php esc_html_e('Alerts', 'wc-payment-monitor'); ?></h1>
 			<p><?php esc_html_e('View all payment monitoring alerts.', 'wc-payment-monitor'); ?></p>
 			<div id="wc-payment-monitor-alerts-container"></div>
 		</div>
 		<?php
-	}
+    }
 
-	/**
-	 * Render settings page
-	 */
-	public function render_settings_page()
-	{
-		if (!current_user_can('manage_woocommerce')) {
-			wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
-		}
+    /**
+     * Render settings page
+     */
+    public function render_settings_page()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
+        }
 
-		?>
+        ?>
 		<div class="wrap">
 			<h1><?php esc_html_e('Payment Monitor Settings', 'wc-payment-monitor'); ?></h1>
 			<?php settings_errors('wc_payment_monitor_options'); ?>
 			<form method="post" action="options.php">
 				<?php
-				settings_fields('wc_payment_monitor_settings');
-				do_settings_sections('wc_payment_monitor_settings');
-				submit_button();
-				?>
+                settings_fields('wc_payment_monitor_settings');
+        do_settings_sections('wc_payment_monitor_settings');
+        submit_button();
+        ?>
 			</form>
 			
 			<div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border: 1px solid #e1e1e1; border-radius: 4px;">
@@ -1290,455 +1365,538 @@ class WC_Payment_Monitor_Admin
 			</div>
 		</div>
 		<?php
-	}
+    }
 
-	/**
-	 * Handle manual retry action
-	 */
-	public function handle_manual_retry()
-	{
-		if (!current_user_can('manage_woocommerce')) {
-			wp_die(esc_html__('You do not have permission to perform this action.', 'wc-payment-monitor'));
-		}
+    /**
+     * Handle manual retry action
+     */
+    public function handle_manual_retry()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to perform this action.', 'wc-payment-monitor'));
+        }
 
-		$order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
-		check_admin_referer('wc_payment_monitor_retry_' . $order_id);
+        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
+        check_admin_referer('wc_payment_monitor_retry_' . $order_id);
 
-		if (!$order_id) {
-			wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Invalid order ID.', 'wc-payment-monitor')) . '&type=error'));
-			exit;
-		}
+        if (!$order_id) {
+            wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Invalid order ID.', 'wc-payment-monitor')) . '&type=error'));
+            exit;
+        }
 
-		// Get retry instance
-		if (!isset(WC_Payment_Monitor::get_instance()->retry)) {
-			wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Retry component not available.', 'wc-payment-monitor')) . '&type=error'));
-			exit;
-		}
+        // Get retry instance
+        if (!isset(WC_Payment_Monitor::get_instance()->retry)) {
+            wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Retry component not available.', 'wc-payment-monitor')) . '&type=error'));
+            exit;
+        }
 
-		$result = WC_Payment_Monitor::get_instance()->retry->manual_retry($order_id);
-		$type = $result['success'] ? 'success' : 'error';
+        $result = WC_Payment_Monitor::get_instance()->retry->manual_retry($order_id);
+        $type = $result['success'] ? 'success' : 'error';
 
-		wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode($result['message']) . '&type=' . $type));
-		exit;
-	}
+        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode($result['message']) . '&type=' . $type));
+        exit;
+    }
 
-	/**
-	 * Handle recovery email action
-	 */
-	public function handle_recovery_email()
-	{
-		if (!current_user_can('manage_woocommerce')) {
-			wp_die(esc_html__('You do not have permission to perform this action.', 'wc-payment-monitor'));
-		}
+    /**
+     * Handle recovery email action
+     */
+    public function handle_recovery_email()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to perform this action.', 'wc-payment-monitor'));
+        }
 
-		$order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
-		check_admin_referer('wc_payment_monitor_recovery_' . $order_id);
+        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
+        check_admin_referer('wc_payment_monitor_recovery_' . $order_id);
 
-		if (!$order_id) {
-			wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Invalid order ID.', 'wc-payment-monitor')) . '&type=error'));
-			exit;
-		}
+        if (!$order_id) {
+            wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Invalid order ID.', 'wc-payment-monitor')) . '&type=error'));
+            exit;
+        }
 
-		$order = wc_get_order($order_id);
-		if (!$order) {
-			wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Order not found.', 'wc-payment-monitor')) . '&type=error'));
-			exit;
-		}
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Order not found.', 'wc-payment-monitor')) . '&type=error'));
+            exit;
+        }
 
-		// Get retry instance
-		if (!isset(WC_Payment_Monitor::get_instance()->retry)) {
-			wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Retry component not available.', 'wc-payment-monitor')) . '&type=error'));
-			exit;
-		}
+        // Get retry instance
+        if (!isset(WC_Payment_Monitor::get_instance()->retry)) {
+            wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Retry component not available.', 'wc-payment-monitor')) . '&type=error'));
+            exit;
+        }
 
-		WC_Payment_Monitor::get_instance()->retry->send_recovery_email($order);
+        WC_Payment_Monitor::get_instance()->retry->send_recovery_email($order);
 
-		wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Recovery email sent successfully.', 'wc-payment-monitor')) . '&type=success'));
-		exit;
-	}
+        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Recovery email sent successfully.', 'wc-payment-monitor')) . '&type=success'));
+        exit;
+    }
 
-	/**
-	 * Get current settings
-	 *
-	 * @return array Current settings
-	 */
-	public static function get_settings()
-	{
-		$defaults = array(
-			'enable_monitoring' => 1,
-			'health_check_interval' => 5,
-			'alert_threshold' => 85,
-			'retry_enabled' => 1,
-			'max_retry_attempts' => 3,
-			'license_key' => '',
-		);
+    /**
+     * Get current settings
+     *
+     * @return array Current settings
+     */
+    public static function get_settings()
+    {
+        $defaults = [
+            'enable_monitoring' => 1,
+            'health_check_interval' => 5,
+            'alert_threshold' => 85,
+            'retry_enabled' => 1,
+            'max_retry_attempts' => 3,
+            'license_key' => '',
+        ];
 
-		$options = get_option('wc_payment_monitor_options', array());
-		return wp_parse_args($options, $defaults);
-	}
+        $options = get_option('wc_payment_monitor_options', []);
+        return wp_parse_args($options, $defaults);
+    }
 
-	/**
-	 * Get single setting
-	 *
-	 * @param string $setting Setting name
-	 * @param mixed  $default Default value
-	 * @return mixed Setting value
-	 */
-	public static function get_setting($setting, $default = null)
-	{
-		$settings = self::get_settings();
-		return isset($settings[$setting]) ? $settings[$setting] : $default;
-	}
+    /**
+     * Get single setting
+     *
+     * @param string $setting Setting name
+     * @param mixed  $default Default value
+     *
+     * @return mixed Setting value
+     */
+    public static function get_setting($setting, $default = null)
+    {
+        $settings = self::get_settings();
+        return isset($settings[$setting]) ? $settings[$setting] : $default;
+    }
 
-	/**
-	 * Update settings
-	 *
-	 * @param array $settings Settings to update
-	 * @return bool True on success
-	 */
-	public static function update_settings($settings)
-	{
-		$current = self::get_settings();
-		$updated = wp_parse_args($settings, $current);
-		return update_option('wc_payment_monitor_options', $updated);
-	}
+    /**
+     * Update settings
+     *
+     * @param array $settings Settings to update
+     *
+     * @return bool True on success
+     */
+    public static function update_settings($settings)
+    {
+        $current = self::get_settings();
+        $updated = wp_parse_args($settings, $current);
+        return update_option('wc_payment_monitor_options', $updated);
+    }
 
-	/**
-	 * Validate health check interval setting
-	 *
-	 * @param int $interval Health check interval in minutes
-	 * @return array Validation result with 'valid' bool and 'message' string
-	 */
-	public static function validate_health_check_interval($interval)
-	{
-		$interval = intval($interval);
+    /**
+     * Validate health check interval setting
+     *
+     * @param int $interval Health check interval in minutes
+     *
+     * @return array Validation result with 'valid' bool and 'message' string
+     */
+    public static function validate_health_check_interval($interval)
+    {
+        $interval = intval($interval);
 
-		if ($interval < 1) {
-			return array(
-				'valid' => false,
-				'message' => __('Health check interval must be at least 1 minute.', 'wc-payment-monitor'),
-			);
-		}
+        if ($interval < 1) {
+            return [
+                'valid' => false,
+                'message' => __('Health check interval must be at least 1 minute.', 'wc-payment-monitor'),
+            ];
+        }
 
-		if ($interval > 1440) {
-			return array(
-				'valid' => false,
-				'message' => __('Health check interval cannot exceed 1440 minutes (24 hours).', 'wc-payment-monitor'),
-			);
-		}
+        if ($interval > 1440) {
+            return [
+                'valid' => false,
+                'message' => __('Health check interval cannot exceed 1440 minutes (24 hours).', 'wc-payment-monitor'),
+            ];
+        }
 
-		return array(
-			'valid' => true,
-			'message' => '',
-			'value' => $interval,
-		);
-	}
+        return [
+            'valid' => true,
+            'message' => '',
+            'value' => $interval,
+        ];
+    }
 
-	/**
-	 * Validate alert threshold setting
-	 *
-	 * @param float $threshold Alert threshold percentage
-	 * @return array Validation result with 'valid' bool and 'message' string
-	 */
-	public static function validate_alert_threshold($threshold)
-	{
-		$threshold = floatval($threshold);
+    /**
+     * Validate alert threshold setting
+     *
+     * @param float $threshold Alert threshold percentage
+     *
+     * @return array Validation result with 'valid' bool and 'message' string
+     */
+    public static function validate_alert_threshold($threshold)
+    {
+        $threshold = floatval($threshold);
 
-		if ($threshold < 0.1) {
-			return array(
-				'valid' => false,
-				'message' => __('Alert threshold must be at least 0.1%.', 'wc-payment-monitor'),
-			);
-		}
+        if ($threshold < 0.1) {
+            return [
+                'valid' => false,
+                'message' => __('Alert threshold must be at least 0.1%.', 'wc-payment-monitor'),
+            ];
+        }
 
-		if ($threshold > 100) {
-			return array(
-				'valid' => false,
-				'message' => __('Alert threshold cannot exceed 100%.', 'wc-payment-monitor'),
-			);
-		}
+        if ($threshold > 100) {
+            return [
+                'valid' => false,
+                'message' => __('Alert threshold cannot exceed 100%.', 'wc-payment-monitor'),
+            ];
+        }
 
-		return array(
-			'valid' => true,
-			'message' => '',
-			'value' => $threshold,
-		);
-	}
+        return [
+            'valid' => true,
+            'message' => '',
+            'value' => $threshold,
+        ];
+    }
 
-	/**
-	 * Validate retry configuration
-	 *
-	 * @param array $retry_config Retry configuration array
-	 * @return array Validation result with 'valid' bool and 'message' string
-	 */
-	public static function validate_retry_configuration($retry_config)
-	{
-		if (!is_array($retry_config)) {
-			return array(
-				'valid' => false,
-				'message' => __('Retry configuration must be an array.', 'wc-payment-monitor'),
-			);
-		}
+    /**
+     * Validate retry configuration
+     *
+     * @param array $retry_config Retry configuration array
+     *
+     * @return array Validation result with 'valid' bool and 'message' string
+     */
+    public static function validate_retry_configuration($retry_config)
+    {
+        if (!is_array($retry_config)) {
+            return [
+                'valid' => false,
+                'message' => __('Retry configuration must be an array.', 'wc-payment-monitor'),
+            ];
+        }
 
-		// Check if array is empty or missing required key
-		if (empty($retry_config) || !isset($retry_config['max_retry_attempts'])) {
-			return array(
-				'valid' => false,
-				'message' => __('Retry configuration must contain max_retry_attempts.', 'wc-payment-monitor'),
-				'errors' => array(__('Retry configuration must contain max_retry_attempts.', 'wc-payment-monitor')),
-			);
-		}
+        // Check if array is empty or missing required key
+        if (empty($retry_config) || !isset($retry_config['max_retry_attempts'])) {
+            return [
+                'valid' => false,
+                'message' => __('Retry configuration must contain max_retry_attempts.', 'wc-payment-monitor'),
+                'errors' => [__('Retry configuration must contain max_retry_attempts.', 'wc-payment-monitor')],
+            ];
+        }
 
-		$errors = array();
-		$max_attempts = intval($retry_config['max_retry_attempts']);
+        $errors = [];
+        $max_attempts = intval($retry_config['max_retry_attempts']);
 
-		if ($max_attempts < 1) {
-			$errors[] = __('Max retry attempts must be at least 1.', 'wc-payment-monitor');
-		}
+        if ($max_attempts < 1) {
+            $errors[] = __('Max retry attempts must be at least 1.', 'wc-payment-monitor');
+        }
 
-		if ($max_attempts > 10) {
-			$errors[] = __('Max retry attempts cannot exceed 10.', 'wc-payment-monitor');
-		}
+        if ($max_attempts > 10) {
+            $errors[] = __('Max retry attempts cannot exceed 10.', 'wc-payment-monitor');
+        }
 
-		if (!empty($errors)) {
-			return array(
-				'valid' => false,
-				'message' => implode(' ', $errors),
-				'errors' => $errors,
-			);
-		}
+        if (!empty($errors)) {
+            return [
+                'valid' => false,
+                'message' => implode(' ', $errors),
+                'errors' => $errors,
+            ];
+        }
 
-		return array(
-			'valid' => true,
-			'message' => '',
-			'value' => $retry_config,
-		);
-	}
+        return [
+            'valid' => true,
+            'message' => '',
+            'value' => $retry_config,
+        ];
+    }
 
-	/**
-	 * Validate license key
-	 *
-	 * @param string $license_key License key to validate
-	 * @return array Validation result with 'valid' bool and 'message' string
-	 */
-	public static function validate_license_key($license_key)
-	{
-		$license_key = sanitize_text_field($license_key);
+    /**
+     * Validate license key
+     *
+     * @param string $license_key License key to validate
+     *
+     * @return array Validation result with 'valid' bool and 'message' string
+     */
+    public static function validate_license_key($license_key)
+    {
+        $license_key = sanitize_text_field($license_key);
 
-		// Empty license key is valid (may be free tier)
-		if (empty($license_key)) {
-			return array(
-				'valid' => true,
-				'message' => '',
-				'tier' => 'free',
-			);
-		}
+        // Empty license key is valid (may be free tier)
+        if (empty($license_key)) {
+            return [
+                'valid' => true,
+                'message' => '',
+                'tier' => 'free',
+            ];
+        }
 
-		// License key format validation (alphanumeric and hyphens, 20-50 chars)
-		if (!preg_match('/^[A-Za-z0-9\-]{20,50}$/', $license_key)) {
-			return array(
-				'valid' => false,
-				'message' => __('License key format is invalid. Should be 20-50 alphanumeric characters with optional hyphens.', 'wc-payment-monitor'),
-			);
-		}
+        // License key format validation (alphanumeric and hyphens, 20-50 chars)
+        if (!preg_match('/^[A-Za-z0-9\-]{20,50}$/', $license_key)) {
+            return [
+                'valid' => false,
+                'message' => __('License key format is invalid. Should be 20-50 alphanumeric characters with optional hyphens.', 'wc-payment-monitor'),
+            ];
+        }
 
-		// Check if license is active (simulate license validation)
-		// In production, this would call a remote license server
-		$is_premium = apply_filters('wc_payment_monitor_validate_license', false, $license_key);
+        // Check if license is active (simulate license validation)
+        // In production, this would call a remote license server
+        $is_premium = apply_filters('wc_payment_monitor_validate_license', false, $license_key);
 
-		if ($is_premium) {
-			return array(
-				'valid' => true,
-				'message' => '',
-				'tier' => 'premium',
-				'value' => $license_key,
-			);
-		} else {
-			return array(
-				'valid' => false,
-				'message' => __('License key is invalid or inactive. Please check and try again.', 'wc-payment-monitor'),
-			);
-		}
-	}
+        if ($is_premium) {
+            return [
+                'valid' => true,
+                'message' => '',
+                'tier' => 'premium',
+                'value' => $license_key,
+            ];
+        } else {
+            return [
+                'valid' => false,
+                'message' => __('License key is invalid or inactive. Please check and try again.', 'wc-payment-monitor'),
+            ];
+        }
+    }
 
-	/**
-	 * Get current license tier
-	 *
-	 * @return string License tier ('free' or 'premium')
-	 */
-	public static function get_license_tier()
-	{
-		$settings = self::get_settings();
-		$license_key = isset($settings['license_key']) ? $settings['license_key'] : '';
+    /**
+     * Get current license tier
+     *
+     * @return string License tier ('free' or 'premium')
+     */
+    public static function get_license_tier()
+    {
+        $settings = self::get_settings();
+        $license_key = isset($settings['license_key']) ? $settings['license_key'] : '';
 
-		if (empty($license_key)) {
-			return 'free';
-		}
+        if (empty($license_key)) {
+            return 'free';
+        }
 
-		// Check if license is premium
-		$is_premium = apply_filters('wc_payment_monitor_validate_license', false, $license_key);
-		return $is_premium ? 'premium' : 'free';
-	}
+        // Check if license is premium
+        $is_premium = apply_filters('wc_payment_monitor_validate_license', false, $license_key);
+        return $is_premium ? 'premium' : 'free';
+    }
 
-	/**
-	 * Check if premium features are available
-	 *
-	 * @return bool True if premium tier
-	 */
-	public static function is_premium()
-	{
-		return self::get_license_tier() === 'premium';
-	}
+    /**
+     * Check if premium features are available
+     *
+     * @return bool True if premium tier
+     */
+    public static function is_premium()
+    {
+        return self::get_license_tier() === 'premium';
+    }
 
-	/**
-	 * Validate all settings together
-	 *
-	 * @param array $settings Settings array to validate
-	 * @return array Validation result with 'valid' bool, 'errors' array, and 'validated_settings'
-	 */
-	public static function validate_all_settings($settings)
-	{
-		$errors = array();
-		$validated_settings = array();
+    /**
+     * Validate all settings together
+     *
+     * @param array $settings Settings array to validate
+     *
+     * @return array Validation result with 'valid' bool, 'errors' array, and 'validated_settings'
+     */
+    public static function validate_all_settings($settings)
+    {
+        $errors = [];
+        $validated_settings = [];
 
-		// Validate enable monitoring
-		if (isset($settings['enable_monitoring'])) {
-			$validated_settings['enable_monitoring'] = intval($settings['enable_monitoring']);
-		}
+        // Validate enable monitoring
+        if (isset($settings['enable_monitoring'])) {
+            $validated_settings['enable_monitoring'] = intval($settings['enable_monitoring']);
+        }
 
-		// Validate health check interval
-		if (isset($settings['health_check_interval'])) {
-			$interval_validation = self::validate_health_check_interval($settings['health_check_interval']);
-			if ($interval_validation['valid']) {
-				$validated_settings['health_check_interval'] = $interval_validation['value'];
-			} else {
-				$errors[] = 'health_check_interval: ' . $interval_validation['message'];
-			}
-		}
+        // Validate health check interval
+        if (isset($settings['health_check_interval'])) {
+            $interval_validation = self::validate_health_check_interval($settings['health_check_interval']);
+            if ($interval_validation['valid']) {
+                $validated_settings['health_check_interval'] = $interval_validation['value'];
+            } else {
+                $errors[] = 'health_check_interval: ' . $interval_validation['message'];
+            }
+        }
 
-		// Validate alert threshold
-		if (isset($settings['alert_threshold'])) {
-			$threshold_validation = self::validate_alert_threshold($settings['alert_threshold']);
-			if ($threshold_validation['valid']) {
-				$validated_settings['alert_threshold'] = $threshold_validation['value'];
-			} else {
-				$errors[] = 'alert_threshold: ' . $threshold_validation['message'];
-			}
-		}
+        // Validate alert threshold
+        if (isset($settings['alert_threshold'])) {
+            $threshold_validation = self::validate_alert_threshold($settings['alert_threshold']);
+            if ($threshold_validation['valid']) {
+                $validated_settings['alert_threshold'] = $threshold_validation['value'];
+            } else {
+                $errors[] = 'alert_threshold: ' . $threshold_validation['message'];
+            }
+        }
 
-		// Validate retry enabled
-		if (isset($settings['retry_enabled'])) {
-			$validated_settings['retry_enabled'] = intval($settings['retry_enabled']);
-		}
+        // Validate retry enabled
+        if (isset($settings['retry_enabled'])) {
+            $validated_settings['retry_enabled'] = intval($settings['retry_enabled']);
+        }
 
-		// Validate max retry attempts
-		if (isset($settings['max_retry_attempts'])) {
-			$retry_config = array('max_retry_attempts' => $settings['max_retry_attempts']);
-			$retry_validation = self::validate_retry_configuration($retry_config);
-			if ($retry_validation['valid']) {
-				$validated_settings['max_retry_attempts'] = $retry_config['max_retry_attempts'];
-			} else {
-				$errors[] = 'max_retry_attempts: ' . $retry_validation['message'];
-			}
-		}
+        // Validate max retry attempts
+        if (isset($settings['max_retry_attempts'])) {
+            $retry_config = ['max_retry_attempts' => $settings['max_retry_attempts']];
+            $retry_validation = self::validate_retry_configuration($retry_config);
+            if ($retry_validation['valid']) {
+                $validated_settings['max_retry_attempts'] = $retry_config['max_retry_attempts'];
+            } else {
+                $errors[] = 'max_retry_attempts: ' . $retry_validation['message'];
+            }
+        }
 
-		// License key - sanitize only, validation happens in validate_license_on_save
-		if (isset($settings['license_key'])) {
-			$validated_settings['license_key'] = sanitize_text_field($settings['license_key']);
-		}
+        // License key - sanitize only, validation happens in validate_license_on_save
+        if (isset($settings['license_key'])) {
+            $validated_settings['license_key'] = sanitize_text_field($settings['license_key']);
+        }
 
-		return array(
-			'valid' => empty($errors),
-			'errors' => $errors,
-			'validated_settings' => $validated_settings,
-		);
-	}
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors,
+            'validated_settings' => $validated_settings,
+        ];
+    }
 
-	/**
-	 * Validate license when settings are saved
-	 *
-	 * @param array $old_value Old settings value
-	 * @param array $new_value New settings value
-	 */
-	public function validate_license_on_save($old_value, $new_value)
-	{
-		// Check if license key has changed or if we need to validate existing key
-		$old_key = isset($old_value['license_key']) ? $old_value['license_key'] : '';
-		$new_key = isset($new_value['license_key']) ? $new_value['license_key'] : '';
+    /**
+     * Handle Slack OAuth callback and disconnection
+     */
+    public function handle_slack_callback()
+    {
+        // Handle Disconnection
+        if (isset($_GET['slack_disconnect'])) {
+            if (!isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'slack_disconnect_nonce')) {
+                add_settings_error(
+                    'wc_payment_monitor_settings',
+                    'slack_disconnect_error',
+                    __('Invalid security nonce. Please try again.', 'wc-payment-monitor'),
+                    'error'
+                );
+                return;
+            }
 
-		// Always validate if there's a license key (not just when it changes)
-		if (!empty($new_key)) {
-			// Validate new license key
-			$result = $this->license->save_and_validate_license($new_key);
+            // Get current integration ID
+            $options = get_option('wc_payment_monitor_options', []);
+            $integration_id = isset($options['alert_slack_workspace']) ? $options['alert_slack_workspace'] : '';
 
-			if ($result['valid']) {
-				add_settings_error(
-					'wc_payment_monitor_options',
-					'license_valid',
-					__('License key validated successfully!', 'wc-payment-monitor'),
-					'success'
-				);
+            if (!empty($integration_id)) {
+                // Call SaaS to remove tokens
+                $endpoint = 'https://paysentinel.caplaz.com/api/integrations/slack';
+                $this->license->make_authenticated_request($endpoint, 'DELETE', [
+                    'integration_id' => $integration_id,
+                ]);
+            }
 
-				// Show site registration status
-				if ($result['site_registered']) {
-					add_settings_error(
-						'wc_payment_monitor_options',
-						'site_registered',
-						__('Site is registered with your license.', 'wc-payment-monitor'),
-						'success'
-					);
-				} else {
-					add_settings_error(
-						'wc_payment_monitor_options',
-						'site_not_registered',
-						sprintf(
-							__('Site registration failed: %s. Some features may not work properly.', 'wc-payment-monitor'),
-							isset($result['site_registration_reason']) ? $result['site_registration_reason'] : 'Unknown reason'
-						),
-						'warning'
-					);
-				}
-			} else {
-				// Use the user-friendly error message directly
-				$error_msg = $result['message'];
+            unset($options['alert_slack_workspace']);
+            update_option('wc_payment_monitor_options', $options);
 
-				// Add debug info only if WP_DEBUG is enabled and user is admin
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG && current_user_can( 'manage_options' ) && isset( $result['debug_info'] ) && ! empty( $result['debug_info'] ) ) {
-					$error_msg .= sprintf(
-						/* translators: %s: debug info */
-						__( ' (Debug: %s)', 'wc-payment-monitor' ),
-						$result['debug_info']
-					);
-				}
+            add_settings_error(
+                'wc_payment_monitor_settings',
+                'slack_disconnect_success',
+                __('Slack workspace disconnected successfully.', 'wc-payment-monitor'),
+                'updated'
+            );
 
-				add_settings_error(
-					'wc_payment_monitor_options',
-					'license_invalid',
-					$error_msg,
-					'error'
-				);
-			}
-		} elseif (!empty($old_key)) {
-			// License key was removed, deactivate
-			$this->license->deactivate_license();
-			add_settings_error(
-				'wc_payment_monitor_options',
-				'license_deactivated',
-				__('License key removed. Plugin features have been deactivated.', 'wc-payment-monitor'),
-				'info'
-			);
-		}
-	}
+            wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings'));
+            exit;
+        }
 
-	/**
-	 * Render diagnostics page
-	 */
-	public function render_diagnostics_page()
-	{
-		if (!current_user_can('manage_woocommerce')) {
-			wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
-		}
-		?>
+        // Handle Auth Callback
+        if (!isset($_GET['slack_auth']) || !isset($_GET['integration_id'])) {
+            return;
+        }
+
+        if (!isset($_GET['state']) || !wp_verify_nonce($_GET['state'], 'slack_auth_nonce')) {
+            add_settings_error(
+                'wc_payment_monitor_settings',
+                'slack_auth_error',
+                __('Invalid Slack auth state. Please try again.', 'wc-payment-monitor'),
+                'error'
+            );
+            return;
+        }
+
+        $integration_id = sanitize_text_field($_GET['integration_id']);
+        $options = get_option('wc_payment_monitor_options', []);
+        $options['alert_slack_workspace'] = $integration_id;
+
+        update_option('wc_payment_monitor_options', $options);
+
+        add_settings_error(
+            'wc_payment_monitor_settings',
+            'slack_auth_success',
+            __('Slack workspace connected successfully!', 'wc-payment-monitor'),
+            'updated'
+        );
+
+        // Clean up the URL
+        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings'));
+        exit;
+    }
+
+    /**
+     * Validate license when settings are saved
+     *
+     * @param array $old_value Old settings value
+     * @param array $new_value New settings value
+     */
+    public function validate_license_on_save($old_value, $new_value)
+    {
+        // Check if license key has changed or if we need to validate existing key
+        $old_key = isset($old_value['license_key']) ? $old_value['license_key'] : '';
+        $new_key = isset($new_value['license_key']) ? $new_value['license_key'] : '';
+
+        // Always validate if there's a license key (not just when it changes)
+        if (!empty($new_key)) {
+            // Validate new license key
+            $result = $this->license->save_and_validate_license($new_key);
+
+            if ($result['valid']) {
+                add_settings_error(
+                    'wc_payment_monitor_options',
+                    'license_valid',
+                    __('License key validated successfully!', 'wc-payment-monitor'),
+                    'success'
+                );
+
+                // Show site registration status
+                if ($result['site_registered']) {
+                    add_settings_error(
+                        'wc_payment_monitor_options',
+                        'site_registered',
+                        __('Site is registered with your license.', 'wc-payment-monitor'),
+                        'success'
+                    );
+                } else {
+                    add_settings_error(
+                        'wc_payment_monitor_options',
+                        'site_not_registered',
+                        sprintf(
+                            __('Site registration failed: %s. Some features may not work properly.', 'wc-payment-monitor'),
+                            isset($result['site_registration_reason']) ? $result['site_registration_reason'] : 'Unknown reason'
+                        ),
+                        'warning'
+                    );
+                }
+            } else {
+                // Use the user-friendly error message directly
+                $error_msg = $result['message'];
+
+                // Add debug info only if WP_DEBUG is enabled and user is admin
+                if (defined('WP_DEBUG') && WP_DEBUG && current_user_can('manage_options') && isset($result['debug_info']) && !empty($result['debug_info'])) {
+                    $error_msg .= sprintf(
+                        /* translators: %s: debug info */
+                        __(' (Debug: %s)', 'wc-payment-monitor'),
+                        $result['debug_info']
+                    );
+                }
+
+                add_settings_error(
+                    'wc_payment_monitor_options',
+                    'license_invalid',
+                    $error_msg,
+                    'error'
+                );
+            }
+        } elseif (!empty($old_key)) {
+            // License key was removed, deactivate
+            $this->license->deactivate_license();
+            add_settings_error(
+                'wc_payment_monitor_options',
+                'license_deactivated',
+                __('License key removed. Plugin features have been deactivated.', 'wc-payment-monitor'),
+                'info'
+            );
+        }
+    }
+
+    /**
+     * Render diagnostics page
+     */
+    public function render_diagnostics_page()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
+        }
+        ?>
 		<div class="wrap">
 			<h1><?php esc_html_e('Payment Monitor - Diagnostic Tools', 'wc-payment-monitor'); ?></h1>
 
@@ -1797,15 +1955,15 @@ class WC_Payment_Monitor_Admin
 						<select id="failure-gateway">
 							<option value=""><?php esc_html_e('Random Enabled Gateway', 'wc-payment-monitor'); ?></option>
 							<?php
-							$available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
-							foreach ($available_gateways as $gateway_id => $gateway) {
-								printf(
-									'<option value="%s">%s</option>',
-									esc_attr($gateway_id),
-									esc_html(WC_Payment_Monitor::get_friendly_gateway_name( $gateway_id ))
-								);
-							}
-							?>
+                            $available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+        foreach ($available_gateways as $gateway_id => $gateway) {
+            printf(
+                '<option value="%s">%s</option>',
+                esc_attr($gateway_id),
+                esc_html(WC_Payment_Monitor::get_friendly_gateway_name($gateway_id))
+            );
+        }
+        ?>
 							<input type="number" id="failure-count" value="1" min="1" max="50" />
 
 							<button class="button button-secondary" id="simulate-failure">
@@ -2216,5 +2374,43 @@ class WC_Payment_Monitor_Admin
 			</style>
 		</div>
 		<?php
-	}
+    }
+
+    /**
+     * Handle Slack Test Alert AJAX
+     */
+    public function handle_slack_test()
+    {
+        check_ajax_referer('wc_payment_monitor_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'wc-payment-monitor')]);
+        }
+
+        $options = get_option('wc_payment_monitor_options', []);
+        $integration_id = isset($options['alert_slack_workspace']) ? sanitize_text_field($options['alert_slack_workspace']) : '';
+
+        if (empty($integration_id)) {
+            wp_send_json_error(['message' => __('No Slack workspace connected', 'wc-payment-monitor')]);
+        }
+
+        $endpoint = 'https://paysentinel.caplaz.com/api/integrations/slack/test';
+        $response = $this->license->make_authenticated_request($endpoint, 'POST', [
+            'integration_id' => $integration_id,
+            'message'        => __('Testing PaySentinel Slack Integration... connection verified!', 'wc-payment-monitor'),
+        ]);
+
+        if (is_wp_error($response)) {
+            wp_send_json_error(['message' => $response->get_error_message()]);
+        }
+
+        $status = wp_remote_retrieve_response_code($response);
+        if ($status !== 200) {
+            $body = json_decode(wp_remote_retrieve_body($response), true);
+            $error = isset($body['error']) ? $body['error'] : __('SaaS error', 'wc-payment-monitor');
+            wp_send_json_error(['message' => $error]);
+        }
+
+        wp_send_json_success(['message' => __('Test alert sent successfully!', 'wc-payment-monitor')]);
+    }
 }
