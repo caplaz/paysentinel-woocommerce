@@ -572,6 +572,17 @@ class WC_Payment_Monitor_License
             update_option(self::OPTION_LICENSE_DATA, $current_data);
             update_option(self::OPTION_LAST_CHECK, current_time('timestamp'));
 
+            // Sync active integrations
+            if (isset($data['integrations']) && is_array($data['integrations'])) {
+                $options = get_option('wc_payment_monitor_options', []);
+                if (isset($data['integrations']['slack']['id'])) {
+                    $options['alert_slack_workspace'] = sanitize_text_field($data['integrations']['slack']['id']);
+                } else {
+                    unset($options['alert_slack_workspace']);
+                }
+                update_option('wc_payment_monitor_options', $options);
+            }
+
             // Update license status based on sync data
             if (isset($data['valid']) && !$data['valid']) {
                 update_option(self::OPTION_LICENSE_STATUS, 'invalid');

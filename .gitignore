@@ -30,8 +30,9 @@ node_modules/
 vendor/
 composer.lock
 
-# PHPUnit
+# PHP
 .phpunit.result.cache
+.php-cs-fixer.cache
 
 # NPM
 package-lock.json

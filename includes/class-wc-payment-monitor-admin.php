@@ -44,15 +44,18 @@ class WC_Payment_Monitor_Admin
         add_action('admin_menu', [$this, 'register_menu_pages']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_scripts']);
-        add_action('update_option_wc_payment_monitor_options', [$this, 'validate_license_on_save'], 10, 2);
         add_action('admin_init', [$this, 'handle_slack_callback']);
 
         // Slack Test AJAX
         add_action('wp_ajax_wc_payment_monitor_slack_test', [$this, 'handle_slack_test']);
+        add_action('wp_ajax_wc_payment_monitor_sync_integrations', [$this, 'handle_sync_integrations']);
+        add_action('wp_ajax_wc_payment_monitor_validate_license', [$this, 'handle_validate_license_ajax']);
 
         // Admin actions
         add_action('admin_post_wc_payment_monitor_retry', [$this, 'handle_manual_retry']);
         add_action('admin_post_wc_payment_monitor_recovery', [$this, 'handle_recovery_email']);
+        add_action('admin_post_wc_payment_monitor_deactivate_license', [$this, 'handle_deactivate_license']);
+        add_action('admin_post_wc_payment_monitor_save_license', [$this, 'handle_save_license']);
     }
 
     /**
@@ -232,15 +235,6 @@ class WC_Payment_Monitor_Admin
             'wc_payment_monitor_settings'
         );
 
-        // Add settings fields - License Key first (most important)
-        add_settings_field(
-            'license_key',
-            __('License Key', 'wc-payment-monitor'),
-            [$this, 'render_field_license_key'],
-            'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
-        );
-
         // Add settings fields
         add_settings_field(
             'enable_monitoring',
@@ -301,7 +295,7 @@ class WC_Payment_Monitor_Admin
 
         add_settings_field(
             'alert_slack_workspace',
-            __('Slack Workspace ID', 'wc-payment-monitor'),
+            __('Slack Integration', 'wc-payment-monitor'),
             [$this, 'render_field_alert_slack_workspace'],
             'wc_payment_monitor_settings',
             'wc_payment_monitor_main'
@@ -340,6 +334,245 @@ class WC_Payment_Monitor_Admin
     public function render_settings_section()
     {
         echo '<p>' . esc_html__('Configure Payment Monitor settings below.', 'wc-payment-monitor') . '</p>';
+    }
+
+    /**
+     * Render license section standalone
+     */
+    public function render_license_section()
+    {
+        $license_key = $this->license->get_license_key();
+        $license_status = $this->license->get_license_status();
+        $license_data = $this->license->get_license_data();
+        $tier = $this->license->get_license_tier();
+
+        $tier_colors = [
+            'free'    => '#646970',
+            'starter' => '#0073aa',
+            'pro'     => '#d63638',
+            'agency'  => '#9b51e0',
+        ];
+        $badge_color = isset($tier_colors[$tier]) ? $tier_colors[$tier] : '#0073aa';
+        ?>
+		<style>
+			.license-section-wrapper {
+				max-width: 800px;
+				background: #fff;
+				border: 1px solid #ccd0d4;
+				border-radius: 4px;
+				overflow: hidden;
+				box-shadow: 0 1px 1px rgba(0,0,0,.04);
+				margin-bottom: 30px;
+			}
+			.license-header {
+				padding: 15px 20px;
+				background: #f8f9fa;
+				border-bottom: 1px solid #ccd0d4;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+			.license-status-badge {
+				padding: 4px 12px;
+				border-radius: 12px;
+				font-size: 11px;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				color: #fff;
+			}
+			.license-body {
+				padding: 20px;
+			}
+			.license-input-group {
+				display: flex;
+				gap: 10px;
+				margin-bottom: 15px;
+				max-width: 500px;
+			}
+			.license-footer {
+				padding: 12px 20px;
+				background: #fdfdfd;
+				border-top: 1px solid #f0f0f1;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				font-size: 12px;
+			}
+			.upgrade-button {
+				background-color: #46b450;
+				border-color: #46b450;
+				color: white;
+				text-decoration: none;
+				padding: 6px 14px;
+				border-radius: 4px;
+				font-weight: 600;
+				display: inline-flex;
+				align-items: center;
+				transition: all 0.2s;
+			}
+			.upgrade-button:hover {
+				background-color: #389140;
+				color: white;
+			}
+			.upgrade-button .dashicons {
+				margin-right: 5px;
+				font-size: 18px;
+				width: 18px;
+				height: 18px;
+			}
+			.license-loading {
+				display: none;
+				vertical-align: middle;
+				margin-left: 10px;
+			}
+		</style>
+
+		<div class="license-section-wrapper">
+			<div class="license-header">
+				<div style="display: flex; align-items: center; gap: 10px;">
+					<span class="dashicons dashicons-admin-network" style="color: <?php echo esc_attr($badge_color); ?>;"></span>
+					<span style="font-weight: 600; color: #23282d;"><?php esc_html_e('License Management', 'wc-payment-monitor'); ?></span>
+				</div>
+				<div style="display: flex; align-items: center; gap: 10px;">
+					<span style="font-size: 12px; color: #646970;"><?php esc_html_e('Plan:', 'wc-payment-monitor'); ?></span>
+					<span class="license-status-badge" style="background: <?php echo esc_attr($badge_color); ?>;">
+						<?php echo esc_html(ucwords($tier)); ?>
+					</span>
+				</div>
+			</div>
+
+			<div class="license-body">
+				<form method="post" action="<?php echo admin_url('admin-post.php'); ?>" id="wc-payment-monitor-license-form">
+					<input type="hidden" name="action" value="wc_payment_monitor_save_license">
+					<?php wp_nonce_field('wc_payment_monitor_save_license'); ?>
+					
+					<label for="wc_payment_monitor_license_key_input" style="display: block; margin-bottom: 8px; font-weight: 600;">
+						<?php esc_html_e('License Key', 'wc-payment-monitor'); ?>
+					</label>
+					
+					<div class="license-input-group">
+						<input type="password" id="wc_payment_monitor_license_key_input" name="license_key"
+							value="<?php echo esc_attr($license_key); ?>" style="flex-grow: 1; padding: 8px;" 
+							placeholder="<?php esc_html_e('PA-XXXX-XXXX-XXXX', 'wc-payment-monitor'); ?>" />
+						
+						<button type="button" class="button"
+							onclick="var field = document.getElementById('wc_payment_monitor_license_key_input'); var type = field.type === 'password' ? 'text' : 'password'; field.type = type; this.textContent = type === 'password' ? 'Show' : 'Hide';"
+							style="min-width: 60px;">
+							<?php esc_html_e('Show', 'wc-payment-monitor'); ?>
+						</button>
+						
+						<button type="submit" class="button button-primary" id="validate-license-btn">
+							<?php esc_html_e('Validate License', 'wc-payment-monitor'); ?>
+						</button>
+						<span class="spinner license-loading"></span>
+					</div>
+				</form>
+
+				<div id="license-message-area">
+					<?php if ('valid' === $license_status): ?>
+						<div style="display: flex; justify-content: space-between; align-items: flex-end;">
+							<div>
+								<p style="margin: 0; color: #46b450; font-size: 13px; font-weight: 500;">
+									<span class="dashicons dashicons-yes-alt" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
+									<?php esc_html_e('Active protection enabled', 'wc-payment-monitor'); ?>
+								</p>
+								<?php if (isset($license_data['expiration_ts'])): ?>
+									<p style="margin: 5px 0 0; font-size: 12px; color: #646970;">
+										<?php echo esc_html(sprintf(__('Renews on: %s', 'wc-payment-monitor'), date_i18n(get_option('date_format'), strtotime($license_data['expiration_ts'])))); ?>
+									</p>
+								<?php endif; ?>
+								<p style="margin: 10px 0 0;">
+									<a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=wc_payment_monitor_deactivate_license'), 'wc_payment_monitor_deactivate_license')); ?>" 
+										class="submitdelete deletion" 
+										onclick="return confirm('<?php echo esc_js(__('Are you sure you want to deactivate your license? This will stop all payment monitoring.', 'wc-payment-monitor')); ?>');"
+										style="text-decoration: none; font-size: 12px;">
+										<?php esc_html_e('Deactivate License', 'wc-payment-monitor'); ?>
+									</a>
+								</p>
+							</div>
+
+							<?php if ($tier !== 'agency'): ?>
+								<?php
+                                    $next_tier = ($tier === 'free') ? 'Starter' : (($tier === 'starter') ? 'Pro' : 'Agency');
+							    ?>
+								<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="upgrade-button">
+									<span class="dashicons dashicons-star-filled"></span>
+									<?php echo esc_html(sprintf(__('Upgrade to %s', 'wc-payment-monitor'), $next_tier)); ?>
+								</a>
+							<?php endif; ?>
+						</div>
+					<?php else: ?>
+						<p style="margin: 0; color: #d63638; font-size: 13px;">
+							<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
+							<?php esc_html_e('Enter a valid license key to unlock real-time monitoring and SMS/Slack alerts.', 'wc-payment-monitor'); ?>
+						</p>
+						<div style="margin-top: 15px;">
+							<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="button button-secondary">
+								<?php esc_html_e('Get a License Key', 'wc-payment-monitor'); ?>
+							</a>
+						</div>
+					<?php endif; ?>
+				</div>
+			</div>
+
+			<?php if ('valid' === $license_status && $this->license->is_site_registered()): ?>
+				<div class="license-footer">
+					<span style="color: #646970;">
+						<span class="dashicons dashicons-admin-site" style="font-size: 14px; width: 14px; height: 14px; vertical-align: text-bottom;"></span>
+						<?php echo esc_html(parse_url(get_site_url(), PHP_URL_HOST)); ?>
+					</span>
+					<span style="color: #46b450; font-weight: 500;"><?php esc_html_e('Verified & Registered', 'wc-payment-monitor'); ?></span>
+				</div>
+			<?php endif; ?>
+		</div>
+
+		<script>
+			jQuery(document).ready(function($) {
+				const $btn = $('#validate-license-btn');
+				const $spinner = $('.license-loading');
+				const $input = $('#wc_payment_monitor_license_key_input');
+				const $msgArea = $('#license-message-area');
+
+				$btn.on('click', function(e) {
+					e.preventDefault();
+					
+					const licenseKey = $input.val();
+					if (!licenseKey) {
+						alert('<?php echo esc_js(__('Please enter a license key.', 'wc-payment-monitor')); ?>');
+						return;
+					}
+
+					$btn.prop('disabled', true);
+					$spinner.addClass('is-active').show();
+
+					$.ajax({
+						url: ajaxurl,
+						type: 'POST',
+						data: {
+							action: 'wc_payment_monitor_validate_license',
+							license_key: licenseKey,
+							nonce: '<?php echo wp_create_nonce('wc_payment_monitor_validate_license'); ?>'
+						},
+						success: function(response) {
+							if (response.success) {
+								location.reload(); // Simplest way to update all UI parts
+							} else {
+								alert(response.data.message || '<?php echo esc_js(__('Validation failed.', 'wc-payment-monitor')); ?>');
+							}
+						},
+						error: function() {
+							alert('<?php echo esc_js(__('An error occurred during validation.', 'wc-payment-monitor')); ?>');
+						},
+						complete: function() {
+							$btn.prop('disabled', false);
+							$spinner.removeClass('is-active').hide();
+						}
+					});
+				});
+			});
+		</script>
+		<?php
     }
 
     /**
@@ -651,6 +884,19 @@ class WC_Payment_Monitor_Admin
 									<?php echo esc_html(sprintf(__('Renews on: %s', 'wc-payment-monitor'), date_i18n(get_option('date_format'), strtotime($license_data['expiration_ts'])))); ?>
 								</p>
 							<?php endif; ?>
+							<p style="margin: 10px 0 0;">
+								<a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=wc_payment_monitor_deactivate_license'), 'wc_payment_monitor_deactivate_license')); ?>" 
+									class="submitdelete deletion" 
+									onclick="return confirm('<?php echo esc_js(__('Are you sure you want to deactivate your license? This will stop all payment monitoring.', 'wc-payment-monitor')); ?>');"
+									style="text-decoration: none; font-size: 12px;">
+									<?php esc_html_e('Deactivate License', 'wc-payment-monitor'); ?>
+								</a>
+								<span style="color: #ccd0d4; margin: 0 5px;">|</span>
+								<a href="#" onclick="document.getElementById('wc_payment_monitor_license_key').value=''; document.getElementById('wc_payment_monitor_license_key').focus(); return false;" 
+									style="text-decoration: none; font-size: 12px; color: #2271b1;">
+									<?php esc_html_e('Change Key', 'wc-payment-monitor'); ?>
+								</a>
+							</p>
 						</div>
 
 						<?php if ($tier !== 'agency'): ?>
@@ -772,58 +1018,29 @@ class WC_Payment_Monitor_Admin
      */
     public function render_field_alert_slack_workspace()
     {
-        $settings = get_option('wc_payment_monitor_settings', []);
-        $slack = isset($settings['alert_slack_workspace']) ? sanitize_text_field($settings['alert_slack_workspace']) : '';
+        $options = get_option('wc_payment_monitor_options', []);
+        $slack = isset($options['alert_slack_workspace']) ? sanitize_text_field($options['alert_slack_workspace']) : '';
         $tier = $this->license->get_license_tier();
         $is_locked = !in_array($tier, ['pro', 'agency'], true);
-        ?>
-		<div style="position: relative;">
-			<input type="text" name="wc_payment_monitor_options[alert_slack_workspace]"
-				value="<?php echo esc_attr($slack); ?>" class="regular-text"
-				placeholder="T01234567"
-				<?php echo ($is_locked || !empty($slack)) ? 'readonly' : ''; ?>
-				<?php echo $is_locked ? 'disabled' : ''; ?> />
-			<?php if ($is_locked): ?>
-				<span class="dashicons dashicons-lock" style="color: #d63638; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Pro plan or higher required', 'wc-payment-monitor'); ?>"></span>
-			<?php elseif (!empty($slack)): ?>
-				<span class="dashicons dashicons-yes-alt" style="color: #46b450; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Slack connected', 'wc-payment-monitor'); ?>"></span>
-			<?php else: ?>
-				<span class="dashicons dashicons-yes-alt" style="color: #46b450; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e('Feature available in your plan', 'wc-payment-monitor'); ?>"></span>
-			<?php endif; ?>
-		</div>
-		<p class="description">
-			<?php
-            if ($is_locked) {
-                printf(
-                    __('Slack/Discord/Teams notifications delivered via PaySentinel. <strong>Requires Pro plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
-                    'https://paysentinel.caplaz.com/plans'
-                );
-            } elseif (!empty($slack)) {
-                esc_html_e('Your Slack workspace is connected. PaySentinel will deliver alerts to the configured channel.', 'wc-payment-monitor');
-            } else {
-                esc_html_e('Slack notifications delivered via PaySentinel servers. Click "Connect Slack" below to link your workspace.', 'wc-payment-monitor');
-            }
-        ?>
-		</p>
-		<?php if (!$is_locked):
-		    $options = get_option('wc_payment_monitor_options', []);
-		    $license_key = isset($options['license_key']) ? sanitize_text_field($options['license_key']) : '';
-		    $site_url = get_site_url();
-		    $return_url = admin_url('admin.php?page=wc-payment-monitor-settings&slack_auth=1');
 
-		    $status_info = '';
-		    if (!empty($slack)) {
-		        $status_endpoint = add_query_arg('integration_id', $slack, 'https://paysentinel.caplaz.com/api/integrations/slack/status');
-		        $status_response = $this->license->make_authenticated_request($status_endpoint, 'GET');
-		        if (!is_wp_error($status_response) && 200 === wp_remote_retrieve_response_code($status_response)) {
-		            $status_data = json_decode(wp_remote_retrieve_body($status_response), true);
-		            if (!empty($status_data['channel_name'])) {
-		                $status_info = sprintf(' <span style="color: #666;">(%s)</span>', esc_html($status_data['channel_name']));
-		            }
-		        } else {
-		            $status_info = ' <span style="color: #d63638;">(' . __('Offline or Revoked', 'wc-payment-monitor') . ')</span>';
-		        }
-		    }
+        // UI Prep
+        $license_key = isset($options['license_key']) ? sanitize_text_field($options['license_key']) : '';
+        $site_url = get_site_url();
+        $return_url = admin_url('admin.php?page=wc-payment-monitor-settings&slack_auth=1');
+        $status_info = '';
+
+        if (!$is_locked && !empty($slack)) {
+            $status_endpoint = add_query_arg('integration_id', $slack, 'https://paysentinel.caplaz.com/api/integrations/slack/status');
+            $status_response = $this->license->make_authenticated_request($status_endpoint, 'GET');
+            if (!is_wp_error($status_response) && 200 === wp_remote_retrieve_response_code($status_response)) {
+                $status_data = json_decode(wp_remote_retrieve_body($status_response), true);
+                if (!empty($status_data['channel_name'])) {
+                    $status_info = sprintf(' <span style="color: #666; font-weight: normal;">(%s)</span>', esc_html($status_data['channel_name']));
+                }
+            } else {
+                $status_info = ' <span style="color: #d63638; font-weight: normal;">(' . __('Offline or Revoked', 'wc-payment-monitor') . ')</span>';
+            }
+        }
 
         $connect_url = add_query_arg(
             [
@@ -837,46 +1054,114 @@ class WC_Payment_Monitor_Admin
 
         $disconnect_url = admin_url('admin.php?page=wc-payment-monitor-settings&slack_disconnect=1&_wpnonce=' . wp_create_nonce('slack_disconnect_nonce'));
         ?>
-			<div style="margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-				<a href="<?php echo esc_url($connect_url); ?>" class="button <?php echo !empty($slack) ? 'button-secondary' : 'button-primary'; ?>">
-					<?php !empty($slack) ? esc_html_e('Update Connection', 'wc-payment-monitor') : esc_html_e('Connect Slack Workspace', 'wc-payment-monitor'); ?>
-				</a>
-				<?php if (!empty($slack)): ?>
-					<button type="button" class="button button-secondary" id="wc-payment-monitor-slack-test">
-						<?php esc_html_e('Send Test Alert', 'wc-payment-monitor'); ?>
-					</button>
-					<div style="display: flex; align-items: center;">
-						<span class="dashicons dashicons-admin-links" style="color: #46b450; margin-left: 5px;"></span>
-						<span style="color: #46b450; font-weight: 500;"><?php esc_html_e('Connected', 'wc-payment-monitor'); ?></span>
+		<div class="slack-integration-container">
+			<input type="hidden" name="wc_payment_monitor_options[alert_slack_workspace]" value="<?php echo esc_attr($slack); ?>" />
+			
+			<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+				<?php if ($is_locked): ?>
+					<div style="display: flex; align-items: center; color: #d63638; background: #fbeaea; padding: 5px 10px; border-radius: 4px;">
+						<span class="dashicons dashicons-lock" style="margin-right: 5px;"></span>
+						<strong><?php esc_html_e('Locked', 'wc-payment-monitor'); ?></strong>
+					</div>
+				<?php elseif (!empty($slack)): ?>
+					<div style="display: flex; align-items: center; color: #46b450; background: #ecf7ed; padding: 5px 10px; border-radius: 4px;">
+						<span class="dashicons dashicons-yes-alt" style="margin-right: 5px;"></span>
+						<strong><?php esc_html_e('Connected', 'wc-payment-monitor'); ?></strong>
 						<?php echo $status_info; ?>
 					</div>
-					<a href="<?php echo esc_url($disconnect_url); ?>" class="submitdelete deletion" style="text-decoration: none; margin-left: 10px;">
-						<?php esc_html_e('Disconnect', 'wc-payment-monitor'); ?>
+				<?php else: ?>
+					<div style="display: flex; align-items: center; color: #666; background: #f0f0f1; padding: 5px 10px; border-radius: 4px;">
+						<span class="dashicons dashicons-marker" style="margin-right: 5px;"></span>
+						<strong><?php esc_html_e('Not Connected', 'wc-payment-monitor'); ?></strong>
+					</div>
+				<?php endif; ?>
+
+				<?php if (!$is_locked): ?>
+					<a href="<?php echo esc_url($connect_url); ?>" class="button <?php echo !empty($slack) ? 'button-secondary' : 'button-primary'; ?>">
+						<?php !empty($slack) ? esc_html_e('Update / Reconnect', 'wc-payment-monitor') : esc_html_e('Connect Slack Workspace', 'wc-payment-monitor'); ?>
 					</a>
+					<?php if (empty($slack)): ?>
+						<button type="button" class="button button-secondary" id="wc-payment-monitor-slack-sync">
+							<span class="dashicons dashicons-update" style="font-size: 16px; margin-top: 5px;"></span>
+							<?php esc_html_e('Sync from PaySentinel', 'wc-payment-monitor'); ?>
+						</button>
+					<?php endif; ?>
 				<?php endif; ?>
 			</div>
-			<script>
-			jQuery(document).ready(function($) {
-				$('#wc-payment-monitor-slack-test').on('click', function(e) {
-					e.preventDefault();
-					var $btn = $(this);
-					$btn.prop('disabled', true).text('<?php esc_attr_e('Sending...', 'wc-payment-monitor'); ?>');
-					
-					$.post(ajaxurl, {
-						action: 'wc_payment_monitor_slack_test',
-						nonce: '<?php echo wp_create_nonce('wc_payment_monitor_admin_nonce'); ?>'
-					}, function(response) {
-						if (response.success) {
-							alert(response.data.message);
-						} else {
-							alert('Error: ' + response.data.message);
-						}
-						$btn.prop('disabled', false).text('<?php esc_attr_e('Send Test Alert', 'wc-payment-monitor'); ?>');
+
+			<p class="description" style="margin-bottom: 15px;">
+				<?php
+                if ($is_locked) {
+                    printf(
+                        __('Slack notifications delivered via PaySentinel. <strong>Requires Pro plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor'),
+                        'https://paysentinel.caplaz.com/plans'
+                    );
+                } elseif (!empty($slack)) {
+                    esc_html_e('Your Slack workspace is successfully connected. Alerts will be delivered to the channel shown above.', 'wc-payment-monitor');
+                } else {
+                    esc_html_e('Authorize PaySentinel to send alerts to your Slack workspace. Manual entry is disabled for security.', 'wc-payment-monitor');
+                }
+        ?>
+			</p>
+
+			<?php if (!$is_locked && !empty($slack)): ?>
+				<div style="display: flex; align-items: center; gap: 10px;">
+					<button type="button" class="button button-secondary" id="wc-payment-monitor-slack-test">
+						<span class="dashicons dashicons-paper-plane" style="font-size: 16px; margin-top: 5px;"></span>
+						<?php esc_html_e('Send Test Alert', 'wc-payment-monitor'); ?>
+					</button>
+					<a href="<?php echo esc_url($disconnect_url); ?>" class="submitdelete deletion" style="text-decoration: none; margin-left: auto;">
+						<?php esc_html_e('Disconnect Integration', 'wc-payment-monitor'); ?>
+					</a>
+				</div>
+			<?php endif; ?>
+
+			<?php if (!$is_locked): ?>
+				<script>
+				jQuery(document).ready(function($) {
+					// Test Alert Handler
+					$('#wc-payment-monitor-slack-test').on('click', function(e) {
+						e.preventDefault();
+						var $btn = $(this);
+						$btn.prop('disabled', true).text('<?php esc_attr_e('Sending...', 'wc-payment-monitor'); ?>');
+						
+						$.post(ajaxurl, {
+							action: 'wc_payment_monitor_slack_test',
+							nonce: '<?php echo wp_create_nonce('wc_payment_monitor_admin_nonce'); ?>'
+						}, function(response) {
+							if (response.success) {
+								alert(response.data.message);
+							} else {
+								alert('Error: ' + response.data.message);
+							}
+							$btn.prop('disabled', false).html('<span class="dashicons dashicons-paper-plane" style="font-size: 16px; margin-top: 5px;"></span> <?php esc_attr_e('Send Test Alert', 'wc-payment-monitor'); ?>');
+						});
+					});
+
+					// Sync Handler
+					$('#wc-payment-monitor-slack-sync').on('click', function(e) {
+						e.preventDefault();
+						var $btn = $(this);
+						var originalHtml = $btn.html();
+						$btn.prop('disabled', true).text('<?php esc_attr_e('Syncing...', 'wc-payment-monitor'); ?>');
+						
+						$.post(ajaxurl, {
+							action: 'wc_payment_monitor_sync_integrations',
+							nonce: '<?php echo wp_create_nonce('wc_payment_monitor_admin_nonce'); ?>'
+						}, function(response) {
+							if (response.success) {
+								alert(response.data.message);
+								location.reload();
+							} else {
+								alert('Error: ' + response.data.message);
+								$btn.prop('disabled', false).html(originalHtml);
+							}
+						});
 					});
 				});
-			});
-			</script>
-		<?php endif; ?>
+				</script>
+			<?php endif; ?>
+		</div>
 		<?php
     }
 
@@ -1049,6 +1334,12 @@ class WC_Payment_Monitor_Admin
 
         ?>
 		<div class="wrap">
+			<?php if (isset($_GET['message'])): ?>
+				<div class="notice notice-<?php echo esc_attr(isset($_GET['type']) ? sanitize_text_field($_GET['type']) : 'info'); ?> is-dismissible">
+					<p><?php echo esc_html(urldecode($_GET['message'])); ?></p>
+				</div>
+			<?php endif; ?>
+
 			<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
 				<h1 style="margin: 0;"><?php esc_html_e('Payment Monitor Dashboard', 'wc-payment-monitor'); ?></h1>
 				<div style="display: flex; gap: 15px; align-items: center;">
@@ -1335,7 +1626,18 @@ class WC_Payment_Monitor_Admin
         ?>
 		<div class="wrap">
 			<h1><?php esc_html_e('Payment Monitor Settings', 'wc-payment-monitor'); ?></h1>
+			
+			<?php if (isset($_GET['message'])): ?>
+				<div class="notice notice-<?php echo esc_attr(isset($_GET['type']) ? sanitize_text_field($_GET['type']) : 'info'); ?> is-dismissible">
+					<p><?php echo esc_html(urldecode($_GET['message'])); ?></p>
+				</div>
+			<?php endif; ?>
+
 			<?php settings_errors('wc_payment_monitor_options'); ?>
+			<?php settings_errors('wc_payment_monitor_license'); ?>
+			
+			<?php $this->render_license_section(); ?>
+
 			<form method="post" action="options.php">
 				<?php
                 settings_fields('wc_payment_monitor_settings');
@@ -1429,6 +1731,29 @@ class WC_Payment_Monitor_Admin
         WC_Payment_Monitor::get_instance()->retry->send_recovery_email($order);
 
         wp_redirect(admin_url('admin.php?page=wc-payment-monitor-transactions&message=' . urlencode(__('Recovery email sent successfully.', 'wc-payment-monitor')) . '&type=success'));
+        exit;
+    }
+
+    /**
+     * Handle license deactivation
+     */
+    public function handle_deactivate_license()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to perform this action.', 'wc-payment-monitor'));
+        }
+
+        check_admin_referer('wc_payment_monitor_deactivate_license');
+
+        // Deactivate license
+        $this->license->deactivate_license();
+
+        // Also remove from options array to keep UI in sync
+        $options = get_option('wc_payment_monitor_options', []);
+        unset($options['license_key']);
+        update_option('wc_payment_monitor_options', $options);
+
+        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings&message=' . urlencode(__('License deactivated successfully.', 'wc-payment-monitor')) . '&type=info'));
         exit;
     }
 
@@ -1810,82 +2135,6 @@ class WC_Payment_Monitor_Admin
         // Clean up the URL
         wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings'));
         exit;
-    }
-
-    /**
-     * Validate license when settings are saved
-     *
-     * @param array $old_value Old settings value
-     * @param array $new_value New settings value
-     */
-    public function validate_license_on_save($old_value, $new_value)
-    {
-        // Check if license key has changed or if we need to validate existing key
-        $old_key = isset($old_value['license_key']) ? $old_value['license_key'] : '';
-        $new_key = isset($new_value['license_key']) ? $new_value['license_key'] : '';
-
-        // Always validate if there's a license key (not just when it changes)
-        if (!empty($new_key)) {
-            // Validate new license key
-            $result = $this->license->save_and_validate_license($new_key);
-
-            if ($result['valid']) {
-                add_settings_error(
-                    'wc_payment_monitor_options',
-                    'license_valid',
-                    __('License key validated successfully!', 'wc-payment-monitor'),
-                    'success'
-                );
-
-                // Show site registration status
-                if ($result['site_registered']) {
-                    add_settings_error(
-                        'wc_payment_monitor_options',
-                        'site_registered',
-                        __('Site is registered with your license.', 'wc-payment-monitor'),
-                        'success'
-                    );
-                } else {
-                    add_settings_error(
-                        'wc_payment_monitor_options',
-                        'site_not_registered',
-                        sprintf(
-                            __('Site registration failed: %s. Some features may not work properly.', 'wc-payment-monitor'),
-                            isset($result['site_registration_reason']) ? $result['site_registration_reason'] : 'Unknown reason'
-                        ),
-                        'warning'
-                    );
-                }
-            } else {
-                // Use the user-friendly error message directly
-                $error_msg = $result['message'];
-
-                // Add debug info only if WP_DEBUG is enabled and user is admin
-                if (defined('WP_DEBUG') && WP_DEBUG && current_user_can('manage_options') && isset($result['debug_info']) && !empty($result['debug_info'])) {
-                    $error_msg .= sprintf(
-                        /* translators: %s: debug info */
-                        __(' (Debug: %s)', 'wc-payment-monitor'),
-                        $result['debug_info']
-                    );
-                }
-
-                add_settings_error(
-                    'wc_payment_monitor_options',
-                    'license_invalid',
-                    $error_msg,
-                    'error'
-                );
-            }
-        } elseif (!empty($old_key)) {
-            // License key was removed, deactivate
-            $this->license->deactivate_license();
-            add_settings_error(
-                'wc_payment_monitor_options',
-                'license_deactivated',
-                __('License key removed. Plugin features have been deactivated.', 'wc-payment-monitor'),
-                'info'
-            );
-        }
     }
 
     /**
@@ -2412,5 +2661,78 @@ class WC_Payment_Monitor_Admin
         }
 
         wp_send_json_success(['message' => __('Test alert sent successfully!', 'wc-payment-monitor')]);
+    }
+
+    /**
+     * Handle Sync Integrations AJAX
+     */
+    public function handle_sync_integrations()
+    {
+        check_ajax_referer('wc_payment_monitor_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'wc-payment-monitor')]);
+        }
+
+        $result = $this->license->sync_license();
+
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => $result->get_error_message()]);
+        }
+
+        wp_send_json_success(['message' => __('Integrations synced from PaySentinel successfully!', 'wc-payment-monitor')]);
+    }
+
+    /**
+     * Handle Validate License AJAX
+     */
+    public function handle_validate_license_ajax()
+    {
+        check_ajax_referer('wc_payment_monitor_validate_license', 'nonce');
+
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'wc-payment-monitor')]);
+        }
+
+        $license_key = isset($_POST['license_key']) ? sanitize_text_field($_POST['license_key']) : '';
+        
+        if (empty($license_key)) {
+            wp_send_json_error(['message' => __('License key is required', 'wc-payment-monitor')]);
+        }
+
+        $result = $this->license->save_and_validate_license($license_key);
+
+        if ($result['valid']) {
+            wp_send_json_success(['message' => __('License validated successfully!', 'wc-payment-monitor')]);
+        } else {
+            wp_send_json_error(['message' => $result['message']]);
+        }
+    }
+
+    /**
+     * Handle Save License (POST)
+     */
+    public function handle_save_license()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(__('Unauthorized', 'wc-payment-monitor'));
+        }
+
+        check_admin_referer('wc_payment_monitor_save_license');
+
+        $license_key = isset($_POST['license_key']) ? sanitize_text_field($_POST['license_key']) : '';
+        
+        if (!empty($license_key)) {
+            $result = $this->license->save_and_validate_license($license_key);
+            $type = $result['valid'] ? 'success' : 'error';
+            $message = $result['message'];
+        } else {
+            $this->license->deactivate_license();
+            $type = 'info';
+            $message = __('License key removed.', 'wc-payment-monitor');
+        }
+
+        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings&message=' . urlencode($message) . '&type=' . $type));
+        exit;
     }
 }
