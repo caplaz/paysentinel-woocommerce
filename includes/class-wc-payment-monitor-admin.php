@@ -212,6 +212,20 @@ class WC_Payment_Monitor_Admin
     }
 
     /**
+     * Get settings tabs
+     */
+    private function get_settings_tabs()
+    {
+        return [
+            'general'       => __('General', 'wc-payment-monitor'),
+            'notifications' => __('Notifications', 'wc-payment-monitor'),
+            'gateways'      => __('Gateways', 'wc-payment-monitor'),
+            'advanced'      => __('Advanced', 'wc-payment-monitor'),
+            'license'       => __('License', 'wc-payment-monitor'),
+        ];
+    }
+
+    /**
      * Register plugin settings
      */
     public function register_settings()
@@ -227,21 +241,42 @@ class WC_Payment_Monitor_Admin
             ]
         );
 
-        // Add settings section
+        // Define sections
         add_settings_section(
-            'wc_payment_monitor_main',
-            __('Payment Monitor Settings', 'wc-payment-monitor'),
-            [$this, 'render_settings_section'],
+            'wc_payment_monitor_general',
+            __('General Settings', 'wc-payment-monitor'),
+            [$this, 'render_general_section'],
             'wc_payment_monitor_settings'
         );
 
-        // Add settings fields
+        add_settings_section(
+            'wc_payment_monitor_notifications',
+            __('Notification Settings', 'wc-payment-monitor'),
+            [$this, 'render_notifications_section'],
+            'wc_payment_monitor_settings'
+        );
+
+        add_settings_section(
+            'wc_payment_monitor_gateways',
+            __('Gateway Settings', 'wc-payment-monitor'),
+            [$this, 'render_gateways_section'],
+            'wc_payment_monitor_settings'
+        );
+
+        add_settings_section(
+            'wc_payment_monitor_advanced',
+            __('Advanced Settings', 'wc-payment-monitor'),
+            [$this, 'render_advanced_section'],
+            'wc_payment_monitor_settings'
+        );
+
+        // General fields
         add_settings_field(
             'enable_monitoring',
             __('Enable Monitoring', 'wc-payment-monitor'),
             [$this, 'render_field_enable_monitoring'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_general'
         );
 
         add_settings_field(
@@ -249,7 +284,7 @@ class WC_Payment_Monitor_Admin
             __('Health Check Interval (minutes)', 'wc-payment-monitor'),
             [$this, 'render_field_health_check_interval'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_general'
         );
 
         add_settings_field(
@@ -257,7 +292,7 @@ class WC_Payment_Monitor_Admin
             __('Alert Threshold (%)', 'wc-payment-monitor'),
             [$this, 'render_field_alert_threshold'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_general'
         );
 
         add_settings_field(
@@ -265,7 +300,7 @@ class WC_Payment_Monitor_Admin
             __('Enable Payment Retry', 'wc-payment-monitor'),
             [$this, 'render_field_retry_enabled'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_general'
         );
 
         add_settings_field(
@@ -273,16 +308,16 @@ class WC_Payment_Monitor_Admin
             __('Max Retry Attempts', 'wc-payment-monitor'),
             [$this, 'render_field_max_retry_attempts'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_general'
         );
 
-        // Alert notification settings
+        // Notification settings
         add_settings_field(
             'alert_email',
             __('Alert Email Address', 'wc-payment-monitor'),
             [$this, 'render_field_alert_email'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_notifications'
         );
 
         add_settings_field(
@@ -290,7 +325,7 @@ class WC_Payment_Monitor_Admin
             __('Alert Phone Number (SMS)', 'wc-payment-monitor'),
             [$this, 'render_field_alert_phone_number'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_notifications'
         );
 
         add_settings_field(
@@ -298,25 +333,25 @@ class WC_Payment_Monitor_Admin
             __('Slack Integration', 'wc-payment-monitor'),
             [$this, 'render_field_alert_slack_workspace'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_notifications'
         );
 
-        // Per-gateway alert configuration (Pro+ feature)
+        // Gateway configuration
         add_settings_field(
             'gateway_alert_config',
             __('Per-Gateway Alert Configuration', 'wc-payment-monitor'),
             [$this, 'render_field_gateway_alert_config'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_gateways'
         );
 
-        // Test mode settings
+        // Advanced settings
         add_settings_field(
             'enable_test_mode',
             __('Enable Test Mode', 'wc-payment-monitor'),
             [$this, 'render_field_enable_test_mode'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_advanced'
         );
 
         add_settings_field(
@@ -324,8 +359,40 @@ class WC_Payment_Monitor_Admin
             __('Test Failure Rate (%)', 'wc-payment-monitor'),
             [$this, 'render_field_test_failure_rate'],
             'wc_payment_monitor_settings',
-            'wc_payment_monitor_main'
+            'wc_payment_monitor_advanced'
         );
+    }
+
+    /**
+     * Render general section
+     */
+    public function render_general_section()
+    {
+        echo '<p>' . esc_html__('Core monitoring and protection settings.', 'wc-payment-monitor') . '</p>';
+    }
+
+    /**
+     * Render notifications section
+     */
+    public function render_notifications_section()
+    {
+        echo '<p>' . esc_html__('Configure how you receive alerts when issues are detected.', 'wc-payment-monitor') . '</p>';
+    }
+
+    /**
+     * Render gateways section
+     */
+    public function render_gateways_section()
+    {
+        echo '<p>' . esc_html__('Configure behavior for specific payment gateways.', 'wc-payment-monitor') . '</p>';
+    }
+
+    /**
+     * Render advanced section
+     */
+    public function render_advanced_section()
+    {
+        echo '<p>' . esc_html__('Debugging and simulation tools.', 'wc-payment-monitor') . '</p>';
     }
 
     /**
@@ -1030,7 +1097,7 @@ class WC_Payment_Monitor_Admin
         $timestamp = time();
         $signature = WC_Payment_Monitor_Security::generate_hmac_signature('', $timestamp, $site_secret);
 
-        $return_url = admin_url('admin.php?page=wc-payment-monitor-settings&slack_auth=1');
+        $return_url = admin_url('admin.php?page=wc-payment-monitor-settings&tab=notifications&slack_auth=1');
         $status_info = '';
         $is_actually_connected = false;
         $connection_error = '';
@@ -1076,7 +1143,7 @@ class WC_Payment_Monitor_Admin
             'https://paysentinel.caplaz.com/integrations/slack/connect'
         );
 
-        $disconnect_url = admin_url('admin.php?page=wc-payment-monitor-settings&slack_disconnect=1&_wpnonce=' . wp_create_nonce('slack_disconnect_nonce'));
+        $disconnect_url = admin_url('admin.php?page=wc-payment-monitor-settings&tab=notifications&slack_disconnect=1&_wpnonce=' . wp_create_nonce('slack_disconnect_nonce'));
         ?>
 		<div class="slack-integration-container">
 			<input type="hidden" name="wc_payment_monitor_options[alert_slack_workspace]" value="<?php echo esc_attr($slack); ?>" />
@@ -1675,6 +1742,8 @@ class WC_Payment_Monitor_Admin
             wp_die(esc_html__('You do not have permission to access this page.', 'wc-payment-monitor'));
         }
 
+        $tabs = $this->get_settings_tabs();
+        $active_tab = isset($_GET['tab']) && array_key_exists($_GET['tab'], $tabs) ? sanitize_text_field($_GET['tab']) : 'general';
         ?>
 		<div class="wrap">
 			<h1><?php esc_html_e('Payment Monitor Settings', 'wc-payment-monitor'); ?></h1>
@@ -1688,16 +1757,73 @@ class WC_Payment_Monitor_Admin
 			<?php settings_errors('wc_payment_monitor_options'); ?>
 			<?php settings_errors('wc_payment_monitor_license'); ?>
 			
-			<?php $this->render_license_section(); ?>
+			<nav class="nav-tab-wrapper woo-nav-tab-wrapper" style="margin-bottom: 20px;">
+				<?php foreach ($tabs as $id => $label): ?>
+					<a href="<?php echo esc_url(admin_url('admin.php?page=wc-payment-monitor-settings&tab=' . $id)); ?>" 
+					   class="nav-tab <?php echo $active_tab === $id ? 'nav-tab-active' : ''; ?>">
+						<?php echo esc_html($label); ?>
+					</a>
+				<?php endforeach; ?>
+			</nav>
 
-			<form method="post" action="options.php">
-				<?php
-                settings_fields('wc_payment_monitor_settings');
-        do_settings_sections('wc_payment_monitor_settings');
+			<div class="tab-content">
+				<?php if ('license' === $active_tab): ?>
+					<?php $this->render_license_section(); ?>
+					
+					<div style="margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #ccd0d4; border-radius: 4px;">
+						<h3 style="margin-top: 0;"><?php esc_html_e('Subscription Benefits', 'wc-payment-monitor'); ?></h3>
+						<ul style="list-style: disc; margin-left: 20px;">
+							<li><?php esc_html_e('Real-time monitoring and instant SMS alerts.', 'wc-payment-monitor'); ?></li>
+							<li><?php esc_html_e('Slack integration for team notifications.', 'wc-payment-monitor'); ?></li>
+							<li><?php esc_html_e('Advanced gateway-specific performance thresholds.', 'wc-payment-monitor'); ?></li>
+							<li><?php esc_html_e('Priority support and automatic updates.', 'wc-payment-monitor'); ?></li>
+						</ul>
+					</div>
+				<?php else: ?>
+					<form method="post" action="options.php">
+						<?php
+                        settings_fields('wc_payment_monitor_settings');
+        ?>
+						<input type="hidden" name="wc_payment_monitor_options[current_tab]" value="<?php echo esc_attr($active_tab); ?>" />
+						<?php
+        // Only render the active section
+        $section_id = 'wc_payment_monitor_' . $active_tab;
+        
+        // We still need to call do_settings_sections but we only want our specific section
+        // Standard WordPress doesn't easily allow rendering just one section of a page 
+        // without some hackery or custom rendering.
+        // Actually, do_settings_sections($page) renders ALL sections for that page.
+        // Let's use a more targeted approach.
+        
+        global $wp_settings_sections, $wp_settings_fields;
+        
+        if (isset($wp_settings_sections['wc_payment_monitor_settings'][$section_id])) {
+            $section = $wp_settings_sections['wc_payment_monitor_settings'][$section_id];
+            
+            if ($section['title']) {
+                echo "<h2>{$section['title']}</h2>\n";
+            }
+
+            if ($section['callback']) {
+                call_user_func($section['callback'], $section);
+            }
+
+            if (!isset($wp_settings_fields) || !isset($wp_settings_fields['wc_payment_monitor_settings']) || !isset($wp_settings_fields['wc_payment_monitor_settings'][$section_id])) {
+                // No fields
+            } else {
+                echo '<table class="form-table" role="presentation">';
+                do_settings_fields('wc_payment_monitor_settings', $section_id);
+                echo '</table>';
+            }
+        }
+        
         submit_button();
         ?>
-			</form>
+					</form>
+				<?php endif; ?>
+			</div>
 			
+			<?php if ('general' === $active_tab): ?>
 			<div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border: 1px solid #e1e1e1; border-radius: 4px;">
 				<h3 style="margin-top: 0; color: #23282d;"><?php esc_html_e('How Payment Monitor Works', 'wc-payment-monitor'); ?></h3>
 				<p style="margin-bottom: 10px;">
@@ -1717,6 +1843,7 @@ class WC_Payment_Monitor_Admin
 					<?php esc_html_e('Required for premium features like SMS alerts, Slack integration, and advanced analytics.', 'wc-payment-monitor'); ?>
 				</p>
 			</div>
+			<?php endif; ?>
 		</div>
 		<?php
     }
@@ -1800,7 +1927,7 @@ class WC_Payment_Monitor_Admin
         // Deactivate license
         $this->license->deactivate_license();
 
-        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings&message=' . urlencode(__('License deactivated successfully.', 'wc-payment-monitor')) . '&type=info'));
+        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings&tab=license&message=' . urlencode(__('License deactivated successfully.', 'wc-payment-monitor')) . '&type=info'));
         exit;
     }
 
@@ -2131,7 +2258,7 @@ class WC_Payment_Monitor_Admin
                 'updated'
             );
 
-            wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings'));
+            wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings&tab=notifications'));
             exit;
         }
 
@@ -2167,7 +2294,7 @@ class WC_Payment_Monitor_Admin
         );
 
         // Clean up the URL
-        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings'));
+        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings&tab=notifications'));
         exit;
     }
 
@@ -2765,7 +2892,7 @@ class WC_Payment_Monitor_Admin
             $message = __('License key removed.', 'wc-payment-monitor');
         }
 
-        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings&message=' . urlencode($message) . '&type=' . $type));
+        wp_redirect(admin_url('admin.php?page=wc-payment-monitor-settings&tab=license&message=' . urlencode($message) . '&type=' . $type));
         exit;
     }
 }
