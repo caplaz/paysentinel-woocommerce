@@ -1,0 +1,1115 @@
+openapi: 3.0.3
+info:
+  title: PaySentinel SaaS API
+  description: |
+    API for the PaySentinel SaaS, supporting WordPress plugin integration and dashboard functionality.
+
+    ## Authentication
+
+    Two authentication methods are supported:
+    - **HMAC**: For WordPress plugin requests (X-PaySentinel-Signature)
+    - **SessionAuth**: For dashboard web requests (Supabase session cookie)
+  version: 1.0.0
+
+servers:
+  - url: https://paysentinel.caplaz.com/api
+    description: Production server
+
+tags:
+  - name: License Management
+    description: License validation and synchronization
+  - name: Alerts
+    description: Alert delivery (SMS/Slack)
+  - name: Integrations
+    description: Third-party integrations management
+  - name: Dashboard
+    description: User dashboard operations
+  - name: Billing
+    description: Subscription and checkout
+
+components:
+  securitySchemes:
+    HMAC:
+      type: apiKey
+      in: header
+      name: X-PaySentinel-Signature
+      description: |
+        HMAC-SHA256 signature for WordPress plugin authentication.
+
+        **Required headers:**
+        - `X-PaySentinel-License-Key`: The license key
+        - `X-PaySentinel-Timestamp`: Unix timestamp in seconds
+        - `X-PaySentinel-Signature`: HMAC-SHA256 hex digest
+        - `X-PaySentinel-Site-Url`: Site URL (optional, depends on endpoint)
+
+        **Signature generation:**
+        ```
+        message = timestamp + "." + request_body
+        signature = HMAC-SHA256(site_secret, message)
+        ```
+
+        **Note for empty request bodies:** Both `timestamp.` and `timestamp` formats are accepted for backward compatibility.
+
+        **Rate limiting:** Varies by endpoint (see individual operations)
+
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: sb-access-token
+      description: Supabase session cookie for authenticated dashboard users.
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        details:
+          type: string
+          description: Additional error details (optional)
+
+    LicenseValidationRequest:
+      type: object
+      required:
+        - license_key
+        - site_url
+      properties:
+        license_key:
+          type: string
+          description: The license key to validate
+          example: "XXXX-XXXX-XXXX-XXXX"
+        site_url:
+          type: string
+          format: uri
+          description: The WordPress site URL (must be valid HTTP/HTTPS URL)
+          example: "https://example.com"
+
+    LicenseValidationResponse:
+      type: object
+      required:
+        - expiration_ts
+        - plan
+        - features
+        - message
+      properties:
+        expiration_ts:
+          type: string
+          format: date-time
+          description: License expiration timestamp
+          example: "2025-12-31T23:59:59Z"
+        plan:
+          type: string
+          description: Plan type (free, starter, professional, enterprise)
+          example: "professional"
+        features:
+          type: object
+          description: Feature flags for this plan
+          properties:
+            email_alerts:
+              type: boolean
+            sms_alerts:
+              type: boolean
+            slack_alerts:
+              type: boolean
+            max_sites:
+              type: integer
+        quota:
+          type: object
+          nullable: true
+          description: Current quota usage
+          properties:
+            sms:
+              type: object
+              properties:
+                used:
+                  type: integer
+                  description: Number of SMS alerts used
+                limit:
+                  type: integer
+                  description: Total SMS alerts allowed
+                remaining:
+                  type: integer
+                  description: Remaining SMS alerts
+                reset_date:
+                  type: string
+                  format: date-time
+                  description: When the quota resets
+        message:
+          type: string
+          description: Status message
+          example: "License is valid."
+
+    LicenseActivationResponse:
+      type: object
+      required:
+        - site_registration
+        - license_info
+      properties:
+        site_registration:
+          type: object
+          required:
+            - registered
+            - site_secret
+          properties:
+            registered:
+              type: boolean
+              description: Whether the site is registered
+            site_secret:
+              type: string
+              description: 64-character HMAC secret for subsequent requests
+        license_info:
+          type: object
+          properties:
+            plan:
+              type: string
+              description: Plan type
+            expires_at:
+              type: string
+              format: date-time
+              description: License expiration timestamp
+              nullable: true
+        message:
+          type: string
+          example: "License is valid. Site is registered."
+
+    SyncResponse:
+      type: object
+      required:
+        - valid
+        - plan
+        - features
+      properties:
+        valid:
+          type: boolean
+          description: Whether the license is currently valid
+        plan:
+          type: string
+          description: Current plan type
+          example: "professional"
+        features:
+          type: object
+          description: Feature flags for this plan
+        quota:
+          type: object
+          nullable: true
+          description: Current quota usage
+          properties:
+            sms:
+              type: object
+              properties:
+                used:
+                  type: integer
+                limit:
+                  type: integer
+                remaining:
+                  type: integer
+                reset_date:
+                  type: string
+                  format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          description: License expiration date
+
+    AlertRequest:
+      type: object
+      required:
+        - license_key
+        - alert_type
+        - message
+      properties:
+        license_key:
+          type: string
+          description: License key for quota verification
+        alert_type:
+          type: string
+          enum: [SMS, SLACK]
+          description: Type of alert to send
+        message:
+          type: string
+          description: Alert message content
+          example: "Payment failed for Order #12345"
+        recipient:
+          type: string
+          description: Phone number for SMS alerts (E.164 format)
+          example: "+1234567890"
+        integration_id:
+          type: string
+          description: Slack integration ID (required for SLACK alerts)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        site_url:
+          type: string
+          description: WordPress site URL for verification
+        data:
+          type: object
+          additionalProperties: true
+          description: Additional contextual data for the alert
+
+    AlertResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          example: "Alert delivered successfully"
+
+    SlackStatusResponse:
+      type: object
+      required:
+        - active
+      properties:
+        active:
+          type: boolean
+          description: Whether the integration is currently active
+        workspace_name:
+          type: string
+          description: Slack workspace name
+          example: "My Workspace"
+        channel_name:
+          type: string
+          description: Connected channel name
+          example: "Connected"
+        connected_at:
+          type: string
+          format: date-time
+          description: When the integration was created
+        last_alert_sent:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of last alert sent (if any)
+
+    SlackTestRequest:
+      type: object
+      required:
+        - integration_id
+        - message
+      properties:
+        integration_id:
+          type: string
+          description: ID of the Slack integration to test
+        message:
+          type: string
+          description: Test message to send
+          example: "This is a test alert from PaySentinel"
+
+    SlackDisconnectRequest:
+      type: object
+      required:
+        - integration_id
+      properties:
+        integration_id:
+          type: string
+          description: ID of the Slack integration to disconnect
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    License:
+      type: object
+      properties:
+        id:
+          type: string
+          description: License ID from PayBee
+        key:
+          type: string
+          description: License key
+        price_id:
+          type: string
+          description: Stripe price ID
+        status:
+          type: string
+          description: License status (active, expired, etc)
+        expires_at:
+          type: string
+          format: date-time
+          description: Expiration date
+        activated_devices:
+          description: List of activated devices/sites
+
+    LicensesResponse:
+      type: object
+      required:
+        - licenses
+      properties:
+        licenses:
+          type: array
+          items:
+            $ref: "#/components/schemas/License"
+
+    DeactivateSiteRequest:
+      type: object
+      required:
+        - device_id
+        - license_key
+      properties:
+        device_id:
+          type: string
+          description: Device/site ID to deactivate (typically the site URL)
+        license_key:
+          type: string
+          description: License key that owns this device
+
+    Integration:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Integration name (e.g., workspace name)
+        type:
+          type: string
+          description: Integration type
+          example: "SLACK"
+        site_url:
+          type: string
+          description: Associated WordPress site URL
+        license_key:
+          type: string
+          description: Associated license key
+        is_active:
+          type: boolean
+          description: Whether the integration is active
+        created_at:
+          type: string
+          format: date-time
+
+    IntegrationsResponse:
+      type: object
+      required:
+        - integrations
+      properties:
+        integrations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Integration"
+
+    CheckoutRequest:
+      type: object
+      required:
+        - priceId
+      properties:
+        priceId:
+          type: string
+          description: Stripe price ID to purchase
+          example: "price_1234567890"
+
+    CheckoutResponse:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Stripe checkout session URL
+          example: "https://checkout.stripe.com/..."
+
+paths:
+  /activate-license:
+    post:
+      tags:
+        - License Management
+      summary: Activate Site
+      security: [] # No auth required - this is the bootstrap endpoint
+      description: |
+        Registers a site URL to a license key and returns an HMAC secret.
+        This is a one-time operation.
+
+        **Rate limit:** 20 requests per minute per IP address
+      operationId: activateLicense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LicenseValidationRequest"
+      responses:
+        "200":
+          description: Site successfully activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseActivationResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: License invalid or limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /validate-license:
+    post:
+      tags:
+        - License Management
+      summary: Validate License
+      security:
+        - HMAC: []
+      description: |
+        Validates an existing license activation. Requires HMAC authentication.
+
+        **Rate limit:** 20 requests per minute per IP address
+      operationId: validateLicense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LicenseValidationRequest"
+      responses:
+        "200":
+          description: License is valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseValidationResponse"
+        "401":
+          description: Unauthorized (Invalid HMAC signature)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: License is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Invalid license"
+                details: "Devices registered: 3"
+        "429":
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds until rate limit resets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Rate limit exceeded. Maximum 20 validations per minute."
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /sync:
+    get:
+      tags:
+        - License Management
+      summary: Sync License & Quotas
+      description: |
+        Fetches current plan, features, and quota limits for a registered site.
+
+        **Required headers:**
+        - X-PaySentinel-License-Key
+        - X-PaySentinel-Timestamp
+        - X-PaySentinel-Signature
+        - X-PaySentinel-Site-Url (optional)
+      operationId: syncLicense
+      security:
+        - HMAC: []
+      responses:
+        "200":
+          description: Sync data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResponse"
+        "401":
+          description: Unauthorized (invalid HMAC signature)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Invalid or expired license
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /alerts:
+    post:
+      tags:
+        - Alerts
+      summary: Send Alert
+      description: |
+        Triggers an SMS or Slack alert based on the provided data.
+
+        **Rate limit:** Varies based on plan and quota
+
+        **Required fields by alert type:**
+        - SMS: `recipient` (phone number in E.164 format)
+        - SLACK: `integration_id`
+      operationId: sendAlert
+      security:
+        - HMAC: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AlertRequest"
+      responses:
+        "200":
+          description: Alert delivered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertResponse"
+        "400":
+          description: Bad request (missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized (invalid HMAC signature)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Quota exceeded or invalid license
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "SMS quota exceeded"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Integration service error (Slack/SMS provider failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /integrations/slack/status:
+    get:
+      tags:
+        - Integrations
+      summary: Check Slack Integration Status
+      description: |
+        Verifies if a Slack integration is still valid and active.
+
+        Performs an active check against Slack's API to validate the OAuth token.
+      operationId: checkSlackStatus
+      security:
+        - HMAC: []
+      parameters:
+        - name: integration_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ID of the Slack integration to check
+      responses:
+        "200":
+          description: Status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlackStatusResponse"
+        "400":
+          description: Missing integration_id parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized (invalid HMAC signature)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Unauthorized access to this integration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Integration not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Integration not found"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /integrations/slack/test:
+    post:
+      tags:
+        - Integrations
+      summary: Send Test Slack Alert
+      description: Sends a test message to verify Slack integration is working
+      operationId: testSlackIntegration
+      security:
+        - HMAC: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SlackTestRequest"
+      responses:
+        "200":
+          description: Test alert sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized (invalid HMAC signature)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Unauthorized access to this integration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Integration not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error or integration secret missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Slack API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /integrations/slack:
+    delete:
+      tags:
+        - Integrations
+      summary: Disconnect Slack Integration
+      description: Removes a Slack integration and deletes its secure tokens from vault
+      operationId: disconnectSlack
+      security:
+        - HMAC: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SlackDisconnectRequest"
+      responses:
+        "200":
+          description: Integration removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Missing integration_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized (invalid HMAC signature)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Unauthorized access to this integration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Integration not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /licenses:
+    get:
+      tags:
+        - Dashboard
+      summary: List User Licenses
+      description: |
+        Retrieves all licenses associated with the authenticated user's email.
+
+        **Authentication:** Requires valid Supabase session cookie
+      operationId: listLicenses
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Licenses retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicensesResponse"
+        "401":
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /sites:
+    get:
+      tags:
+        - Dashboard
+      summary: List Sites (Deprecated)
+      description: |
+        Returns empty array. Sites are now managed via PayBee directly in the `/licenses` endpoint.
+      operationId: listSites
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Empty sites array
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sites:
+                    type: array
+                    items: {}
+                    example: []
+        "401":
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Dashboard
+      summary: Deactivate Site
+      description: |
+        Deactivates a specific site (device) from a license via PayBee API.
+
+        **Note:** The device_id is typically the WordPress site URL.
+      operationId: deactivateSite
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeactivateSiteRequest"
+      responses:
+        "200":
+          description: Site deactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Device not found (doesn't exist in PayBee)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error or PayBee API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /integrations:
+    get:
+      tags:
+        - Dashboard
+      summary: List User Integrations
+      description: |
+        Returns all integrations (Slack, etc.) for the authenticated user.
+
+        **Authentication:** Requires valid Supabase session cookie
+      operationId: listIntegrations
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Integrations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationsResponse"
+        "401":
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /integrations/{id}:
+    delete:
+      tags:
+        - Dashboard
+      summary: Delete Integration
+      description: Deletes a specific integration owned by the authenticated user
+      operationId: deleteIntegration
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Integration ID to delete
+      responses:
+        "200":
+          description: Integration deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Integration not found or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /checkout:
+    post:
+      tags:
+        - Billing
+      summary: Create Stripe Checkout Session
+      description: |
+        Initiates a Stripe checkout session for a subscription plan.
+
+        **Authentication:** Requires valid Supabase session (uses authenticated user's email)
+      operationId: createCheckout
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutRequest"
+      responses:
+        "200":
+          description: Checkout session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "400":
+          description: Missing priceId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: User already has an active subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "User already has an active subscription"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/slack/callback:
+    get:
+      tags:
+        - Integrations
+      summary: Slack OAuth Callback
+      description: |
+        OAuth callback handler for Slack integration.
+
+        This endpoint is called by Slack after user authorizes the app.
+        It exchanges the authorization code for an access token and creates
+        the integration record in the database.
+
+        **Flow:**
+        1. User initiates Slack OAuth from dashboard
+        2. Slack redirects to this endpoint with `code` and `state`
+        3. Backend exchanges code for access token
+        4. Creates integration record with token stored in vault
+        5. Redirects user back to dashboard
+
+        **Note:** This endpoint requires a valid Supabase session stored in state parameter
+      operationId: slackOAuthCallback
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: OAuth authorization code from Slack
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          description: State parameter containing session info and redirect URL
+        - name: error
+          in: query
+          schema:
+            type: string
+          description: Error code if OAuth failed
+      responses:
+        "200":
+          description: OAuth callback processed successfully, redirects to dashboard
+          content:
+            text/html:
+              schema:
+                type: string
+                description: HTML redirect page
+        "400":
+          description: Invalid request (missing code or state)
+          content:
+            text/html:
+              schema:
+                type: string
+        "401":
+          description: Unauthorized (invalid session)
+          content:
+            text/html:
+              schema:
+                type: string
+        "500":
+          description: Internal server error
+          content:
+            text/html:
+              schema:
+                type: string

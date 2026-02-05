@@ -137,26 +137,26 @@ class WC_Payment_Monitor_Security {
 	/**
 	 * Generate HMAC signature for SaaS API requests
 	 *
-	 * @param array|string $payload     Request body or empty string
-	 * @param int          $timestamp   Current Unix timestamp
-	 * @param string       $site_secret The site secret from license validation
+	 * @param mixed  $payload     Request body (array, object, or JSON string)
+	 * @param int    $timestamp   Current Unix timestamp
+	 * @param string $site_secret The site secret from license validation
 	 *
 	 * @return string HMAC-SHA256 signature
 	 */
 	public static function generate_hmac_signature( $payload, $timestamp, $site_secret ) {
 		$payload_string = '';
 
-		if ( ! empty( $payload ) ) {
-			if ( is_array( $payload ) ) {
-				// Sort keys to ensure consistent signatures
-				self::recursive_ksort( $payload );
-				$payload_string = json_encode( $payload );
-			} else {
-				$payload_string = (string) $payload;
-			}
+		if ( is_array( $payload ) || is_object( $payload ) ) {
+			$payload_array = (array) $payload;
+			self::recursive_ksort( $payload_array );
+			$payload_string = wp_json_encode( $payload_array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		} elseif ( is_string( $payload ) ) {
+			$payload_string = $payload;
 		}
 
-		$data_to_sign = $timestamp . '.' . $payload_string;
+		// The SaaS expects: timestamp.request_body
+		// For empty body, just timestamp (no dot) based on the latest SaaS update
+		$data_to_sign = $timestamp . ( ! empty( $payload_string ) ? '.' . $payload_string : '' );
 
 		return hash_hmac( 'sha256', $data_to_sign, $site_secret );
 	}

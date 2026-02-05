@@ -521,7 +521,8 @@ class WC_Payment_Monitor_Alerts {
 			$channels[] = 'sms';
 		}
 
-		if ( ! empty( $settings['alert_slack_workspace'] ) && in_array( $tier, array( 'pro', 'agency' ), true ) ) {
+		$slack_workspace = get_option( 'wc_payment_monitor_slack_workspace' );
+		if ( ! empty( $slack_workspace ) && in_array( $tier, array( 'pro', 'agency' ), true ) ) {
 			$channels[] = 'slack';
 		}
 
@@ -546,7 +547,8 @@ class WC_Payment_Monitor_Alerts {
 				return ! empty( $settings['alert_phone_number'] ) && in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
 
 			case 'slack':
-				return ! empty( $settings['alert_slack_workspace'] ) && in_array( $tier, array( 'pro', 'agency' ), true );
+				$slack_workspace = get_option( 'wc_payment_monitor_slack_workspace' );
+				return ! empty( $slack_workspace ) && in_array( $tier, array( 'pro', 'agency' ), true );
 
 			default:
 				return false;
@@ -1076,8 +1078,10 @@ class WC_Payment_Monitor_Alerts {
 			$contact['phone'] = $settings['alert_phone_number'];
 		}
 
-		if ( ! empty( $settings['alert_slack_workspace'] ) ) {
-			$contact['slack_workspace'] = $settings['alert_slack_workspace'];
+		// Check for Slack integration
+		$slack_workspace = get_option( 'wc_payment_monitor_slack_workspace', '' );
+		if ( ! empty( $slack_workspace ) ) {
+			$contact['slack_workspace'] = $slack_workspace;
 		}
 
 		// Prepare alert payload according to API spec
@@ -1086,6 +1090,7 @@ class WC_Payment_Monitor_Alerts {
 
 		$payload = array(
 			'license_key' => $license_key,
+			'site_url'    => get_site_url(),
 			'message'     => $message,
 			'data'        => array(
 				'gateway'      => $alert_data['gateway_id'],
@@ -1111,10 +1116,13 @@ class WC_Payment_Monitor_Alerts {
 		}
 
 		// Send to API
-		$url = 'https://paysentinel.caplaz.com/api/alerts';
-
 		$license  = new WC_Payment_Monitor_License();
-		$response = $license->make_authenticated_request( $url, 'POST', $payload );
+		$response = $license->make_authenticated_request(
+			WC_Payment_Monitor_License::API_ENDPOINT_ALERTS,
+			'POST',
+			$payload,
+			true
+		);
 
 		if ( is_wp_error( $response ) ) {
 			error_log( 'WC Payment Monitor API Error: ' . $response->get_error_message() );
@@ -1383,16 +1391,17 @@ class WC_Payment_Monitor_Alerts {
 	 * @return array License status information
 	 */
 	public function get_license_status() {
-		$settings        = get_option( 'wc_payment_monitor_settings', array() );
-		$license_key     = isset( $settings['license_key'] ) ? $settings['license_key'] : '';
-		$license_status  = get_option( 'wc_payment_monitor_license_status', 'inactive' );
-		$license_expires = get_option( 'wc_payment_monitor_license_expires', '' );
+		$license         = new WC_Payment_Monitor_License();
+		$license_key     = $license->get_license_key();
+		$license_status  = $license->get_license_status();
+		$license_data    = $license->get_license_data();
+		$license_expires = isset( $license_data['expiration'] ) ? $license_data['expiration'] : '';
 
 		return array(
 			'has_key'           => ! empty( $license_key ),
 			'status'            => $license_status,
 			'expires'           => $license_expires,
-			'is_active'         => $license_status === 'active',
+			'is_active'         => $license_status === 'valid',
 			'premium_available' => $this->is_premium_feature_available(),
 		);
 	}

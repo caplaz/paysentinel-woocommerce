@@ -306,19 +306,16 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			$this->assertArrayHasKey( 'alert_threshold', $settings, 'Should have alert_threshold setting' );
 			$this->assertArrayHasKey( 'retry_enabled', $settings, 'Should have retry_enabled setting' );
 			$this->assertArrayHasKey( 'max_retry_attempts', $settings, 'Should have max_retry_attempts setting' );
-			$this->assertArrayHasKey( 'license_key', $settings, 'Should have license_key setting' );
 
 			// Test 2: Default values should have correct types
 			$this->assertIsInt( $settings['enable_monitoring'], 'enable_monitoring should be int' );
 			$this->assertIsInt( $settings['health_check_interval'], 'health_check_interval should be int' );
 			$this->assertIsInt( $settings['max_retry_attempts'], 'max_retry_attempts should be int' );
-			$this->assertIsString( $settings['license_key'], 'license_key should be string' );
 
 			// Test 3: Default values should be reasonable
 			$this->assertEquals( 1, $settings['enable_monitoring'], 'Monitoring should be enabled by default' );
 			$this->assertGreaterThanOrEqual( 1, $settings['health_check_interval'], 'Interval should be >= 1' );
 			$this->assertGreaterThanOrEqual( 1, $settings['max_retry_attempts'], 'Max attempts should be >= 1' );
-			$this->assertEquals( '', $settings['license_key'], 'License key should be empty by default' );
 
 			// Test 4: get_setting should return correct values
 			$enable = WC_Payment_Monitor_Admin::get_setting( 'enable_monitoring' );
@@ -338,7 +335,6 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 				'alert_threshold'       => 30,
 				'retry_enabled'         => 0,
 				'max_retry_attempts'    => 5,
-				'license_key'           => 'TEST_KEY_123',
 			);
 
 			$result = WC_Payment_Monitor_Admin::update_settings( $new_settings );
@@ -351,7 +347,6 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			$this->assertEquals( 15, $updated['health_check_interval'], 'Updated interval should be 15' );
 			$this->assertEquals( 0, $updated['retry_enabled'], 'Updated retry_enabled should be 0' );
 			$this->assertEquals( 5, $updated['max_retry_attempts'], 'Updated attempts should be 5' );
-			$this->assertEquals( 'TEST_KEY_123', $updated['license_key'], 'Updated license key should match' );
 
 			// Test 8: Partial updates should preserve other settings
 			WC_Payment_Monitor_Admin::update_settings( array( 'health_check_interval' => 20 ) );
@@ -359,7 +354,6 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			$partial = WC_Payment_Monitor_Admin::get_settings();
 			$this->assertEquals( 20, $partial['health_check_interval'], 'health_check_interval should be updated' );
 			$this->assertEquals( 0, $partial['enable_monitoring'], 'enable_monitoring should be preserved' );
-			$this->assertEquals( 'TEST_KEY_123', $partial['license_key'], 'license_key should be preserved' );
 		}
 	}
 
@@ -411,7 +405,6 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			'alert_threshold'       => 25.5,
 			'retry_enabled'         => 1,
 			'max_retry_attempts'    => 3,
-			'license_key'           => '',
 		);
 
 		$result = WC_Payment_Monitor_Admin::validate_all_settings( $test_settings );
@@ -503,11 +496,11 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 		WC_Payment_Monitor_Admin::update_settings(
 			array(
 				'max_retry_attempts' => 5,
-				'license_key'        => '',
 			)
 		);
 
-		$tier = WC_Payment_Monitor_Admin::get_license_tier();
+		$admin = new WC_Payment_Monitor_Admin();
+		$tier = $admin->get_license_tier();
 		$this->assertEquals( 'free', $tier, 'Empty license key should be free tier' );
 	}
 }

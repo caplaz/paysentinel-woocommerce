@@ -11,9 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Payment_Monitor_License {
 
 	/**
-	 * License API endpoint
+	 * License API endpoints
 	 */
-	public const API_ENDPOINT = 'https://paysentinel.caplaz.com/api/validate-license';
+	public const API_ENDPOINT_ACTIVATE  = 'https://paysentinel.caplaz.com/api/activate-license';
+	public const API_ENDPOINT_VALIDATE  = 'https://paysentinel.caplaz.com/api/validate-license';
+	public const API_ENDPOINT_SYNC      = 'https://paysentinel.caplaz.com/api/sync';
+	public const API_ENDPOINT_ALERTS    = 'https://paysentinel.caplaz.com/api/alerts';
 
 	/**
 	 * Option names
@@ -25,6 +28,7 @@ class WC_Payment_Monitor_License {
 	public const OPTION_SITE_REGISTERED        = 'wc_payment_monitor_site_registered';
 	public const OPTION_SITE_REGISTRATION_DATA = 'wc_payment_monitor_site_registration_data';
 	public const OPTION_SITE_SECRET            = 'wc_payment_monitor_site_secret';
+	public const OPTION_SLACK_WORKSPACE        = 'wc_payment_monitor_slack_workspace';
 
 	/**
 	 * Initialize hooks
@@ -54,36 +58,33 @@ class WC_Payment_Monitor_License {
 	}
 
 	/**
-	 * Validate license key with remote API
+	 * Activate license and register site (Step 1 - No HMAC required)
 	 *
-	 * @param string $license_key License key to validate
+	 * @param string $license_key License key to activate
 	 * @param string $site_url    Site URL (optional, uses current site if not provided)
-	 * @param string $action      Action to perform ('validate' or 'register_site')
 	 *
-	 * @return array Response with 'valid', 'message', and 'data' keys
+	 * @return array Response with 'success', 'message', 'site_secret', and 'data' keys
 	 */
-	public function validate_license( $license_key, $site_url = '', $action = 'validate' ) {
+	public function activate_license( $license_key, $site_url = '' ) {
 		// Sanitize inputs
 		$license_key = sanitize_text_field( $license_key );
 		$site_url    = $site_url ? esc_url_raw( $site_url ) : get_site_url();
 
-		// Ensure site_url is a valid HTTPS URL
-		$site_url = $this->normalize_site_url( $site_url );
-
 		if ( empty( $license_key ) ) {
 			return array(
-				'valid'   => false,
+				'success' => false,
 				'message' => __( 'License key is required', 'wc-payment-monitor' ),
 				'data'    => null,
 			);
 		}
 
-		// Prepare request - API only expects license_key and site_url
+		// Use standard flags to prevent encoding issues
 		$body = wp_json_encode(
 			array(
 				'license_key' => $license_key,
 				'site_url'    => $site_url,
-			)
+			),
+			JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 		);
 
 		$args = array(
@@ -96,8 +97,122 @@ class WC_Payment_Monitor_License {
 			'sslverify'   => true,
 		);
 
-		// Make API request
-		$response = wp_remote_post( self::API_ENDPOINT, $args );
+		// Make API request to activation endpoint (no HMAC required)
+		$response = wp_remote_post( self::API_ENDPOINT_ACTIVATE, $args );
+
+		// Check for errors
+		if ( is_wp_error( $response ) ) {
+			return array(
+				'success' => false,
+				'message' => sprintf(
+					/* translators: %s: error message */
+					__( 'License activation failed: %s', 'wc-payment-monitor' ),
+					$response->get_error_message()
+				),
+				'data'    => null,
+			);
+		}
+
+		// Parse response
+		$response_code = wp_remote_retrieve_response_code( $response );
+		$response_body = wp_remote_retrieve_body( $response );
+		$data          = json_decode( $response_body, true );
+
+		// Add debug info
+		$debug_info = sprintf(
+			'HTTP %d, Body: %s',
+			$response_code,
+			substr( $response_body, 0, 500 )
+		);
+
+		// Handle response
+		if ( 200 !== $response_code ) {
+			$user_message = $this->get_user_friendly_error_message( $response_code, $data );
+			return array(
+				'success'    => false,
+				'message'    => $user_message,
+				'data'       => $data,
+				'debug_info' => $debug_info,
+			);
+		}
+
+		// Extract site_secret from response
+		$site_secret = isset( $data['site_registration']['site_secret'] ) ? 
+			sanitize_text_field( $data['site_registration']['site_secret'] ) : null;
+
+		if ( empty( $site_secret ) ) {
+			return array(
+				'success'    => false,
+				'message'    => __( 'Site secret not received from server', 'wc-payment-monitor' ),
+				'data'       => $data,
+				'debug_info' => $debug_info,
+			);
+		}
+
+		// Check if site is registered
+		$site_registered = isset( $data['site_registration']['registered'] ) ? 
+			(bool) $data['site_registration']['registered'] : false;
+
+		return array(
+			'success'         => true,
+			'site_registered' => $site_registered,
+			'site_secret'     => $site_secret,
+			'message'         => isset( $data['message'] ) ? $data['message'] : __( 'License activated successfully', 'wc-payment-monitor' ),
+			'data'            => $data,
+			'debug_info'      => $debug_info,
+		);
+	}
+
+	/**
+	 * Validate license key with remote API (Step 2 - HMAC required)
+	 *
+	 * @param string $license_key License key to validate
+	 * @param string $site_url    Site URL (optional, uses current site if not provided)
+	 * @param string $site_secret Optional site secret (if not provided, will retrieve from database)
+	 *
+	 * @return array Response with 'valid', 'message', and 'data' keys
+	 */
+	public function validate_license( $license_key, $site_url = '', $site_secret = null ) {
+		// Sanitize inputs
+		$license_key = sanitize_text_field( $license_key );
+		$site_url    = $site_url ? esc_url_raw( $site_url ) : get_site_url();
+
+		if ( empty( $license_key ) ) {
+			return array(
+				'valid'   => false,
+				'message' => __( 'License key is required', 'wc-payment-monitor' ),
+				'data'    => null,
+			);
+		}
+
+		// Get site secret for HMAC (use provided secret or retrieve from database)
+		if ( null === $site_secret ) {
+			$site_secret = $this->get_site_secret();
+		}
+		
+		if ( empty( $site_secret ) ) {
+			return array(
+				'valid'   => false,
+				'message' => __( 'Site not activated. Please activate your license first.', 'wc-payment-monitor' ),
+				'data'    => null,
+			);
+		}
+
+		// Prepare request body
+		$body_array = array(
+			'license_key' => $license_key,
+			'site_url'    => $site_url,
+		);
+
+		// Make authenticated request with HMAC using the provided or retrieved secret
+		$response = $this->make_authenticated_request_with_secret(
+			self::API_ENDPOINT_VALIDATE,
+			'POST',
+			$body_array,
+			$site_secret,
+			$license_key,
+			true // include site URL header
+		);
 
 		// Check for errors
 		if ( is_wp_error( $response ) ) {
@@ -136,15 +251,14 @@ class WC_Payment_Monitor_License {
 		}
 
 		// Check if license is valid based on API response
-		// For 200 responses, check if API provides explicit valid field, otherwise assume valid
-		$is_valid = isset( $data['valid'] ) ? (bool) $data['valid'] : true; // Assume valid for 200 responses unless explicitly false
+		$is_valid = true; // 200 response means valid
 
-		// Only mark as invalid if there's a clear error indicator
+		// Check if there's an explicit error indicator
 		if ( isset( $data['error'] ) ) {
 			$is_valid = false;
 		}
 
-		// Check expiration if license data is available (actual API structure uses expiration_ts at root)
+		// Check expiration if license data is available
 		if ( $is_valid && isset( $data['expiration_ts'] ) && ! empty( $data['expiration_ts'] ) ) {
 			try {
 				$expires_timestamp = strtotime( $data['expiration_ts'] );
@@ -158,175 +272,113 @@ class WC_Payment_Monitor_License {
 			}
 		}
 
-		// Handle site registration from API response
-		$site_registered          = false;
-		$site_registration_reason = '';
-
-		if ( $is_valid && isset( $data['site_registration']['registered'] ) ) {
-			$site_registered          = (bool) $data['site_registration']['registered'];
-			$site_registration_reason = $site_registered ?
-				__( 'Site is registered', 'wc-payment-monitor' ) :
-				__( 'Site not registered', 'wc-payment-monitor' );
-		}
-
-		// Check for site secret in response (nested in site_registration)
-		$site_secret = isset( $data['site_registration']['site_secret'] ) ? sanitize_text_field( $data['site_registration']['site_secret'] ) : null;
-
 		return array(
-			'valid'                    => $is_valid,
-			'site_registered'          => $site_registered,
-			'site_registration_reason' => $site_registration_reason,
-			'site_secret'              => $site_secret,
-			'message'                  => isset( $data['message'] ) ? $data['message'] : ( $is_valid ? __( 'License is valid', 'wc-payment-monitor' ) : __( 'License is invalid', 'wc-payment-monitor' ) ),
-			'data'                     => $data,
-			'debug_info'               => $debug_info,
+			'valid'      => $is_valid,
+			'message'    => isset( $data['message'] ) ? $data['message'] : ( $is_valid ? __( 'License is valid', 'wc-payment-monitor' ) : __( 'License is invalid', 'wc-payment-monitor' ) ),
+			'data'       => $data,
+			'debug_info' => $debug_info,
 		);
 	}
 
 	/**
-	 * Register site with license on the server
+	 * Register site with license on the server (deprecated - now handled by activate_license)
 	 *
 	 * @param string $license_key License key
 	 *
 	 * @return array Registration result with 'success' and 'reason' keys
 	 */
 	private function register_site_with_license( $license_key ) {
-		$result = $this->validate_license( $license_key );
-
-		// According to API docs, validation automatically registers the site
-		if ( $result['valid'] ) {
-			return array(
-				'success' => true,
-				'reason'  => isset( $result['message'] ) ? $result['message'] : __( 'Site registered successfully', 'wc-payment-monitor' ),
-			);
-		}
+		// Site registration is now handled by activate_license endpoint
+		// This method is kept for backward compatibility
+		$result = $this->activate_license( $license_key );
 
 		return array(
-			'success' => false,
-			'reason'  => isset( $result['message'] ) ? $result['message'] : __( 'Site registration failed - invalid license', 'wc-payment-monitor' ),
+			'success' => $result['success'],
+			'reason'  => isset( $result['message'] ) ? $result['message'] : __( 'Site registration completed', 'wc-payment-monitor' ),
 		);
 	}
 
-	/**
-	 * Normalize site URL to ensure it's a valid HTTPS URL
-	 *
-	 * @param string $site_url The site URL to normalize
-	 *
-	 * @return string Normalized HTTPS URL
-	 */
-	private function normalize_site_url( $site_url ) {
-		// Parse the URL
-		$parsed = parse_url( $site_url );
-
-		// If parsing failed, try to create a basic HTTPS URL
-		if ( ! $parsed || ! isset( $parsed['host'] ) ) {
-			// For localhost/development environments, use a placeholder domain
-			if ( strpos( $site_url, 'localhost' ) !== false || strpos( $site_url, '127.0.0.1' ) !== false ) {
-				return 'https://dev.example.com';
-			}
-			// For other cases, try to extract domain-like string
-			$host = preg_replace( '/^https?:\/\//', '', $site_url );
-			$host = preg_replace( '/\/.*$/', '', $host );
-			if ( ! empty( $host ) ) {
-				return 'https://' . $host;
-			}
-			// Last resort fallback
-			return 'https://example.com';
-		}
-
-		// Ensure HTTPS scheme
-		$scheme = isset( $parsed['scheme'] ) ? $parsed['scheme'] : 'https';
-		if ( $scheme === 'http' ) {
-			$scheme = 'https';
-		}
-
-		// For localhost/development environments, use a placeholder domain
-		$host = $parsed['host'];
-		if ( $host === 'localhost' || $host === '127.0.0.1' ) {
-			$host = 'dev.example.com';
-		}
-
-		// Rebuild the URL
-		$normalized = $scheme . '://' . $host;
-
-		// Add port if specified and not default
-		if ( isset( $parsed['port'] ) ) {
-			if ( ( $scheme === 'https' && $parsed['port'] !== 443 ) || ( $scheme === 'http' && $parsed['port'] !== 80 ) ) {
-				$normalized .= ':' . $parsed['port'];
-			}
-		}
-
-		// Add path if specified
-		if ( isset( $parsed['path'] ) ) {
-			$normalized .= $parsed['path'];
-		}
-
-		// Add query if specified
-		if ( isset( $parsed['query'] ) ) {
-			$normalized .= '?' . $parsed['query'];
-		}
-
-		// Add fragment if specified
-		if ( isset( $parsed['fragment'] ) ) {
-			$normalized .= '#' . $parsed['fragment'];
-		}
-
-		// Final validation
-		if ( filter_var( $normalized, FILTER_VALIDATE_URL ) ) {
-			return $normalized;
-		}
-
-		// If still invalid, return a basic HTTPS URL
-		$fallback_host = ( $parsed['host'] === 'localhost' || $parsed['host'] === '127.0.0.1' ) ? 'dev.example.com' : $parsed['host'];
-		return 'https://' . $fallback_host;
-	}
-
 	public function save_and_validate_license( $license_key ) {
-		// Validate license
-		$result = $this->validate_license( $license_key );
+		$site_url = get_site_url();
 
-		// For valid licenses, if site is not registered, try to register it
-		if ( $result['valid'] && ! $result['site_registered'] ) {
-			$registration_result = $this->register_site_with_license( $license_key );
-			if ( $registration_result['success'] ) {
-				$result['site_registered']          = true;
-				$result['site_registration_reason'] = $registration_result['reason'];
-				$result['message']                  = __( 'License validated and site registered successfully!', 'wc-payment-monitor' );
-			} else {
-				// Site registration failed, but license is still valid
-				$result['site_registered']          = false;
-				$result['site_registration_reason'] = $registration_result['reason'];
-				$result['message']                  = __( 'License is valid, but site registration failed. Some features may not work properly.', 'wc-payment-monitor' );
-			}
-		} elseif ( $result['valid'] && $result['site_registered'] ) {
-			$result['message'] = __( 'License validated and site is registered!', 'wc-payment-monitor' );
+		// Step 1: Activate license and get site_secret (no HMAC required)
+		$activation_result = $this->activate_license( $license_key, $site_url );
+
+		if ( ! $activation_result['success'] ) {
+			// Activation failed
+			update_option( self::OPTION_LICENSE_KEY, $license_key );
+			update_option( self::OPTION_LICENSE_STATUS, 'invalid' );
+			update_option( self::OPTION_LICENSE_DATA, $activation_result['data'] );
+			update_option( self::OPTION_LAST_CHECK, current_time( 'timestamp' ) );
+			update_option( self::OPTION_SITE_REGISTERED, false );
+
+			return array(
+				'valid'   => false,
+				'message' => $activation_result['message'],
+				'data'    => $activation_result['data'],
+			);
 		}
+
+		// Extract site_secret from activation
+		$site_secret = isset( $activation_result['site_secret'] ) ? $activation_result['site_secret'] : null;
+		
+		if ( empty( $site_secret ) ) {
+			return array(
+				'valid'   => false,
+				'message' => __( 'Site secret not received from activation. Please try again.', 'wc-payment-monitor' ),
+				'data'    => $activation_result['data'],
+			);
+		}
+
+		// Save site_secret from activation
+		update_option( self::OPTION_SITE_SECRET, $site_secret );
+
+		// Save site registration status
+		$site_registered = isset( $activation_result['site_registered'] ) ? $activation_result['site_registered'] : false;
+		update_option( self::OPTION_SITE_REGISTERED, $site_registered );
+
+		// Step 2: Validate license with HMAC authentication (pass site_secret directly)
+		// IMPORTANT: Use the same site_url that was used in activation
+		$validation_result = $this->validate_license( $license_key, $site_url, $site_secret );
+
+		// Merge activation and validation data
+		$license_data = array_merge(
+			isset( $activation_result['data']['license_info'] ) ? $activation_result['data']['license_info'] : array(),
+			isset( $validation_result['data'] ) ? $validation_result['data'] : array()
+		);
 
 		// Save license key and status
 		update_option( self::OPTION_LICENSE_KEY, $license_key );
-		update_option( self::OPTION_LICENSE_STATUS, $result['valid'] ? 'valid' : 'invalid' );
-		update_option( self::OPTION_LICENSE_DATA, $result['data'] );
+		update_option( self::OPTION_LICENSE_STATUS, $validation_result['valid'] ? 'valid' : 'invalid' );
+		update_option( self::OPTION_LICENSE_DATA, $license_data );
 		update_option( self::OPTION_LAST_CHECK, current_time( 'timestamp' ) );
 
-		// Save site registration status
-		update_option( self::OPTION_SITE_REGISTERED, $result['site_registered'] );
-
-		// Update site secret if provided by API during validation/registration
-		if ( ! empty( $result['site_secret'] ) ) {
-			update_option( self::OPTION_SITE_SECRET, $result['site_secret'] );
-		}
-
+		// Update site registration data
 		update_option(
 			self::OPTION_SITE_REGISTRATION_DATA,
 			array(
-				'registered'    => $result['site_registered'],
-				'reason'        => isset( $result['site_registration_reason'] ) ? $result['site_registration_reason'] : '',
-				'registered_at' => $result['site_registered'] ? current_time( 'c' ) : null,
+				'registered'    => $site_registered,
+				'reason'        => $site_registered ? __( 'Site is registered', 'wc-payment-monitor' ) : __( 'Site registration pending', 'wc-payment-monitor' ),
+				'registered_at' => $site_registered ? current_time( 'c' ) : null,
 				'checked_at'    => current_time( 'timestamp' ),
 			)
 		);
 
-		return $result;
+		// Prepare final result message
+		if ( $validation_result['valid'] && $site_registered ) {
+			$message = __( 'License activated and validated successfully!', 'wc-payment-monitor' );
+		} elseif ( $validation_result['valid'] && ! $site_registered ) {
+			$message = __( 'License is valid, but site registration is pending.', 'wc-payment-monitor' );
+		} else {
+			$message = $validation_result['message'];
+		}
+
+		return array(
+			'valid'           => $validation_result['valid'],
+			'site_registered' => $site_registered,
+			'message'         => $message,
+			'data'            => $license_data,
+		);
 	}
 
 	/**
@@ -525,8 +577,7 @@ class WC_Payment_Monitor_License {
 			);
 		}
 
-		$url      = 'https://paysentinel.caplaz.com/api/sync';
-		$response = $this->make_authenticated_request( $url, 'GET', array() );
+		$response = $this->make_authenticated_request( self::API_ENDPOINT_SYNC, 'GET', null );
 
 		if ( is_wp_error( $response ) ) {
 			error_log( 'WC Payment Monitor: License sync failed - ' . $response->get_error_message() );
@@ -549,8 +600,28 @@ class WC_Payment_Monitor_License {
 				$current_data['quota']      = isset( $data['quota'] ) ? $data['quota'] : null;
 				$current_data['expires_at'] = isset( $data['expires_at'] ) ? $data['expires_at'] : ( isset( $current_data['expiration_ts'] ) ? $current_data['expiration_ts'] : null );
 				$current_data['valid']      = isset( $data['valid'] ) ? $data['valid'] : true;
+				
+				// Ensure integrations are cached in license data too
+				if ( isset( $data['integrations'] ) ) {
+					$current_data['integrations'] = $data['integrations'];
+				}
 			} else {
 				$current_data = $data;
+			}
+
+			// Sync integrations (Standalone options)
+			if ( isset( $data['integrations']['slack']['id'] ) ) {
+				update_option( 'wc_payment_monitor_slack_workspace', $data['integrations']['slack']['id'] );
+				
+				// Also update main options for compatibility
+				$options = get_option( 'wc_payment_monitor_options', array() );
+				$options['alert_slack_workspace'] = $data['integrations']['slack']['id'];
+				update_option( 'wc_payment_monitor_options', $options );
+			}
+
+			// Update license status
+			if ( isset( $data['valid'] ) && $data['valid'] ) {
+				update_option( self::OPTION_LICENSE_STATUS, 'valid' );
 			}
 
 			update_option( self::OPTION_LICENSE_DATA, $current_data );
@@ -558,13 +629,11 @@ class WC_Payment_Monitor_License {
 
 			// Sync active integrations
 			if ( isset( $data['integrations'] ) && is_array( $data['integrations'] ) ) {
-				$options = get_option( 'wc_payment_monitor_options', array() );
 				if ( isset( $data['integrations']['slack']['id'] ) ) {
-					$options['alert_slack_workspace'] = sanitize_text_field( $data['integrations']['slack']['id'] );
+					update_option( self::OPTION_SLACK_WORKSPACE, sanitize_text_field( $data['integrations']['slack']['id'] ) );
 				} else {
-					unset( $options['alert_slack_workspace'] );
+					delete_option( self::OPTION_SLACK_WORKSPACE );
 				}
-				update_option( 'wc_payment_monitor_options', $options );
 			}
 
 			// Update license status based on sync data
@@ -774,8 +843,29 @@ class WC_Payment_Monitor_License {
 			);
 		}
 
+		return $this->make_authenticated_request_with_secret( $endpoint, $method, $body, $site_secret, $license_key, $include_site_url );
+	}
+
+	/**
+	 * Make an authenticated API request with explicit credentials
+	 *
+	 * @param string $endpoint         Full URL or path
+	 * @param string $method           HTTP method
+	 * @param array  $body             Request body (array)
+	 * @param string $site_secret      Site secret for HMAC
+	 * @param string $license_key      License key
+	 * @param bool   $include_site_url Whether to include X-PaySentinel-Site-Url header
+	 *
+	 * @return array|WP_Error Response data or WP_Error
+	 */
+	private function make_authenticated_request_with_secret( $endpoint, $method, $body, $site_secret, $license_key, $include_site_url = true ) {
 		$timestamp = time();
-		$signature = WC_Payment_Monitor_Security::generate_hmac_signature( $body, $timestamp, $site_secret );
+		
+		// JSON encode the body with consistent flags to match signature generation
+		$body_json = ! empty( $body ) ? wp_json_encode( $body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) : '';
+		
+		// Generate signature from the JSON string (not the array)
+		$signature = WC_Payment_Monitor_Security::generate_hmac_signature( $body_json, $timestamp, $site_secret );
 
 		$headers = array(
 			'Content-Type'              => 'application/json',
@@ -797,8 +887,8 @@ class WC_Payment_Monitor_License {
 			'sslverify'   => true,
 		);
 
-		if ( ! empty( $body ) ) {
-			$args['body'] = wp_json_encode( $body );
+		if ( ! empty( $body_json ) ) {
+			$args['body'] = $body_json;
 		}
 
 		return wp_remote_request( $endpoint, $args );

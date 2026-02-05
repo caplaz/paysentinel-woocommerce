@@ -213,6 +213,10 @@ class WC_Payment_Monitor {
 		// Initialize retry engine
 		$this->retry = new WC_Payment_Monitor_Retry();
 
+		// Initialize license system and hooks
+		$license = new WC_Payment_Monitor_License();
+		$license->init_hooks();
+
 		// Initialize gateway connectivity scheduler
 		$this->init_gateway_connectivity_scheduler();
 
@@ -467,7 +471,6 @@ class WC_Payment_Monitor {
 			'monitoring_interval'   => 300, // 5 minutes
 			'enable_auto_retry'     => true,
 			'retry_schedule'        => array( 3600, 21600, 86400 ), // 1h, 6h, 24h
-			'license_key'           => '',
 		);
 
 		add_option( 'wc_payment_monitor_settings', $default_settings );
