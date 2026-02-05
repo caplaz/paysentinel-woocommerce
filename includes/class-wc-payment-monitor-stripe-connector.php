@@ -5,8 +5,8 @@
  *
  * Handles connectivity checks with Stripe API
  */
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
@@ -14,145 +14,140 @@ if (!defined('ABSPATH')) {
  *
  * Stripe-specific connectivity checker
  */
-class WC_Payment_Monitor_Stripe_Connector extends WC_Payment_Monitor_Gateway_Connector
-{
-    public const STRIPE_API_URL = 'https://api.stripe.com/v1';
+class WC_Payment_Monitor_Stripe_Connector extends WC_Payment_Monitor_Gateway_Connector {
 
-    /**
-     * Constructor
-     */
-    public function __construct()
-    {
-        parent::__construct('stripe');
-    }
+	public const STRIPE_API_URL = 'https://api.stripe.com/v1';
 
-    /**
-     * Get gateway title
-     *
-     * @return string
-     */
-    protected function get_gateway_title()
-    {
-        return 'Stripe';
-    }
+	/**
+	 * Constructor
+	 */
+	public function __construct() {
+		parent::__construct( 'stripe' );
+	}
 
-    /**
-     * Retrieve Stripe API credentials from WooCommerce settings
-     *
-     * @return array
-     */
-    protected function get_credentials()
-    {
-        $stripe_settings = get_option('woocommerce_stripe_settings', []);
+	/**
+	 * Get gateway title
+	 *
+	 * @return string
+	 */
+	protected function get_gateway_title() {
+		return 'Stripe';
+	}
 
-        if (!is_array($stripe_settings)) {
-            return [];
-        }
+	/**
+	 * Retrieve Stripe API credentials from WooCommerce settings
+	 *
+	 * @return array
+	 */
+	protected function get_credentials() {
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
 
-        // Determine if test mode or live mode
-        $testmode = isset($stripe_settings['testmode']) && 'yes' === $stripe_settings['testmode'];
+		if ( ! is_array( $stripe_settings ) ) {
+			return array();
+		}
 
-        // Get API key based on mode
-        $api_key = $testmode ? $stripe_settings['test_secret_key'] ?? '' : $stripe_settings['secret_key'] ?? '';
+		// Determine if test mode or live mode
+		$testmode = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
 
-        return [
-            'api_key'  => $api_key,
-            'testmode' => $testmode,
-        ];
-    }
+		// Get API key based on mode
+		$api_key = $testmode ? $stripe_settings['test_secret_key'] ?? '' : $stripe_settings['secret_key'] ?? '';
 
-    /**
-     * Validate Stripe credentials
-     *
-     * @return array
-     */
-    public function validate_credentials()
-    {
-        $credentials = $this->get_credentials();
+		return array(
+			'api_key'  => $api_key,
+			'testmode' => $testmode,
+		);
+	}
 
-        if (empty($credentials['api_key'])) {
-            return [
-                'valid' => false,
-                'error' => 'Stripe API key not configured',
-            ];
-        }
+	/**
+	 * Validate Stripe credentials
+	 *
+	 * @return array
+	 */
+	public function validate_credentials() {
+		$credentials = $this->get_credentials();
 
-        if (!preg_match('/^(sk_live_|sk_test_)/', $credentials['api_key'])) {
-            return [
-                'valid' => false,
-                'error' => 'Invalid Stripe secret key format',
-            ];
-        }
+		if ( empty( $credentials['api_key'] ) ) {
+			return array(
+				'valid' => false,
+				'error' => 'Stripe API key not configured',
+			);
+		}
 
-        return [
-            'valid' => true,
-            'error' => null,
-        ];
-    }
+		if ( ! preg_match( '/^(sk_live_|sk_test_)/', $credentials['api_key'] ) ) {
+			return array(
+				'valid' => false,
+				'error' => 'Invalid Stripe secret key format',
+			);
+		}
 
-    /**
-     * Test connection to Stripe API via Balance endpoint
-     *
-     * @return array
-     */
-    public function test_connection()
-    {
-        // Validate credentials first
-        $validation = $this->validate_credentials();
-        if (!$validation['valid']) {
-            return $this->response_unconfigured();
-        }
+		return array(
+			'valid' => true,
+			'error' => null,
+		);
+	}
 
-        $credentials = $this->get_credentials();
-        $api_key     = $credentials['api_key'];
+	/**
+	 * Test connection to Stripe API via Balance endpoint
+	 *
+	 * @return array
+	 */
+	public function test_connection() {
+		// Validate credentials first
+		$validation = $this->validate_credentials();
+		if ( ! $validation['valid'] ) {
+			return $this->response_unconfigured();
+		}
 
-        // Make request to Stripe Balance API
-        $response = $this->make_http_request(
-            self::STRIPE_API_URL . '/balance',
-            [
-                'method'    => 'GET',
-                'headers'   => [
-                    'Authorization' => 'Bearer ' . $api_key,
-                    'Content-Type'  => 'application/x-www-form-urlencoded',
-                ],
-            ]
-        );
+		$credentials = $this->get_credentials();
+		$api_key     = $credentials['api_key'];
 
-        if (!$response['success']) {
-            return $this->response_offline(
-                'Failed to connect to Stripe API: ' . $response['error'],
-                null,
-                $response['time_ms']
-            );
-        }
+		// Make request to Stripe Balance API
+		$response = $this->make_http_request(
+			self::STRIPE_API_URL . '/balance',
+			array(
+				'method'  => 'GET',
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $api_key,
+					'Content-Type'  => 'application/x-www-form-urlencoded',
+				),
+			)
+		);
 
-        $http_code = wp_remote_retrieve_response_code($response['response']);
-        $body      = json_decode(wp_remote_retrieve_body($response['response']), true);
+		if ( ! $response['success'] ) {
+			return $this->response_offline(
+				'Failed to connect to Stripe API: ' . $response['error'],
+				null,
+				$response['time_ms']
+			);
+		}
 
-        // Stripe returns 200 OK for successful balance retrieve
-        if (200 === $http_code && isset($body['object']) && 'balance' === $body['object']) {
-            return $this->response_online(
-                'Successfully connected to Stripe',
-                $http_code,
-                $response['time_ms']
-            );
-        }
+		$http_code = wp_remote_retrieve_response_code( $response['response'] );
+		$body      = json_decode( wp_remote_retrieve_body( $response['response'] ), true );
 
-        // Check for error response
-        if (isset($body['error'])) {
-            $error_message = $body['error']['message'] ?? 'Unknown Stripe API error';
-            return $this->response_offline(
-                'Stripe API error: ' . $error_message,
-                $http_code,
-                $response['time_ms']
-            );
-        }
+		// Stripe returns 200 OK for successful balance retrieve
+		if ( 200 === $http_code && isset( $body['object'] ) && 'balance' === $body['object'] ) {
+			return $this->response_online(
+				'Successfully connected to Stripe',
+				$http_code,
+				$response['time_ms']
+			);
+		}
 
-        // Unexpected response format
-        return $this->response_offline(
-            'Unexpected response from Stripe API (HTTP ' . $http_code . ')',
-            $http_code,
-            $response['time_ms']
-        );
-    }
+		// Check for error response
+		if ( isset( $body['error'] ) ) {
+			$error_message = $body['error']['message'] ?? 'Unknown Stripe API error';
+			return $this->response_offline(
+				'Stripe API error: ' . $error_message,
+				$http_code,
+				$response['time_ms']
+			);
+		}
+
+		// Unexpected response format
+		return $this->response_offline(
+			'Unexpected response from Stripe API (HTTP ' . $http_code . ')',
+			$http_code,
+			$response['time_ms']
+		);
+	}
 }

@@ -5,8 +5,8 @@
  *
  * Handles connectivity checks with PayPal API
  */
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
@@ -14,145 +14,140 @@ if (!defined('ABSPATH')) {
  *
  * PayPal-specific connectivity checker
  */
-class WC_Payment_Monitor_PayPal_Connector extends WC_Payment_Monitor_Gateway_Connector
-{
-    public const PAYPAL_LIVE_API = 'https://api.paypal.com';
-    public const PAYPAL_SANDBOX_API = 'https://api.sandbox.paypal.com';
+class WC_Payment_Monitor_PayPal_Connector extends WC_Payment_Monitor_Gateway_Connector {
 
-    /**
-     * Constructor
-     */
-    public function __construct()
-    {
-        parent::__construct('paypal');
-    }
+	public const PAYPAL_LIVE_API    = 'https://api.paypal.com';
+	public const PAYPAL_SANDBOX_API = 'https://api.sandbox.paypal.com';
 
-    /**
-     * Get gateway title
-     *
-     * @return string
-     */
-    protected function get_gateway_title()
-    {
-        return 'PayPal';
-    }
+	/**
+	 * Constructor
+	 */
+	public function __construct() {
+		parent::__construct( 'paypal' );
+	}
 
-    /**
-     * Retrieve PayPal API credentials from WooCommerce settings
-     *
-     * @return array
-     */
-    protected function get_credentials()
-    {
-        $paypal_settings = get_option('woocommerce_paypal_settings', []);
+	/**
+	 * Get gateway title
+	 *
+	 * @return string
+	 */
+	protected function get_gateway_title() {
+		return 'PayPal';
+	}
 
-        if (!is_array($paypal_settings)) {
-            return [];
-        }
+	/**
+	 * Retrieve PayPal API credentials from WooCommerce settings
+	 *
+	 * @return array
+	 */
+	protected function get_credentials() {
+		$paypal_settings = get_option( 'woocommerce_paypal_settings', array() );
 
-        // Determine if sandbox or live
-        $sandbox = isset($paypal_settings['sandbox']) && 'yes' === $paypal_settings['sandbox'];
+		if ( ! is_array( $paypal_settings ) ) {
+			return array();
+		}
 
-        // Get credentials based on mode
-        $client_id = $sandbox ? $paypal_settings['sandbox_client_id'] ?? '' : $paypal_settings['client_id'] ?? '';
-        $secret    = $sandbox ? $paypal_settings['sandbox_secret'] ?? '' : $paypal_settings['secret'] ?? '';
+		// Determine if sandbox or live
+		$sandbox = isset( $paypal_settings['sandbox'] ) && 'yes' === $paypal_settings['sandbox'];
 
-        return [
-            'client_id' => $client_id,
-            'secret'    => $secret,
-            'sandbox'   => $sandbox,
-        ];
-    }
+		// Get credentials based on mode
+		$client_id = $sandbox ? $paypal_settings['sandbox_client_id'] ?? '' : $paypal_settings['client_id'] ?? '';
+		$secret    = $sandbox ? $paypal_settings['sandbox_secret'] ?? '' : $paypal_settings['secret'] ?? '';
 
-    /**
-     * Validate PayPal credentials
-     *
-     * @return array
-     */
-    public function validate_credentials()
-    {
-        $credentials = $this->get_credentials();
+		return array(
+			'client_id' => $client_id,
+			'secret'    => $secret,
+			'sandbox'   => $sandbox,
+		);
+	}
 
-        if (empty($credentials['client_id']) || empty($credentials['secret'])) {
-            return [
-                'valid' => false,
-                'error' => 'PayPal Client ID or Secret not configured',
-            ];
-        }
+	/**
+	 * Validate PayPal credentials
+	 *
+	 * @return array
+	 */
+	public function validate_credentials() {
+		$credentials = $this->get_credentials();
 
-        return [
-            'valid' => true,
-            'error' => null,
-        ];
-    }
+		if ( empty( $credentials['client_id'] ) || empty( $credentials['secret'] ) ) {
+			return array(
+				'valid' => false,
+				'error' => 'PayPal Client ID or Secret not configured',
+			);
+		}
 
-    /**
-     * Test connection to PayPal API via OAuth token endpoint
-     *
-     * @return array
-     */
-    public function test_connection()
-    {
-        // Validate credentials first
-        $validation = $this->validate_credentials();
-        if (!$validation['valid']) {
-            return $this->response_unconfigured();
-        }
+		return array(
+			'valid' => true,
+			'error' => null,
+		);
+	}
 
-        $credentials = $this->get_credentials();
-        $api_base    = $credentials['sandbox'] ? self::PAYPAL_SANDBOX_API : self::PAYPAL_LIVE_API;
+	/**
+	 * Test connection to PayPal API via OAuth token endpoint
+	 *
+	 * @return array
+	 */
+	public function test_connection() {
+		// Validate credentials first
+		$validation = $this->validate_credentials();
+		if ( ! $validation['valid'] ) {
+			return $this->response_unconfigured();
+		}
 
-        // Prepare Basic Auth header
-        $auth_header = base64_encode($credentials['client_id'] . ':' . $credentials['secret']);
+		$credentials = $this->get_credentials();
+		$api_base    = $credentials['sandbox'] ? self::PAYPAL_SANDBOX_API : self::PAYPAL_LIVE_API;
 
-        // Make request to PayPal OAuth token endpoint
-        $response = $this->make_http_request(
-            $api_base . '/v1/oauth2/token',
-            [
-                'method'    => 'POST',
-                'headers'   => [
-                    'Authorization' => 'Basic ' . $auth_header,
-                    'Accept'        => 'application/json',
-                    'Content-Type'  => 'application/x-www-form-urlencoded',
-                ],
-                'body'      => 'grant_type=client_credentials',
-            ]
-        );
+		// Prepare Basic Auth header
+		$auth_header = base64_encode( $credentials['client_id'] . ':' . $credentials['secret'] );
 
-        if (!$response['success']) {
-            return $this->response_offline(
-                'Failed to connect to PayPal API: ' . $response['error'],
-                null,
-                $response['time_ms']
-            );
-        }
+		// Make request to PayPal OAuth token endpoint
+		$response = $this->make_http_request(
+			$api_base . '/v1/oauth2/token',
+			array(
+				'method'  => 'POST',
+				'headers' => array(
+					'Authorization' => 'Basic ' . $auth_header,
+					'Accept'        => 'application/json',
+					'Content-Type'  => 'application/x-www-form-urlencoded',
+				),
+				'body'    => 'grant_type=client_credentials',
+			)
+		);
 
-        $http_code = wp_remote_retrieve_response_code($response['response']);
-        $body      = json_decode(wp_remote_retrieve_body($response['response']), true);
+		if ( ! $response['success'] ) {
+			return $this->response_offline(
+				'Failed to connect to PayPal API: ' . $response['error'],
+				null,
+				$response['time_ms']
+			);
+		}
 
-        // PayPal returns 200 OK with access_token for successful authentication
-        if (200 === $http_code && isset($body['access_token'])) {
-            return $this->response_online(
-                'Successfully connected to PayPal',
-                $http_code,
-                $response['time_ms']
-            );
-        }
+		$http_code = wp_remote_retrieve_response_code( $response['response'] );
+		$body      = json_decode( wp_remote_retrieve_body( $response['response'] ), true );
 
-        // Check for error response
-        if (isset($body['error_description'])) {
-            return $this->response_offline(
-                'PayPal API error: ' . $body['error_description'],
-                $http_code,
-                $response['time_ms']
-            );
-        }
+		// PayPal returns 200 OK with access_token for successful authentication
+		if ( 200 === $http_code && isset( $body['access_token'] ) ) {
+			return $this->response_online(
+				'Successfully connected to PayPal',
+				$http_code,
+				$response['time_ms']
+			);
+		}
 
-        // Unexpected response format
-        return $this->response_offline(
-            'Unexpected response from PayPal API (HTTP ' . $http_code . ')',
-            $http_code,
-            $response['time_ms']
-        );
-    }
+		// Check for error response
+		if ( isset( $body['error_description'] ) ) {
+			return $this->response_offline(
+				'PayPal API error: ' . $body['error_description'],
+				$http_code,
+				$response['time_ms']
+			);
+		}
+
+		// Unexpected response format
+		return $this->response_offline(
+			'Unexpected response from PayPal API (HTTP ' . $http_code . ')',
+			$http_code,
+			$response['time_ms']
+		);
+	}
 }

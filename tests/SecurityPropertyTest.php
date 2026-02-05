@@ -6,454 +6,441 @@
  */
 
 // Mock WordPress functions if not available (in case bootstrap doesn't load)
-if (!function_exists('get_transient')) {
-    function get_transient($transient)
-    {
-        return false;
-    }
+if ( ! function_exists( 'get_transient' ) ) {
+	function get_transient( $transient ) {
+		return false;
+	}
 
-    function set_transient($transient, $value, $expire)
-    {
-        return true;
-    }
+	function set_transient( $transient, $value, $expire ) {
+		return true;
+	}
 
-    function get_site_url()
-    {
-        return 'http://example.com';
-    }
+	function get_site_url() {
+		return 'http://example.com';
+	}
 
-    function user_can($user_id, $capability)
-    {
-        return true;
-    }
+	function user_can( $user_id, $capability ) {
+		return true;
+	}
 
-    function is_wp_error($thing)
-    {
-        return $thing instanceof WP_Error;
-    }
+	function is_wp_error( $thing ) {
+		return $thing instanceof WP_Error;
+	}
 
-    function sanitize_key($key)
-    {
-        return preg_replace('/[^a-zA-Z0-9_-]/', '', $key);
-    }
+	function sanitize_key( $key ) {
+		return preg_replace( '/[^a-zA-Z0-9_-]/', '', $key );
+	}
 
-    function sanitize_text_field($str)
-    {
-        return trim($str);
-    }
+	function sanitize_text_field( $str ) {
+		return trim( $str );
+	}
 
-    function get_current_user_id()
-    {
-        return 0;
-    }
+	function get_current_user_id() {
+		return 0;
+	}
 
-    function is_user_logged_in()
-    {
-        return true;
-    }
+	function is_user_logged_in() {
+		return true;
+	}
 
-    class WP_Error
-    {
-        public $errors = [];
-    }
+	class WP_Error {
 
-    class wpdb
-    {
-        public function prepare($query, ...$args)
-        {
-            // Simple mock prepare - just replace % placeholders
-            $result = $query;
-            foreach ($args as $arg) {
-                $result = preg_replace('/%[ds]/', var_export($arg, true), $result, 1);
-            }
-            return $result;
-        }
-    }
+		public $errors = array();
+	}
 
-    $GLOBALS['wpdb'] = new wpdb();
+	class wpdb {
+
+		public function prepare( $query, ...$args ) {
+			// Simple mock prepare - just replace % placeholders
+			$result = $query;
+			foreach ( $args as $arg ) {
+				$result = preg_replace( '/%[ds]/', var_export( $arg, true ), $result, 1 );
+			}
+			return $result;
+		}
+	}
+
+	$GLOBALS['wpdb'] = new wpdb();
 }
 
 // Define AUTH_KEY for testing
-if (!defined('AUTH_KEY')) {
-    define('AUTH_KEY', 'test_auth_key_12345_abcde_67890_fghij');
+if ( ! defined( 'AUTH_KEY' ) ) {
+	define( 'AUTH_KEY', 'test_auth_key_12345_abcde_67890_fghij' );
 }
 
 // Define WordPress time constants
-if (!defined('HOUR_IN_SECONDS')) {
-    define('HOUR_IN_SECONDS', 3600);
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+	define( 'HOUR_IN_SECONDS', 3600 );
 }
 
-class SecurityPropertyTest extends PHPUnit\Framework\TestCase
-{
-    /**
-     * Property: Credential Encryption
-     *
-     * Credentials are properly encrypted and can be decrypted to original value
-     * Validates: Requirement 6.2
-     */
-    public function test_property_credential_encryption()
-    {
-        // Test basic structure - encryption requires AUTH_KEY which may not be available
-        // Verify the methods exist and are callable
-        $this->assertTrue(method_exists('WC_Payment_Monitor_Security', 'encrypt_credential'));
-        $this->assertTrue(method_exists('WC_Payment_Monitor_Security', 'decrypt_credential'));
+class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 
-        // Test that empty input returns false
-        $result = WC_Payment_Monitor_Security::encrypt_credential('');
-        $this->assertFalse($result);
+	/**
+	 * Property: Credential Encryption
+	 *
+	 * Credentials are properly encrypted and can be decrypted to original value
+	 * Validates: Requirement 6.2
+	 */
+	public function test_property_credential_encryption() {
+		// Test basic structure - encryption requires AUTH_KEY which may not be available
+		// Verify the methods exist and are callable
+		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'encrypt_credential' ) );
+		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'decrypt_credential' ) );
 
-        $result = WC_Payment_Monitor_Security::decrypt_credential('');
-        $this->assertFalse($result);
-    }
+		// Test that empty input returns false
+		$result = WC_Payment_Monitor_Security::encrypt_credential( '' );
+		$this->assertFalse( $result );
 
-    /**
-     * Property: HMAC Signature Consistency
-     */
-    public function test_property_hmac_signature()
-    {
-        $site_secret = '7f8e3f4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f';
-        $timestamp = 1707000000;
-        $payload = ['foo' => 'bar', 'abc' => 123];
+		$result = WC_Payment_Monitor_Security::decrypt_credential( '' );
+		$this->assertFalse( $result );
+	}
 
-        // Sort keys manually to know expected result
-        $signature1 = WC_Payment_Monitor_Security::generate_hmac_signature($payload, $timestamp, $site_secret);
+	/**
+	 * Property: HMAC Signature Consistency
+	 */
+	public function test_property_hmac_signature() {
+		$site_secret = '7f8e3f4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f';
+		$timestamp   = 1707000000;
+		$payload     = array(
+			'foo' => 'bar',
+			'abc' => 123,
+		);
 
-        // Different order of keys should yield same signature due to internal ksort
-        $payload2 = ['foo' => 'bar', 'abc' => 123];
-        $signature2 = WC_Payment_Monitor_Security::generate_hmac_signature($payload2, $timestamp, $site_secret);
+		// Sort keys manually to know expected result
+		$signature1 = WC_Payment_Monitor_Security::generate_hmac_signature( $payload, $timestamp, $site_secret );
 
-        $this->assertEquals($signature1, $signature2);
-        $this->assertNotEmpty($signature1);
+		// Different order of keys should yield same signature due to internal ksort
+		$payload2   = array(
+			'foo' => 'bar',
+			'abc' => 123,
+		);
+		$signature2 = WC_Payment_Monitor_Security::generate_hmac_signature( $payload2, $timestamp, $site_secret );
 
-        // Different payload should yield different signature
-        $payload3 = ['foo' => 'baz', 'abc' => 123];
-        $signature3 = WC_Payment_Monitor_Security::generate_hmac_signature($payload3, $timestamp, $site_secret);
-        $this->assertNotEquals($signature1, $signature3);
+		$this->assertEquals( $signature1, $signature2 );
+		$this->assertNotEmpty( $signature1 );
 
-        // Different timestamp should yield different signature
-        $signature4 = WC_Payment_Monitor_Security::generate_hmac_signature($payload, $timestamp + 1, $site_secret);
-        $this->assertNotEquals($signature1, $signature4);
-    }
+		// Different payload should yield different signature
+		$payload3   = array(
+			'foo' => 'baz',
+			'abc' => 123,
+		);
+		$signature3 = WC_Payment_Monitor_Security::generate_hmac_signature( $payload3, $timestamp, $site_secret );
+		$this->assertNotEquals( $signature1, $signature3 );
 
-    /**
-     * Property: Credential Encryption Edge Cases
-     *
-     * Encryption handles empty and special characters correctly
-     * Validates: Requirement 6.2
-     */
-    public function test_property_credential_encryption_edge_cases()
-    {
-        // Empty string should return false
-        $empty_encrypted = WC_Payment_Monitor_Security::encrypt_credential('');
-        $this->assertFalse($empty_encrypted);
+		// Different timestamp should yield different signature
+		$signature4 = WC_Payment_Monitor_Security::generate_hmac_signature( $payload, $timestamp + 1, $site_secret );
+		$this->assertNotEquals( $signature1, $signature4 );
+	}
 
-        // Verify encryption methods exist and have proper signatures
-        $this->assertTrue(method_exists('WC_Payment_Monitor_Security', 'encrypt_credential'));
-        $this->assertTrue(method_exists('WC_Payment_Monitor_Security', 'validate_encryption'));
-    }
+	/**
+	 * Property: Credential Encryption Edge Cases
+	 *
+	 * Encryption handles empty and special characters correctly
+	 * Validates: Requirement 6.2
+	 */
+	public function test_property_credential_encryption_edge_cases() {
+		// Empty string should return false
+		$empty_encrypted = WC_Payment_Monitor_Security::encrypt_credential( '' );
+		$this->assertFalse( $empty_encrypted );
 
-    /**
-     * Property: Sensitive Data Exclusion
-     *
-     * Sensitive fields are properly excluded from response data
-     * Validates: Requirement 6.3
-     */
-    public function test_property_sensitive_data_exclusion()
-    {
-        $sensitive_fields = [
-            'password'    => 'my_password_123',
-            'api_key'     => 'sk_live_abc123',
-            'secret_key'  => 'secret_xyz789',
-            'token'       => 'token_abc',
-            'card_number' => '4532-1234-5678-9010',
-        ];
+		// Verify encryption methods exist and have proper signatures
+		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'encrypt_credential' ) );
+		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'validate_encryption' ) );
+	}
 
-        for ($i = 0; $i < 50; $i++) {
-            // Create test data with sensitive fields
-            $data = [
-                'user_id'  => rand(1, 1000),
-                'username' => 'user_' . rand(1, 100),
-                'email'    => 'user@example.com',
-            ];
+	/**
+	 * Property: Sensitive Data Exclusion
+	 *
+	 * Sensitive fields are properly excluded from response data
+	 * Validates: Requirement 6.3
+	 */
+	public function test_property_sensitive_data_exclusion() {
+		$sensitive_fields = array(
+			'password'    => 'my_password_123',
+			'api_key'     => 'sk_live_abc123',
+			'secret_key'  => 'secret_xyz789',
+			'token'       => 'token_abc',
+			'card_number' => '4532-1234-5678-9010',
+		);
 
-            // Add sensitive fields
-            foreach ($sensitive_fields as $key => $value) {
-                $data[$key] = $value;
-            }
+		for ( $i = 0; $i < 50; $i++ ) {
+			// Create test data with sensitive fields
+			$data = array(
+				'user_id'  => rand( 1, 1000 ),
+				'username' => 'user_' . rand( 1, 100 ),
+				'email'    => 'user@example.com',
+			);
 
-            // Exclude sensitive data
-            $filtered = WC_Payment_Monitor_Security::exclude_sensitive_data($data);
+			// Add sensitive fields
+			foreach ( $sensitive_fields as $key => $value ) {
+				$data[ $key ] = $value;
+			}
 
-            // Non-sensitive fields should still be present
-            $this->assertArrayHasKey('user_id', $filtered);
-            $this->assertArrayHasKey('username', $filtered);
-            $this->assertArrayHasKey('email', $filtered);
+			// Exclude sensitive data
+			$filtered = WC_Payment_Monitor_Security::exclude_sensitive_data( $data );
 
-            // Sensitive fields should be removed
-            foreach ($sensitive_fields as $key => $value) {
-                $this->assertArrayNotHasKey($key, $filtered);
-            }
-        }
-    }
+			// Non-sensitive fields should still be present
+			$this->assertArrayHasKey( 'user_id', $filtered );
+			$this->assertArrayHasKey( 'username', $filtered );
+			$this->assertArrayHasKey( 'email', $filtered );
 
-    /**
-     * Property: Sensitive Data Masking
-     *
-     * Sensitive fields are masked while preserving structure
-     * Validates: Requirement 6.3
-     */
-    public function test_property_sensitive_data_masking()
-    {
-        for ($i = 0; $i < 50; $i++) {
-            // Create test data
-            $data = [
-                'id'       => rand(1, 1000),
-                'name'     => 'Test User',
-                'password' => 'secret123',
-                'api_key'  => 'key_abc123',
-                'nested'   => [
-                    'field1' => 'value1',
-                    'token'  => 'token_xyz',
-                ],
-            ];
+			// Sensitive fields should be removed
+			foreach ( $sensitive_fields as $key => $value ) {
+				$this->assertArrayNotHasKey( $key, $filtered );
+			}
+		}
+	}
 
-            // Mask sensitive data
-            $masked = WC_Payment_Monitor_Security::mask_sensitive_data($data);
+	/**
+	 * Property: Sensitive Data Masking
+	 *
+	 * Sensitive fields are masked while preserving structure
+	 * Validates: Requirement 6.3
+	 */
+	public function test_property_sensitive_data_masking() {
+		for ( $i = 0; $i < 50; $i++ ) {
+			// Create test data
+			$data = array(
+				'id'       => rand( 1, 1000 ),
+				'name'     => 'Test User',
+				'password' => 'secret123',
+				'api_key'  => 'key_abc123',
+				'nested'   => array(
+					'field1' => 'value1',
+					'token'  => 'token_xyz',
+				),
+			);
 
-            // Structure should be preserved
-            $this->assertArrayHasKey('id', $masked);
-            $this->assertArrayHasKey('name', $masked);
-            $this->assertArrayHasKey('password', $masked);
-            $this->assertArrayHasKey('api_key', $masked);
-            $this->assertArrayHasKey('nested', $masked);
+			// Mask sensitive data
+			$masked = WC_Payment_Monitor_Security::mask_sensitive_data( $data );
 
-            // Non-sensitive values should be unchanged
-            $this->assertEquals($data['id'], $masked['id']);
-            $this->assertEquals($data['name'], $masked['name']);
-            $this->assertEquals($data['nested']['field1'], $masked['nested']['field1']);
+			// Structure should be preserved
+			$this->assertArrayHasKey( 'id', $masked );
+			$this->assertArrayHasKey( 'name', $masked );
+			$this->assertArrayHasKey( 'password', $masked );
+			$this->assertArrayHasKey( 'api_key', $masked );
+			$this->assertArrayHasKey( 'nested', $masked );
 
-            // Sensitive values should be masked
-            $this->assertEquals('***REDACTED***', $masked['password']);
-            $this->assertEquals('***REDACTED***', $masked['api_key']);
-            $this->assertEquals('***REDACTED***', $masked['nested']['token']);
-        }
-    }
+			// Non-sensitive values should be unchanged
+			$this->assertEquals( $data['id'], $masked['id'] );
+			$this->assertEquals( $data['name'], $masked['name'] );
+			$this->assertEquals( $data['nested']['field1'], $masked['nested']['field1'] );
 
-    /**
-     * Property: SQL Injection Prevention
-     *
-     * SQL queries with parameters prevent injection attacks
-     * Validates: Requirement 6.4
-     */
-    public function test_property_sql_injection_prevention()
-    {
-        $injection_patterns = [
-            "' OR '1'='1",
-            "'; DROP TABLE users; --",
-            "1' UNION SELECT * FROM passwords --",
-            "admin'--",
-            "' OR 1=1 --",
-            '1; DELETE FROM users WHERE 1=1; --',
-        ];
+			// Sensitive values should be masked
+			$this->assertEquals( '***REDACTED***', $masked['password'] );
+			$this->assertEquals( '***REDACTED***', $masked['api_key'] );
+			$this->assertEquals( '***REDACTED***', $masked['nested']['token'] );
+		}
+	}
 
-        for ($i = 0; $i < 50; $i++) {
-            foreach ($injection_patterns as $pattern) {
-                // Simulate safe parameter binding
-                $query  = 'SELECT * FROM table WHERE id = %d AND name = %s';
-                $params = [intval($pattern), $pattern];
+	/**
+	 * Property: SQL Injection Prevention
+	 *
+	 * SQL queries with parameters prevent injection attacks
+	 * Validates: Requirement 6.4
+	 */
+	public function test_property_sql_injection_prevention() {
+		$injection_patterns = array(
+			"' OR '1'='1",
+			"'; DROP TABLE users; --",
+			"1' UNION SELECT * FROM passwords --",
+			"admin'--",
+			"' OR 1=1 --",
+			'1; DELETE FROM users WHERE 1=1; --',
+		);
 
-                // Prepare query
-                $prepared = WC_Payment_Monitor_Security::prepare_sql_query($query, $params);
+		for ( $i = 0; $i < 50; $i++ ) {
+			foreach ( $injection_patterns as $pattern ) {
+				// Simulate safe parameter binding
+				$query  = 'SELECT * FROM table WHERE id = %d AND name = %s';
+				$params = array( intval( $pattern ), $pattern );
 
-                // Should return string (prepared query) or array (if error)
-                $this->assertTrue(is_string($prepared) || is_array($prepared) || is_wp_error($prepared));
+				// Prepare query
+				$prepared = WC_Payment_Monitor_Security::prepare_sql_query( $query, $params );
 
-                // Parameters should be treated as literal values, not SQL code
-                if (is_string($prepared)) {
-                    // Verify wildcards were replaced
-                    $this->assertStringNotContainsString('%d', $prepared);
-                    $this->assertStringNotContainsString('%s', $prepared);
-                }
-            }
-        }
-    }
+				// Should return string (prepared query) or array (if error)
+				$this->assertTrue( is_string( $prepared ) || is_array( $prepared ) || is_wp_error( $prepared ) );
 
-    /**
-     * Property: Dangerous SQL Pattern Detection
-     *
-     * Dangerous SQL patterns in keys are detected
-     * Validates: Requirement 6.4
-     */
-    public function test_property_dangerous_sql_pattern_detection()
-    {
-        $safe_settings = [
-            'enable_logging'  => true,
-            'log_level'       => 'debug',
-            'retry_count'     => 3,
-            'timeout_seconds' => 30,
-        ];
+				// Parameters should be treated as literal values, not SQL code
+				if ( is_string( $prepared ) ) {
+					// Verify wildcards were replaced
+					$this->assertStringNotContainsString( '%d', $prepared );
+					$this->assertStringNotContainsString( '%s', $prepared );
+				}
+			}
+		}
+	}
 
-        for ($i = 0; $i < 50; $i++) {
-            // Validate safe settings
-            $validated = WC_Payment_Monitor_Security::validate_admin_settings($safe_settings);
+	/**
+	 * Property: Dangerous SQL Pattern Detection
+	 *
+	 * Dangerous SQL patterns in keys are detected
+	 * Validates: Requirement 6.4
+	 */
+	public function test_property_dangerous_sql_pattern_detection() {
+		$safe_settings = array(
+			'enable_logging'  => true,
+			'log_level'       => 'debug',
+			'retry_count'     => 3,
+			'timeout_seconds' => 30,
+		);
 
-            // Should have same keys after validation
-            $this->assertArrayHasKey('enable_logging', $validated);
-            $this->assertArrayHasKey('log_level', $validated);
-            $this->assertArrayHasKey('retry_count', $validated);
-            $this->assertArrayHasKey('timeout_seconds', $validated);
-        }
-    }
+		for ( $i = 0; $i < 50; $i++ ) {
+			// Validate safe settings
+			$validated = WC_Payment_Monitor_Security::validate_admin_settings( $safe_settings );
 
-    /**
-     * Property: Access Control Enforcement
-     *
-     * Access control checks are consistently applied
-     * Validates: Requirement 6.5
-     */
-    public function test_property_access_control_enforcement()
-    {
-        for ($i = 0; $i < 50; $i++) {
-            // Test various capability checks
-            $capabilities = [
-                'manage_woocommerce',
-                'manage_options',
-                'edit_posts',
-                'delete_pages',
-            ];
+			// Should have same keys after validation
+			$this->assertArrayHasKey( 'enable_logging', $validated );
+			$this->assertArrayHasKey( 'log_level', $validated );
+			$this->assertArrayHasKey( 'retry_count', $validated );
+			$this->assertArrayHasKey( 'timeout_seconds', $validated );
+		}
+	}
 
-            foreach ($capabilities as $cap) {
-                // Capability check should return boolean
-                // (true or false, not error)
-                $result = WC_Payment_Monitor_Security::check_user_capability($cap, 0);
-                $this->assertIsBool($result);
-            }
-        }
-    }
+	/**
+	 * Property: Access Control Enforcement
+	 *
+	 * Access control checks are consistently applied
+	 * Validates: Requirement 6.5
+	 */
+	public function test_property_access_control_enforcement() {
+		for ( $i = 0; $i < 50; $i++ ) {
+			// Test various capability checks
+			$capabilities = array(
+				'manage_woocommerce',
+				'manage_options',
+				'edit_posts',
+				'delete_pages',
+			);
 
-    /**
-     * Property: Settings Validation
-     *
-     * Settings are properly validated and sanitized
-     * Validates: Requirement 6.5
-     */
-    public function test_property_settings_validation()
-    {
-        for ($i = 0; $i < 50; $i++) {
-            // Create test settings - avoid booleans as they have type conversion issues
-            $settings = [
-                'threshold'   => rand(1, 100),
-                'description' => 'Test setting ' . uniqid(),
-                'nested'      => [
-                    'sub_setting' => 'value',
-                    'count'       => rand(1, 50),
-                ],
-            ];
+			foreach ( $capabilities as $cap ) {
+				// Capability check should return boolean
+				// (true or false, not error)
+				$result = WC_Payment_Monitor_Security::check_user_capability( $cap, 0 );
+				$this->assertIsBool( $result );
+			}
+		}
+	}
 
-            // Validate settings
-            $validated = WC_Payment_Monitor_Security::validate_admin_settings($settings);
+	/**
+	 * Property: Settings Validation
+	 *
+	 * Settings are properly validated and sanitized
+	 * Validates: Requirement 6.5
+	 */
+	public function test_property_settings_validation() {
+		for ( $i = 0; $i < 50; $i++ ) {
+			// Create test settings - avoid booleans as they have type conversion issues
+			$settings = array(
+				'threshold'   => rand( 1, 100 ),
+				'description' => 'Test setting ' . uniqid(),
+				'nested'      => array(
+					'sub_setting' => 'value',
+					'count'       => rand( 1, 50 ),
+				),
+			);
 
-            // Result should be array
-            $this->assertIsArray($validated);
+			// Validate settings
+			$validated = WC_Payment_Monitor_Security::validate_admin_settings( $settings );
 
-            // Top-level keys should be present
-            $this->assertArrayHasKey('threshold', $validated);
-            $this->assertArrayHasKey('description', $validated);
+			// Result should be array
+			$this->assertIsArray( $validated );
 
-            // Values should be properly typed - threshold converted to int
-            $this->assertIsInt($validated['threshold']);
-            $this->assertIsString($validated['description']);
-        }
-    }
+			// Top-level keys should be present
+			$this->assertArrayHasKey( 'threshold', $validated );
+			$this->assertArrayHasKey( 'description', $validated );
 
-    /**
-     * Property: Encryption Consistency
-     *
-     * Same credential encrypts to different values each time (due to IV)
-     * Validates: Requirement 6.2
-     */
-    public function test_property_encryption_consistency()
-    {
-        // Verify encryption methods exist and return expected types
-        $this->assertTrue(method_exists('WC_Payment_Monitor_Security', 'encrypt_credential'));
-        $this->assertTrue(method_exists('WC_Payment_Monitor_Security', 'decrypt_credential'));
-        $this->assertTrue(method_exists('WC_Payment_Monitor_Security', 'validate_encryption'));
+			// Values should be properly typed - threshold converted to int
+			$this->assertIsInt( $validated['threshold'] );
+			$this->assertIsString( $validated['description'] );
+		}
+	}
 
-        // Test that validation method exists and returns boolean
-        $validation_result = WC_Payment_Monitor_Security::validate_encryption();
-        $this->assertIsBool($validation_result);
-    }
+	/**
+	 * Property: Encryption Consistency
+	 *
+	 * Same credential encrypts to different values each time (due to IV)
+	 * Validates: Requirement 6.2
+	 */
+	public function test_property_encryption_consistency() {
+		// Verify encryption methods exist and return expected types
+		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'encrypt_credential' ) );
+		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'decrypt_credential' ) );
+		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'validate_encryption' ) );
 
-    /**
-     * Property: Data Type Preservation
-     *
-     * Settings validation preserves appropriate data types
-     * Validates: Requirement 6.5
-     */
-    public function test_property_data_type_preservation()
-    {
-        for ($i = 0; $i < 50; $i++) {
-            $settings = [
-                'string_value'   => 'test_' . rand(1, 100),
-                'numeric_string' => strval(rand(100, 999)),
-                'integer_value'  => rand(1, 1000),
-                'zero_value'     => 0,
-                'negative_value' => -rand(1, 100),
-            ];
+		// Test that validation method exists and returns boolean
+		$validation_result = WC_Payment_Monitor_Security::validate_encryption();
+		$this->assertIsBool( $validation_result );
+	}
 
-            $validated = WC_Payment_Monitor_Security::validate_admin_settings($settings);
+	/**
+	 * Property: Data Type Preservation
+	 *
+	 * Settings validation preserves appropriate data types
+	 * Validates: Requirement 6.5
+	 */
+	public function test_property_data_type_preservation() {
+		for ( $i = 0; $i < 50; $i++ ) {
+			$settings = array(
+				'string_value'   => 'test_' . rand( 1, 100 ),
+				'numeric_string' => strval( rand( 100, 999 ) ),
+				'integer_value'  => rand( 1, 1000 ),
+				'zero_value'     => 0,
+				'negative_value' => -rand( 1, 100 ),
+			);
 
-            // String values should remain strings
-            $this->assertIsString($validated['string_value']);
+			$validated = WC_Payment_Monitor_Security::validate_admin_settings( $settings );
 
-            // Numeric strings should become integers
-            $this->assertIsInt($validated['numeric_string']);
+			// String values should remain strings
+			$this->assertIsString( $validated['string_value'] );
 
-            // Integer values should remain integers
-            $this->assertIsInt($validated['integer_value']);
+			// Numeric strings should become integers
+			$this->assertIsInt( $validated['numeric_string'] );
 
-            // Zero should be preserved
-            $this->assertIsInt($validated['zero_value']);
-            $this->assertEquals(0, $validated['zero_value']);
+			// Integer values should remain integers
+			$this->assertIsInt( $validated['integer_value'] );
 
-            // Negative integers should be preserved
-            $this->assertIsInt($validated['negative_value']);
-        }
-    }
+			// Zero should be preserved
+			$this->assertIsInt( $validated['zero_value'] );
+			$this->assertEquals( 0, $validated['zero_value'] );
 
-    /**
-     * Property: Nested Data Filtering
-     *
-     * Sensitive data exclusion works recursively on nested structures
-     * Validates: Requirement 6.3
-     */
-    public function test_property_nested_data_filtering()
-    {
-        for ($i = 0; $i < 50; $i++) {
-            $data = [
-                'level1' => [
-                    'level2'  => [
-                        'level3'       => [
-                            'safe_field' => 'visible',
-                            'password'   => 'hidden',
-                            'token'      => 'also_hidden',
-                        ],
-                        'another_safe' => 'also_visible',
-                    ],
-                    'api_key' => 'should_be_hidden',
-                ],
-            ];
+			// Negative integers should be preserved
+			$this->assertIsInt( $validated['negative_value'] );
+		}
+	}
 
-            $filtered = WC_Payment_Monitor_Security::exclude_sensitive_data($data);
+	/**
+	 * Property: Nested Data Filtering
+	 *
+	 * Sensitive data exclusion works recursively on nested structures
+	 * Validates: Requirement 6.3
+	 */
+	public function test_property_nested_data_filtering() {
+		for ( $i = 0; $i < 50; $i++ ) {
+			$data = array(
+				'level1' => array(
+					'level2'  => array(
+						'level3'       => array(
+							'safe_field' => 'visible',
+							'password'   => 'hidden',
+							'token'      => 'also_hidden',
+						),
+						'another_safe' => 'also_visible',
+					),
+					'api_key' => 'should_be_hidden',
+				),
+			);
 
-            // Safe fields should exist at all levels
-            $this->assertEquals('visible', $filtered['level1']['level2']['level3']['safe_field']);
-            $this->assertEquals('also_visible', $filtered['level1']['level2']['another_safe']);
+			$filtered = WC_Payment_Monitor_Security::exclude_sensitive_data( $data );
 
-            // Sensitive fields should be removed at all levels
-            $this->assertArrayNotHasKey('password', $filtered['level1']['level2']['level3']);
-            $this->assertArrayNotHasKey('token', $filtered['level1']['level2']['level3']);
-            $this->assertArrayNotHasKey('api_key', $filtered['level1']);
-        }
-    }
+			// Safe fields should exist at all levels
+			$this->assertEquals( 'visible', $filtered['level1']['level2']['level3']['safe_field'] );
+			$this->assertEquals( 'also_visible', $filtered['level1']['level2']['another_safe'] );
+
+			// Sensitive fields should be removed at all levels
+			$this->assertArrayNotHasKey( 'password', $filtered['level1']['level2']['level3'] );
+			$this->assertArrayNotHasKey( 'token', $filtered['level1']['level2']['level3'] );
+			$this->assertArrayNotHasKey( 'api_key', $filtered['level1'] );
+		}
+	}
 }

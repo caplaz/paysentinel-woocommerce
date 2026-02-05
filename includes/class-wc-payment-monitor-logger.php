@@ -5,463 +5,450 @@
  */
 
 // Prevent direct access
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
-class WC_Payment_Monitor_Logger
-{
-    /**
-     * Database instance
-     */
-    private $database;
+class WC_Payment_Monitor_Logger {
 
-    /**
-     * Constructor
-     */
-    public function __construct()
-    {
-        $this->database = new WC_Payment_Monitor_Database();
-        $this->init_hooks();
-    }
+	/**
+	 * Database instance
+	 */
+	private $database;
 
-    /**
-     * Initialize WooCommerce hooks
-     */
-    private function init_hooks()
-    {
-        // Hook into WooCommerce payment events
-        add_action('woocommerce_payment_complete', [$this, 'log_success'], 10, 1);
-        add_action('woocommerce_order_status_failed', [$this, 'log_failure'], 10, 2);
-        add_action('woocommerce_order_status_pending', [$this, 'log_pending'], 10, 2);
+	/**
+	 * Constructor
+	 */
+	public function __construct() {
+		$this->database = new WC_Payment_Monitor_Database();
+		$this->init_hooks();
+	}
 
-        // Hook into payment gateway responses for more detailed logging
-        add_action('woocommerce_payment_complete_order_status_completed', [$this, 'log_payment_completion'], 10, 2);
-        add_action('woocommerce_payment_complete_order_status_processing', [$this, 'log_payment_completion'], 10, 2);
-    }
+	/**
+	 * Initialize WooCommerce hooks
+	 */
+	private function init_hooks() {
+		// Hook into WooCommerce payment events
+		add_action( 'woocommerce_payment_complete', array( $this, 'log_success' ), 10, 1 );
+		add_action( 'woocommerce_order_status_failed', array( $this, 'log_failure' ), 10, 2 );
+		add_action( 'woocommerce_order_status_pending', array( $this, 'log_pending' ), 10, 2 );
 
-    /**
-     * Log successful payment
-     *
-     * @param int $order_id Order ID
-     */
-    public function log_success($order_id)
-    {
-        $order = wc_get_order($order_id);
+		// Hook into payment gateway responses for more detailed logging
+		add_action( 'woocommerce_payment_complete_order_status_completed', array( $this, 'log_payment_completion' ), 10, 2 );
+		add_action( 'woocommerce_payment_complete_order_status_processing', array( $this, 'log_payment_completion' ), 10, 2 );
+	}
 
-        if (!$order) {
-            return;
-        }
+	/**
+	 * Log successful payment
+	 *
+	 * @param int $order_id Order ID
+	 */
+	public function log_success( $order_id ) {
+		$order = wc_get_order( $order_id );
 
-        $transaction_data = $this->extract_transaction_data($order, 'success');
-        $this->save_transaction($transaction_data);
-    }
+		if ( ! $order ) {
+			return;
+		}
 
-    /**
-     * Log failed payment
-     *
-     * @param int      $order_id Order ID
-     * @param WC_Order $order    Order object (optional in older WC versions, but standard now)
-     */
-    public function log_failure($order_id, $order = null)
-    {
-        // Debug logging
-        error_log("[Payment Monitor] log_failure called for Order #$order_id");
+		$transaction_data = $this->extract_transaction_data( $order, 'success' );
+		$this->save_transaction( $transaction_data );
+	}
 
-        // If order object wasn't passed (legacy), fetch it
-        if (!$order || !is_a($order, 'WC_Order')) {
-            error_log('[Payment Monitor] Order object not passed or invalid, refetching...');
-            // Clear cache to ensure we get the freshest data
-            if (function_exists('clean_post_cache')) {
-                clean_post_cache($order_id);
-            }
-            $order = wc_get_order($order_id);
-        } else {
-            error_log('[Payment Monitor] Using passed Order object.');
-        }
+	/**
+	 * Log failed payment
+	 *
+	 * @param int      $order_id Order ID
+	 * @param WC_Order $order    Order object (optional in older WC versions, but standard now)
+	 */
+	public function log_failure( $order_id, $order = null ) {
+		// Debug logging
+		error_log( "[Payment Monitor] log_failure called for Order #$order_id" );
 
-        if (!$order) {
-            error_log("[Payment Monitor] Order not found for ID #$order_id");
-            return;
-        }
+		// If order object wasn't passed (legacy), fetch it
+		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+			error_log( '[Payment Monitor] Order object not passed or invalid, refetching...' );
+			// Clear cache to ensure we get the freshest data
+			if ( function_exists( 'clean_post_cache' ) ) {
+				clean_post_cache( $order_id );
+			}
+			$order = wc_get_order( $order_id );
+		} else {
+			error_log( '[Payment Monitor] Using passed Order object.' );
+		}
 
-        // Debug the data we have
-        error_log(sprintf(
-            '[Payment Monitor] Data check - TxnID: %s, Email: %s, IP: %s',
-            $order->get_transaction_id(),
-            $order->get_billing_email(),
-            $order->get_customer_ip_address()
-        ));
+		if ( ! $order ) {
+			error_log( "[Payment Monitor] Order not found for ID #$order_id" );
+			return;
+		}
 
-        $transaction_data = $this->extract_transaction_data($order, 'failed');
+		// Debug the data we have
+		error_log(
+			sprintf(
+				'[Payment Monitor] Data check - TxnID: %s, Email: %s, IP: %s',
+				$order->get_transaction_id(),
+				$order->get_billing_email(),
+				$order->get_customer_ip_address()
+			)
+		);
 
-        // Extract failure reason from order notes
-        $failure_info                       = $this->extract_failure_info($order);
-        $transaction_data['failure_reason'] = $failure_info['reason'];
-        $transaction_data['failure_code']   = $failure_info['code'];
+		$transaction_data = $this->extract_transaction_data( $order, 'failed' );
 
-        $this->save_transaction($transaction_data);
+		// Extract failure reason from order notes
+		$failure_info                       = $this->extract_failure_info( $order );
+		$transaction_data['failure_reason'] = $failure_info['reason'];
+		$transaction_data['failure_code']   = $failure_info['code'];
 
-        // Fire action for other components (like Retry Manager)
-        do_action('wc_payment_monitor_payment_failed', $order_id, $order);
-    }
+		$this->save_transaction( $transaction_data );
 
-    /**
-     * Log pending payment
-     *
-     * @param int    $order_id   Order ID
-     * @param string $old_status Previous order status
-     */
-    public function log_pending($order_id, $old_status = '')
-    {
-        $order = wc_get_order($order_id);
+		// Fire action for other components (like Retry Manager)
+		do_action( 'wc_payment_monitor_payment_failed', $order_id, $order );
+	}
 
-        if (!$order) {
-            return;
-        }
+	/**
+	 * Log pending payment
+	 *
+	 * @param int    $order_id   Order ID
+	 * @param string $old_status Previous order status
+	 */
+	public function log_pending( $order_id, $old_status = '' ) {
+		$order = wc_get_order( $order_id );
 
-        $transaction_data = $this->extract_transaction_data($order, 'pending');
-        $this->save_transaction($transaction_data);
-    }
+		if ( ! $order ) {
+			return;
+		}
 
-    /**
-     * Log payment completion with additional details
-     *
-     * @param int    $order_id Order ID
-     * @param object $order    Order object
-     */
-    public function log_payment_completion($order_id, $order)
-    {
-        if (!$order) {
-            return;
-        }
+		$transaction_data = $this->extract_transaction_data( $order, 'pending' );
+		$this->save_transaction( $transaction_data );
+	}
 
-        // Update existing transaction record if it exists
-        $this->update_transaction_status($order_id, 'success');
-    }
+	/**
+	 * Log payment completion with additional details
+	 *
+	 * @param int    $order_id Order ID
+	 * @param object $order    Order object
+	 */
+	public function log_payment_completion( $order_id, $order ) {
+		if ( ! $order ) {
+			return;
+		}
 
-    /**
-     * Extract transaction data from WooCommerce order
-     *
-     * @param object $order  Order object
-     * @param string $status Transaction status
-     *
-     * @return array Transaction data
-     */
-    private function extract_transaction_data($order, $status)
-    {
-        $transaction_data = [
-            'order_id'       => $order->get_id(),
-            'gateway_id'     => $order->get_payment_method(),
-            'transaction_id' => $order->get_transaction_id(),
-            'amount'         => floatval($order->get_total()),
-            'currency'       => $order->get_currency(),
-            'status'         => $status,
-            'failure_reason' => null,
-            'failure_code'   => null,
-            'retry_count'    => 0,
-            'customer_email' => $order->get_billing_email(),
-            'customer_ip'    => $order->get_customer_ip_address(),
-            'created_at'     => current_time('mysql'),
-            'updated_at'     => null,
-        ];
+		// Update existing transaction record if it exists
+		$this->update_transaction_status( $order_id, 'success' );
+	}
 
-        return $transaction_data;
-    }
+	/**
+	 * Extract transaction data from WooCommerce order
+	 *
+	 * @param object $order  Order object
+	 * @param string $status Transaction status
+	 *
+	 * @return array Transaction data
+	 */
+	private function extract_transaction_data( $order, $status ) {
+		$transaction_data = array(
+			'order_id'       => $order->get_id(),
+			'gateway_id'     => $order->get_payment_method(),
+			'transaction_id' => $order->get_transaction_id(),
+			'amount'         => floatval( $order->get_total() ),
+			'currency'       => $order->get_currency(),
+			'status'         => $status,
+			'failure_reason' => null,
+			'failure_code'   => null,
+			'retry_count'    => 0,
+			'customer_email' => $order->get_billing_email(),
+			'customer_ip'    => $order->get_customer_ip_address(),
+			'created_at'     => current_time( 'mysql' ),
+			'updated_at'     => null,
+		);
 
-    /**
-     * Extract failure information from order
-     *
-     * @param object $order Order object
-     *
-     * @return array Failure information
-     */
-    private function extract_failure_info($order)
-    {
-        $failure_info = [
-            'reason' => null,
-            'code'   => null,
-        ];
+		return $transaction_data;
+	}
 
-        // Check if this is a simulated failure first
-        if ($order->get_meta('_wc_payment_monitor_simulated_failure')) {
-            $failure_message = $order->get_meta('_wc_payment_monitor_failure_message');
-            $failure_code    = $order->get_meta('_wc_payment_monitor_failure_code');
+	/**
+	 * Extract failure information from order
+	 *
+	 * @param object $order Order object
+	 *
+	 * @return array Failure information
+	 */
+	private function extract_failure_info( $order ) {
+		$failure_info = array(
+			'reason' => null,
+			'code'   => null,
+		);
 
-            if (!empty($failure_message)) {
-                $failure_info['reason'] = $failure_message;
-            }
-            if (!empty($failure_code)) {
-                $failure_info['code'] = $failure_code;
-            }
+		// Check if this is a simulated failure first
+		if ( $order->get_meta( '_wc_payment_monitor_simulated_failure' ) ) {
+			$failure_message = $order->get_meta( '_wc_payment_monitor_failure_message' );
+			$failure_code    = $order->get_meta( '_wc_payment_monitor_failure_code' );
 
-            // If we got info from metadata, return it
-            if (!empty($failure_info['reason'])) {
-                return $failure_info;
-            }
-        }
+			if ( ! empty( $failure_message ) ) {
+				$failure_info['reason'] = $failure_message;
+			}
+			if ( ! empty( $failure_code ) ) {
+				$failure_info['code'] = $failure_code;
+			}
 
-        // Get order notes to extract failure information
-        $notes = get_comments(
-            [
-                'post_id' => $order->get_id(),
-                'number'  => 5,
-                'orderby' => 'comment_date',
-                'order'   => 'DESC',
-                'approve' => 'approve',
-                'type'    => 'order_note',
-            ]
-        );
+			// If we got info from metadata, return it
+			if ( ! empty( $failure_info['reason'] ) ) {
+				return $failure_info;
+			}
+		}
 
-        foreach ($notes as $note) {
-            $note_content = strtolower($note->content);
+		// Get order notes to extract failure information
+		$notes = get_comments(
+			array(
+				'post_id' => $order->get_id(),
+				'number'  => 5,
+				'orderby' => 'comment_date',
+				'order'   => 'DESC',
+				'approve' => 'approve',
+				'type'    => 'order_note',
+			)
+		);
 
-            // Look for common failure patterns
-            if (strpos($note_content, 'payment failed') !== false ||
-                strpos($note_content, 'transaction failed') !== false ||
-                strpos($note_content, 'declined') !== false ||
-                strpos($note_content, 'error') !== false) {
+		foreach ( $notes as $note ) {
+			$note_content = strtolower( $note->content );
 
-                $failure_info['reason'] = $note->content;
+			// Look for common failure patterns
+			if ( strpos( $note_content, 'payment failed' ) !== false ||
+				strpos( $note_content, 'transaction failed' ) !== false ||
+				strpos( $note_content, 'declined' ) !== false ||
+				strpos( $note_content, 'error' ) !== false ) {
 
-                // Try to extract error codes
-                if (preg_match('/code[:\s]+([a-zA-Z0-9_-]+)/i', $note->content, $matches)) {
-                    $failure_info['code'] = $matches[1];
-                } elseif (preg_match('/error[:\s]+([a-zA-Z0-9_-]+)/i', $note->content, $matches)) {
-                    $failure_info['code'] = $matches[1];
-                }
+				$failure_info['reason'] = $note->content;
 
-                break;
-            }
-        }
+				// Try to extract error codes
+				if ( preg_match( '/code[:\s]+([a-zA-Z0-9_-]+)/i', $note->content, $matches ) ) {
+					$failure_info['code'] = $matches[1];
+				} elseif ( preg_match( '/error[:\s]+([a-zA-Z0-9_-]+)/i', $note->content, $matches ) ) {
+					$failure_info['code'] = $matches[1];
+				}
 
-        // If no specific failure reason found, use generic message
-        if (empty($failure_info['reason'])) {
-            $failure_info['reason'] = 'Payment failed - no specific reason provided';
-        }
+				break;
+			}
+		}
 
-        return $failure_info;
-    }
+		// If no specific failure reason found, use generic message
+		if ( empty( $failure_info['reason'] ) ) {
+			$failure_info['reason'] = 'Payment failed - no specific reason provided';
+		}
 
-    /**
-     * Save transaction data to database
-     *
-     * @param array $transaction_data Transaction data
-     *
-     * @return int|false Transaction ID or false on failure
-     */
-    public function save_transaction($transaction_data)
-    {
-        global $wpdb;
+		return $failure_info;
+	}
 
-        $table_name = $this->database->get_transactions_table();
+	/**
+	 * Save transaction data to database
+	 *
+	 * @param array $transaction_data Transaction data
+	 *
+	 * @return int|false Transaction ID or false on failure
+	 */
+	public function save_transaction( $transaction_data ) {
+		global $wpdb;
 
-        // Check if transaction already exists for this order
-        $existing_transaction = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT id FROM {$table_name} WHERE order_id = %d",
-                $transaction_data['order_id']
-            )
-        );
+		$table_name = $this->database->get_transactions_table();
 
-        if ($existing_transaction) {
-            // Update existing transaction
-            $transaction_data['updated_at'] = current_time('mysql');
-            unset($transaction_data['created_at']); // Don't update created_at
+		// Check if transaction already exists for this order
+		$existing_transaction = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT id FROM {$table_name} WHERE order_id = %d",
+				$transaction_data['order_id']
+			)
+		);
 
-            $result = $wpdb->update(
-                $table_name,
-                $transaction_data,
-                ['order_id' => $transaction_data['order_id']],
-                [
-                    '%d', // order_id
-                    '%s', // gateway_id
-                    '%s', // transaction_id
-                    '%f', // amount
-                    '%s', // currency
-                    '%s', // status
-                    '%s', // failure_reason
-                    '%s', // failure_code
-                    '%d', // retry_count
-                    '%s', // customer_email
-                    '%s', // customer_ip
-                    '%s',  // updated_at
-                ],
-                ['%d']
-            );
+		if ( $existing_transaction ) {
+			// Update existing transaction
+			$transaction_data['updated_at'] = current_time( 'mysql' );
+			unset( $transaction_data['created_at'] ); // Don't update created_at
 
-            return $result !== false ? $existing_transaction->id : false;
-        } else {
-            // Insert new transaction
-            $result = $wpdb->insert(
-                $table_name,
-                $transaction_data,
-                [
-                    '%d', // order_id
-                    '%s', // gateway_id
-                    '%s', // transaction_id
-                    '%f', // amount
-                    '%s', // currency
-                    '%s', // status
-                    '%s', // failure_reason
-                    '%s', // failure_code
-                    '%d', // retry_count
-                    '%s', // customer_email
-                    '%s', // customer_ip
-                    '%s', // created_at
-                    '%s',  // updated_at
-                ]
-            );
+			$result = $wpdb->update(
+				$table_name,
+				$transaction_data,
+				array( 'order_id' => $transaction_data['order_id'] ),
+				array(
+					'%d', // order_id
+					'%s', // gateway_id
+					'%s', // transaction_id
+					'%f', // amount
+					'%s', // currency
+					'%s', // status
+					'%s', // failure_reason
+					'%s', // failure_code
+					'%d', // retry_count
+					'%s', // customer_email
+					'%s', // customer_ip
+					'%s',  // updated_at
+				),
+				array( '%d' )
+			);
 
-            return $result !== false ? $wpdb->insert_id : false;
-        }
-    }
+			return $result !== false ? $existing_transaction->id : false;
+		} else {
+			// Insert new transaction
+			$result = $wpdb->insert(
+				$table_name,
+				$transaction_data,
+				array(
+					'%d', // order_id
+					'%s', // gateway_id
+					'%s', // transaction_id
+					'%f', // amount
+					'%s', // currency
+					'%s', // status
+					'%s', // failure_reason
+					'%s', // failure_code
+					'%d', // retry_count
+					'%s', // customer_email
+					'%s', // customer_ip
+					'%s', // created_at
+					'%s',  // updated_at
+				)
+			);
 
-    /**
-     * Update transaction status
-     *
-     * @param int    $order_id Order ID
-     * @param string $status   New status
-     *
-     * @return bool Success
-     */
-    public function update_transaction_status($order_id, $status)
-    {
-        global $wpdb;
+			return $result !== false ? $wpdb->insert_id : false;
+		}
+	}
 
-        $table_name = $this->database->get_transactions_table();
+	/**
+	 * Update transaction status
+	 *
+	 * @param int    $order_id Order ID
+	 * @param string $status   New status
+	 *
+	 * @return bool Success
+	 */
+	public function update_transaction_status( $order_id, $status ) {
+		global $wpdb;
 
-        $result = $wpdb->update(
-            $table_name,
-            [
-                'status'     => $status,
-                'updated_at' => current_time('mysql'),
-            ],
-            ['order_id' => $order_id],
-            ['%s', '%s'],
-            ['%d']
-        );
+		$table_name = $this->database->get_transactions_table();
 
-        return $result !== false;
-    }
+		$result = $wpdb->update(
+			$table_name,
+			array(
+				'status'     => $status,
+				'updated_at' => current_time( 'mysql' ),
+			),
+			array( 'order_id' => $order_id ),
+			array( '%s', '%s' ),
+			array( '%d' )
+		);
 
-    /**
-     * Get transaction by order ID
-     *
-     * @param int $order_id Order ID
-     *
-     * @return object|null Transaction data
-     */
-    public function get_transaction_by_order_id($order_id)
-    {
-        global $wpdb;
+		return $result !== false;
+	}
 
-        $table_name = $this->database->get_transactions_table();
+	/**
+	 * Get transaction by order ID
+	 *
+	 * @param int $order_id Order ID
+	 *
+	 * @return object|null Transaction data
+	 */
+	public function get_transaction_by_order_id( $order_id ) {
+		global $wpdb;
 
-        return $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE order_id = %d",
-                $order_id
-            )
-        );
-    }
+		$table_name = $this->database->get_transactions_table();
 
-    /**
-     * Get transactions by gateway
-     *
-     * @param string $gateway_id Gateway ID
-     * @param int    $limit      Limit results
-     * @param int    $offset     Offset results
-     *
-     * @return array Transaction data
-     */
-    public function get_transactions_by_gateway($gateway_id, $limit = 100, $offset = 0)
-    {
-        global $wpdb;
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$table_name} WHERE order_id = %d",
+				$order_id
+			)
+		);
+	}
 
-        $table_name = $this->database->get_transactions_table();
+	/**
+	 * Get transactions by gateway
+	 *
+	 * @param string $gateway_id Gateway ID
+	 * @param int    $limit      Limit results
+	 * @param int    $offset     Offset results
+	 *
+	 * @return array Transaction data
+	 */
+	public function get_transactions_by_gateway( $gateway_id, $limit = 100, $offset = 0 ) {
+		global $wpdb;
 
-        return $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE gateway_id = %s ORDER BY created_at DESC LIMIT %d OFFSET %d",
-                $gateway_id,
-                $limit,
-                $offset
-            )
-        );
-    }
+		$table_name = $this->database->get_transactions_table();
 
-    /**
-     * Get transactions by status
-     *
-     * @param string $status Transaction status
-     * @param int    $limit  Limit results
-     * @param int    $offset Offset results
-     *
-     * @return array Transaction data
-     */
-    public function get_transactions_by_status($status, $limit = 100, $offset = 0)
-    {
-        global $wpdb;
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table_name} WHERE gateway_id = %s ORDER BY created_at DESC LIMIT %d OFFSET %d",
+				$gateway_id,
+				$limit,
+				$offset
+			)
+		);
+	}
 
-        $table_name = $this->database->get_transactions_table();
+	/**
+	 * Get transactions by status
+	 *
+	 * @param string $status Transaction status
+	 * @param int    $limit  Limit results
+	 * @param int    $offset Offset results
+	 *
+	 * @return array Transaction data
+	 */
+	public function get_transactions_by_status( $status, $limit = 100, $offset = 0 ) {
+		global $wpdb;
 
-        return $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE status = %s ORDER BY created_at DESC LIMIT %d OFFSET %d",
-                $status,
-                $limit,
-                $offset
-            )
-        );
-    }
+		$table_name = $this->database->get_transactions_table();
 
-    /**
-     * Get transactions within date range
-     *
-     * @param string $start_date Start date (Y-m-d H:i:s format)
-     * @param string $end_date   End date (Y-m-d H:i:s format)
-     * @param string $gateway_id Optional gateway filter
-     *
-     * @return array Transaction data
-     */
-    public function get_transactions_by_date_range($start_date, $end_date, $gateway_id = null)
-    {
-        global $wpdb;
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table_name} WHERE status = %s ORDER BY created_at DESC LIMIT %d OFFSET %d",
+				$status,
+				$limit,
+				$offset
+			)
+		);
+	}
 
-        $table_name = $this->database->get_transactions_table();
+	/**
+	 * Get transactions within date range
+	 *
+	 * @param string $start_date Start date (Y-m-d H:i:s format)
+	 * @param string $end_date   End date (Y-m-d H:i:s format)
+	 * @param string $gateway_id Optional gateway filter
+	 *
+	 * @return array Transaction data
+	 */
+	public function get_transactions_by_date_range( $start_date, $end_date, $gateway_id = null ) {
+		global $wpdb;
 
-        $sql    = "SELECT * FROM {$table_name} WHERE created_at BETWEEN %s AND %s";
-        $params = [$start_date, $end_date];
+		$table_name = $this->database->get_transactions_table();
 
-        if ($gateway_id) {
-            $sql     .= ' AND gateway_id = %s';
-            $params[] = $gateway_id;
-        }
+		$sql    = "SELECT * FROM {$table_name} WHERE created_at BETWEEN %s AND %s";
+		$params = array( $start_date, $end_date );
 
-        $sql .= ' ORDER BY created_at DESC';
+		if ( $gateway_id ) {
+			$sql     .= ' AND gateway_id = %s';
+			$params[] = $gateway_id;
+		}
 
-        return $wpdb->get_results($wpdb->prepare($sql, $params));
-    }
+		$sql .= ' ORDER BY created_at DESC';
 
-    /**
-     * Get transaction statistics for a gateway and period
-     *
-     * @param string $gateway_id     Gateway ID
-     * @param int    $period_seconds Period in seconds
-     *
-     * @return array Statistics
-     */
-    public function get_transaction_stats($gateway_id, $period_seconds)
-    {
-        global $wpdb;
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
+	}
 
-        $table_name = $this->database->get_transactions_table();
-        $start_time = date('Y-m-d H:i:s', time() - $period_seconds);
+	/**
+	 * Get transaction statistics for a gateway and period
+	 *
+	 * @param string $gateway_id     Gateway ID
+	 * @param int    $period_seconds Period in seconds
+	 *
+	 * @return array Statistics
+	 */
+	public function get_transaction_stats( $gateway_id, $period_seconds ) {
+		global $wpdb;
 
-        $stats = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT 
+		$table_name = $this->database->get_transactions_table();
+		$start_time = date( 'Y-m-d H:i:s', time() - $period_seconds );
+
+		$stats = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT 
                 COUNT(*) as total_transactions,
                 SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_transactions,
                 SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_transactions,
@@ -471,19 +458,19 @@ class WC_Payment_Monitor_Logger
                 AVG(amount) as avg_amount
             FROM {$table_name} 
             WHERE gateway_id = %s AND created_at >= %s AND status != 'pending'",
-                $gateway_id,
-                $start_time
-            ),
-            ARRAY_A
-        );
+				$gateway_id,
+				$start_time
+			),
+			ARRAY_A
+		);
 
-        // Calculate success rate (excluding pending transactions)
-        if ($stats['total_transactions'] > 0) {
-            $stats['success_rate'] = round(($stats['successful_transactions'] / $stats['total_transactions']) * 100, 2);
-        } else {
-            $stats['success_rate'] = 0.00;
-        }
+		// Calculate success rate (excluding pending transactions)
+		if ( $stats['total_transactions'] > 0 ) {
+			$stats['success_rate'] = round( ( $stats['successful_transactions'] / $stats['total_transactions'] ) * 100, 2 );
+		} else {
+			$stats['success_rate'] = 0.00;
+		}
 
-        return $stats;
-    }
+		return $stats;
+	}
 }

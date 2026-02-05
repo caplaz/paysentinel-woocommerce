@@ -5,8 +5,8 @@
  *
  * Runs connectivity checks on payment gateways and stores results
  */
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
@@ -14,213 +14,206 @@ if (!defined('ABSPATH')) {
  *
  * Manages connectivity checks for payment gateways
  */
-class WC_Payment_Monitor_Gateway_Connectivity
-{
-    /**
-     * List of supported gateway connectors
-     *
-     * @var array
-     */
-    private $connectors = [
-        'stripe' => 'WC_Payment_Monitor_Stripe_Connector',
-        'paypal' => 'WC_Payment_Monitor_PayPal_Connector',
-        'woocommerce_payments' => 'WC_Payment_Monitor_WC_Payments_Connector',
-        'square_credit_card' => 'WC_Payment_Monitor_Square_Connector',
-    ];
+class WC_Payment_Monitor_Gateway_Connectivity {
 
-    /**
-     * Check connectivity for all supported gateways
-     *
-     * @return array {
-     *               'checked_gateways' => int,
-     *               'online_gateways'  => array,
-     *               'offline_gateways' => array,
-     *               'results'          => array of status results by gateway_id
-     *               }
-     */
-    public function check_all_gateways()
-    {
-        $results = [
-            'checked_gateways' => 0,
-            'online_gateways' => [],
-            'offline_gateways' => [],
-            'unconfigured_gateways' => [],
-            'results' => [],
-        ];
+	/**
+	 * List of supported gateway connectors
+	 *
+	 * @var array
+	 */
+	private $connectors = array(
+		'stripe'               => 'WC_Payment_Monitor_Stripe_Connector',
+		'paypal'               => 'WC_Payment_Monitor_PayPal_Connector',
+		'woocommerce_payments' => 'WC_Payment_Monitor_WC_Payments_Connector',
+		'square_credit_card'   => 'WC_Payment_Monitor_Square_Connector',
+	);
 
-        foreach ($this->connectors as $gateway_id => $connector_class) {
-            // Skip if connector class doesn't exist
-            if (!class_exists($connector_class)) {
-                continue;
-            }
+	/**
+	 * Check connectivity for all supported gateways
+	 *
+	 * @return array {
+	 *               'checked_gateways' => int,
+	 *               'online_gateways'  => array,
+	 *               'offline_gateways' => array,
+	 *               'results'          => array of status results by gateway_id
+	 *               }
+	 */
+	public function check_all_gateways() {
+		$results = array(
+			'checked_gateways'      => 0,
+			'online_gateways'       => array(),
+			'offline_gateways'      => array(),
+			'unconfigured_gateways' => array(),
+			'results'               => array(),
+		);
 
-            $status = $this->check_gateway($gateway_id);
+		foreach ( $this->connectors as $gateway_id => $connector_class ) {
+			// Skip if connector class doesn't exist
+			if ( ! class_exists( $connector_class ) ) {
+				continue;
+			}
 
-            if (null !== $status) {
-                $results['results'][$gateway_id] = $status;
-                $results['checked_gateways']++;
+			$status = $this->check_gateway( $gateway_id );
 
-                if ('online' === $status['status']) {
-                    $results['online_gateways'][] = $gateway_id;
-                } elseif ('offline' === $status['status']) {
-                    $results['offline_gateways'][] = $gateway_id;
-                } else {
-                    $results['unconfigured_gateways'][] = $gateway_id;
-                }
-            }
-        }
+			if ( null !== $status ) {
+				$results['results'][ $gateway_id ] = $status;
+				++$results['checked_gateways'];
 
-        return $results;
-    }
+				if ( 'online' === $status['status'] ) {
+					$results['online_gateways'][] = $gateway_id;
+				} elseif ( 'offline' === $status['status'] ) {
+					$results['offline_gateways'][] = $gateway_id;
+				} else {
+					$results['unconfigured_gateways'][] = $gateway_id;
+				}
+			}
+		}
 
-    /**
-     * Check connectivity for a specific gateway
-     *
-     * @param string $gateway_id Gateway identifier.
-     *
-     * @return array|null Status result or null if gateway not found.
-     */
-    public function check_gateway($gateway_id)
-    {
-        if (!isset($this->connectors[$gateway_id])) {
-            return null;
-        }
+		return $results;
+	}
 
-        $connector_class = $this->connectors[$gateway_id];
+	/**
+	 * Check connectivity for a specific gateway
+	 *
+	 * @param string $gateway_id Gateway identifier.
+	 *
+	 * @return array|null Status result or null if gateway not found.
+	 */
+	public function check_gateway( $gateway_id ) {
+		if ( ! isset( $this->connectors[ $gateway_id ] ) ) {
+			return null;
+		}
 
-        // Skip if class doesn't exist
-        if (!class_exists($connector_class)) {
-            return null;
-        }
+		$connector_class = $this->connectors[ $gateway_id ];
 
-        try {
-            // Instantiate the connector
-            $connector = new $connector_class();
+		// Skip if class doesn't exist
+		if ( ! class_exists( $connector_class ) ) {
+			return null;
+		}
 
-            // Run the test
-            $status = $connector->test_connection();
+		try {
+			// Instantiate the connector
+			$connector = new $connector_class();
 
-            // Log the result to database
-            $connector->log_connectivity_check($status);
+			// Run the test
+			$status = $connector->test_connection();
 
-            // Trigger hook for other plugins to react
-            do_action('wc_payment_monitor_gateway_checked', $gateway_id, $status);
+			// Log the result to database
+			$connector->log_connectivity_check( $status );
 
-            return $status;
+			// Trigger hook for other plugins to react
+			do_action( 'wc_payment_monitor_gateway_checked', $gateway_id, $status );
 
-        } catch (Exception $e) {
-            // Log exception
-            error_log(
-                sprintf(
-                    'Payment Monitor: Exception while checking %s gateway: %s',
-                    $gateway_id,
-                    $e->getMessage()
-                )
-            );
+			return $status;
 
-            return null;
-        }
-    }
+		} catch ( Exception $e ) {
+			// Log exception
+			error_log(
+				sprintf(
+					'Payment Monitor: Exception while checking %s gateway: %s',
+					$gateway_id,
+					$e->getMessage()
+				)
+			);
 
-    /**
-     * Get last connectivity check for a gateway
-     *
-     * @param string $gateway_id Gateway identifier.
-     *
-     * @return object|null Last check record or null.
-     */
-    public function get_last_check($gateway_id)
-    {
-        if (!isset($this->connectors[$gateway_id])) {
-            return null;
-        }
+			return null;
+		}
+	}
 
-        $connector_class = $this->connectors[$gateway_id];
+	/**
+	 * Get last connectivity check for a gateway
+	 *
+	 * @param string $gateway_id Gateway identifier.
+	 *
+	 * @return object|null Last check record or null.
+	 */
+	public function get_last_check( $gateway_id ) {
+		if ( ! isset( $this->connectors[ $gateway_id ] ) ) {
+			return null;
+		}
 
-        if (!class_exists($connector_class)) {
-            return null;
-        }
+		$connector_class = $this->connectors[ $gateway_id ];
 
-        $connector = new $connector_class();
-        return $connector->get_last_connectivity_check();
-    }
+		if ( ! class_exists( $connector_class ) ) {
+			return null;
+		}
 
-    /**
-     * Get connectivity history for a gateway
-     *
-     * @param string $gateway_id Gateway identifier.
-     * @param int    $limit      Number of records to retrieve.
-     *
-     * @return array Array of connectivity check records.
-     */
-    public function get_history($gateway_id, $limit = 10)
-    {
-        if (!isset($this->connectors[$gateway_id])) {
-            return [];
-        }
+		$connector = new $connector_class();
+		return $connector->get_last_connectivity_check();
+	}
 
-        $connector_class = $this->connectors[$gateway_id];
+	/**
+	 * Get connectivity history for a gateway
+	 *
+	 * @param string $gateway_id Gateway identifier.
+	 * @param int    $limit      Number of records to retrieve.
+	 *
+	 * @return array Array of connectivity check records.
+	 */
+	public function get_history( $gateway_id, $limit = 10 ) {
+		if ( ! isset( $this->connectors[ $gateway_id ] ) ) {
+			return array();
+		}
 
-        if (!class_exists($connector_class)) {
-            return [];
-        }
+		$connector_class = $this->connectors[ $gateway_id ];
 
-        $connector = new $connector_class();
-        return $connector->get_connectivity_history($limit);
-    }
+		if ( ! class_exists( $connector_class ) ) {
+			return array();
+		}
 
-    /**
-     * Get all supported gateway IDs
-     *
-     * @return array Array of gateway IDs.
-     */
-    public function get_supported_gateways()
-    {
-        return array_keys($this->connectors);
-    }
+		$connector = new $connector_class();
+		return $connector->get_connectivity_history( $limit );
+	}
 
-    /**
-     * Get supported gateways that are actually enabled in WooCommerce
-     *
-     * @return array Array of enabled gateway IDs.
-     */
-    public function get_enabled_gateways()
-    {
-        $enabled = [];
+	/**
+	 * Get all supported gateway IDs
+	 *
+	 * @return array Array of gateway IDs.
+	 */
+	public function get_supported_gateways() {
+		return array_keys( $this->connectors );
+	}
 
-        $wc_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+	/**
+	 * Get supported gateways that are actually enabled in WooCommerce
+	 *
+	 * @return array Array of enabled gateway IDs.
+	 */
+	public function get_enabled_gateways() {
+		$enabled = array();
 
-        foreach ($this->connectors as $gateway_id => $connector_class) {
-            // Check if this gateway exists in WooCommerce and is enabled
-            if (isset($wc_gateways[$gateway_id]) && $wc_gateways[$gateway_id]->enabled) {
-                $enabled[] = $gateway_id;
-            }
-        }
+		$wc_gateways = WC()->payment_gateways()->get_available_payment_gateways();
 
-        return $enabled;
-    }
+		foreach ( $this->connectors as $gateway_id => $connector_class ) {
+			// Check if this gateway exists in WooCommerce and is enabled
+			if ( isset( $wc_gateways[ $gateway_id ] ) && $wc_gateways[ $gateway_id ]->enabled ) {
+				$enabled[] = $gateway_id;
+			}
+		}
 
-    /**
-     * Clean old connectivity check records (older than specified days)
-     *
-     * @param int $days Number of days to keep records for.
-     *
-     * @return int Number of records deleted.
-     */
-    public function cleanup_old_checks($days = 30)
-    {
-        global $wpdb;
+		return $enabled;
+	}
 
-        $table = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
+	/**
+	 * Clean old connectivity check records (older than specified days)
+	 *
+	 * @param int $days Number of days to keep records for.
+	 *
+	 * @return int Number of records deleted.
+	 */
+	public function cleanup_old_checks( $days = 30 ) {
+		global $wpdb;
 
-        // Calculate cutoff date
-        $cutoff_date = gmdate('Y-m-d H:i:s', strtotime("-{$days} days"));
+		$table = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
 
-        return $wpdb->query(
-            $wpdb->prepare(
-                "DELETE FROM $table WHERE checked_at < %s",
-                $cutoff_date
-            )
-        );
-    }
+		// Calculate cutoff date
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+
+		return $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM $table WHERE checked_at < %s",
+				$cutoff_date
+			)
+		);
+	}
 }

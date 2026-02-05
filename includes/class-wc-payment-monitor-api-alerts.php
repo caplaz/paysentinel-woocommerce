@@ -5,285 +5,280 @@
  */
 
 // Prevent direct access
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
-class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base
-{
-    /**
-     * Register REST routes for alerts endpoints
-     */
-    public function register_routes()
-    {
-        // Get alerts
-        register_rest_route(
-            $this->namespace,
-            '/alerts',
-            [
-                'methods'             => 'GET',
-                'callback'            => [$this, 'get_alerts'],
-                'permission_callback' => [$this, 'check_permission'],
-                'args'                => [
-                    'page'     => [
-                        'type'        => 'integer',
-                        'description' => 'Page number',
-                        'default'     => 1,
-                        'minimum'     => 1,
-                        'required'    => false,
-                    ],
-                    'per_page' => [
-                        'type'        => 'integer',
-                        'description' => 'Items per page',
-                        'default'     => 20,
-                        'minimum'     => 1,
-                        'maximum'     => 100,
-                        'required'    => false,
-                    ],
-                    'status'   => [
-                        'type'        => 'string',
-                        'description' => 'Filter by alert status',
-                        'enum'        => ['active', 'resolved', 'all'],
-                        'default'     => 'all',
-                        'required'    => false,
-                    ],
-                    'severity' => [
-                        'type'        => 'string',
-                        'description' => 'Filter by alert severity',
-                        'enum'        => ['info', 'warning', 'high', 'critical'],
-                        'required'    => false,
-                    ],
-                ],
-            ]
-        );
+class WC_Payment_Monitor_API_Alerts extends WC_Payment_Monitor_API_Base {
 
-        // Get specific alert
-        register_rest_route(
-            $this->namespace,
-            '/alerts/(?P<id>[0-9]+)',
-            [
-                'methods'             => 'GET',
-                'callback'            => [$this, 'get_alert'],
-                'permission_callback' => [$this, 'check_permission'],
-                'args'                => [
-                    'id' => [
-                        'type'        => 'integer',
-                        'description' => 'Alert ID',
-                        'required'    => true,
-                    ],
-                ],
-            ]
-        );
+	/**
+	 * Register REST routes for alerts endpoints
+	 */
+	public function register_routes() {
+		// Get alerts
+		register_rest_route(
+			$this->namespace,
+			'/alerts',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_alerts' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'page'     => array(
+						'type'        => 'integer',
+						'description' => 'Page number',
+						'default'     => 1,
+						'minimum'     => 1,
+						'required'    => false,
+					),
+					'per_page' => array(
+						'type'        => 'integer',
+						'description' => 'Items per page',
+						'default'     => 20,
+						'minimum'     => 1,
+						'maximum'     => 100,
+						'required'    => false,
+					),
+					'status'   => array(
+						'type'        => 'string',
+						'description' => 'Filter by alert status',
+						'enum'        => array( 'active', 'resolved', 'all' ),
+						'default'     => 'all',
+						'required'    => false,
+					),
+					'severity' => array(
+						'type'        => 'string',
+						'description' => 'Filter by alert severity',
+						'enum'        => array( 'info', 'warning', 'high', 'critical' ),
+						'required'    => false,
+					),
+				),
+			)
+		);
 
-        // Resolve alert
-        register_rest_route(
-            $this->namespace,
-            '/alerts/(?P<id>[0-9]+)/resolve',
-            [
-                'methods'             => 'POST',
-                'callback'            => [$this, 'resolve_alert'],
-                'permission_callback' => [$this, 'check_permission'],
-                'args'                => [
-                    'id' => [
-                        'type'        => 'integer',
-                        'description' => 'Alert ID',
-                        'required'    => true,
-                    ],
-                ],
-            ]
-        );
-    }
+		// Get specific alert
+		register_rest_route(
+			$this->namespace,
+			'/alerts/(?P<id>[0-9]+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_alert' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'id' => array(
+						'type'        => 'integer',
+						'description' => 'Alert ID',
+						'required'    => true,
+					),
+				),
+			)
+		);
 
-    /**
-     * Get alerts
-     *
-     * @param WP_REST_Request $request Request object
-     *
-     * @return WP_REST_Response|WP_Error
-     */
-    public function get_alerts($request)
-    {
-        global $wpdb;
+		// Resolve alert
+		register_rest_route(
+			$this->namespace,
+			'/alerts/(?P<id>[0-9]+)/resolve',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'resolve_alert' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'id' => array(
+						'type'        => 'integer',
+						'description' => 'Alert ID',
+						'required'    => true,
+					),
+				),
+			)
+		);
+	}
 
-        $page     = $request->get_param('page');
-        $per_page = $request->get_param('per_page');
-        $status   = $request->get_param('status');
-        $severity = $request->get_param('severity');
+	/**
+	 * Get alerts
+	 *
+	 * @param WP_REST_Request $request Request object
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_alerts( $request ) {
+		global $wpdb;
 
-        $offset = ($page - 1) * $per_page;
+		$page     = $request->get_param( 'page' );
+		$per_page = $request->get_param( 'per_page' );
+		$status   = $request->get_param( 'status' );
+		$severity = $request->get_param( 'severity' );
 
-        $where_clauses = [];
-        $where_values  = [];
+		$offset = ( $page - 1 ) * $per_page;
 
-        if ($status && $status !== 'all') {
-            if ($status === 'resolved') {
-                $where_clauses[] = 'is_resolved = 1';
-            } elseif ($status === 'active') {
-                $where_clauses[] = 'is_resolved = 0';
-            }
-        }
+		$where_clauses = array();
+		$where_values  = array();
 
-        if ($severity) {
-            $where_clauses[] = 'severity = %s';
-            $where_values[]  = $severity;
-        }
+		if ( $status && $status !== 'all' ) {
+			if ( $status === 'resolved' ) {
+				$where_clauses[] = 'is_resolved = 1';
+			} elseif ( $status === 'active' ) {
+				$where_clauses[] = 'is_resolved = 0';
+			}
+		}
 
-        $where_sql = '';
-        if (!empty($where_clauses)) {
-            $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
-        }
+		if ( $severity ) {
+			$where_clauses[] = 'severity = %s';
+			$where_values[]  = $severity;
+		}
 
-        $prefix     = (is_object($wpdb) && property_exists($wpdb, 'prefix')) ? $wpdb->prefix : 'wp_';
-        $table_name = $prefix . 'payment_monitor_alerts';
+		$where_sql = '';
+		if ( ! empty( $where_clauses ) ) {
+			$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
+		}
 
-        // Check if table exists
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) !== $table_name) {
-            return $this->get_paginated_response([], 0, intval($page), intval($per_page));
-        }
+		$prefix     = ( is_object( $wpdb ) && property_exists( $wpdb, 'prefix' ) ) ? $wpdb->prefix : 'wp_';
+		$table_name = $prefix . 'payment_monitor_alerts';
 
-        // Get total count
-        $total_query = $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table_name} {$where_sql}",
-            $where_values
-        );
-        $total       = $wpdb->get_var($total_query);
+		// Check if table exists
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
+			return $this->get_paginated_response( array(), 0, intval( $page ), intval( $per_page ) );
+		}
 
-        // Get alerts
-        $query = $wpdb->prepare(
-            "SELECT * FROM {$table_name} {$where_sql} ORDER BY created_at DESC LIMIT %d OFFSET %d",
-            array_merge($where_values, [$per_page, $offset])
-        );
+		// Get total count
+		$total_query = $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$table_name} {$where_sql}",
+			$where_values
+		);
+		$total       = $wpdb->get_var( $total_query );
 
-        $alerts = $wpdb->get_results($query, ARRAY_A);
+		// Get alerts
+		$query = $wpdb->prepare(
+			"SELECT * FROM {$table_name} {$where_sql} ORDER BY created_at DESC LIMIT %d OFFSET %d",
+			array_merge( $where_values, array( $per_page, $offset ) )
+		);
 
-        // Format alerts
-        $formatted_alerts = [];
-        foreach ($alerts as $alert) {
-            $formatted_alerts[] = $this->format_alert($alert);
-        }
+		$alerts = $wpdb->get_results( $query, ARRAY_A );
 
-        return $this->get_paginated_response(
-            $formatted_alerts,
-            intval($total),
-            intval($page),
-            intval($per_page)
-        );
-    }
+		// Format alerts
+		$formatted_alerts = array();
+		foreach ( $alerts as $alert ) {
+			$formatted_alerts[] = $this->format_alert( $alert );
+		}
 
-    /**
-     * Get specific alert
-     *
-     * @param WP_REST_Request $request Request object
-     *
-     * @return WP_REST_Response|WP_Error
-     */
-    public function get_alert($request)
-    {
-        global $wpdb;
+		return $this->get_paginated_response(
+			$formatted_alerts,
+			intval( $total ),
+			intval( $page ),
+			intval( $per_page )
+		);
+	}
 
-        $id = $request->get_param('id');
+	/**
+	 * Get specific alert
+	 *
+	 * @param WP_REST_Request $request Request object
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_alert( $request ) {
+		global $wpdb;
 
-        $prefix     = (is_object($wpdb) && property_exists($wpdb, 'prefix')) ? $wpdb->prefix : 'wp_';
-        $table_name = $prefix . 'payment_monitor_alerts';
+		$id = $request->get_param( 'id' );
 
-        // Check if table exists
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) !== $table_name) {
-            return $this->get_error_response('alert_not_found', 'Alert not found', 404);
-        }
+		$prefix     = ( is_object( $wpdb ) && property_exists( $wpdb, 'prefix' ) ) ? $wpdb->prefix : 'wp_';
+		$table_name = $prefix . 'payment_monitor_alerts';
 
-        $alert = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d", $id),
-            ARRAY_A
-        );
+		// Check if table exists
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
+			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
+		}
 
-        if (!$alert) {
-            return $this->get_error_response('alert_not_found', 'Alert not found', 404);
-        }
+		$alert = $wpdb->get_row(
+			$wpdb->prepare( "SELECT * FROM {$table_name} WHERE id = %d", $id ),
+			ARRAY_A
+		);
 
-        return $this->get_success_response($this->format_alert($alert));
-    }
+		if ( ! $alert ) {
+			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
+		}
 
-    /**
-     * Resolve alert
-     */
-    public function resolve_alert($request)
-    {
-        global $wpdb;
+		return $this->get_success_response( $this->format_alert( $alert ) );
+	}
 
-        $id = $request->get_param('id');
+	/**
+	 * Resolve alert
+	 */
+	public function resolve_alert( $request ) {
+		global $wpdb;
 
-        $prefix     = (is_object($wpdb) && property_exists($wpdb, 'prefix')) ? $wpdb->prefix : 'wp_';
-        $table_name = $prefix . 'payment_monitor_alerts';
+		$id = $request->get_param( 'id' );
 
-        // Check if table exists
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) !== $table_name) {
-            return $this->get_error_response('alert_not_found', 'Alert not found', 404);
-        }
+		$prefix     = ( is_object( $wpdb ) && property_exists( $wpdb, 'prefix' ) ) ? $wpdb->prefix : 'wp_';
+		$table_name = $prefix . 'payment_monitor_alerts';
 
-        // Check if alert exists
-        $alert = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d", $id),
-            ARRAY_A
-        );
+		// Check if table exists
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
+			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
+		}
 
-        if (!$alert) {
-            return $this->get_error_response('alert_not_found', 'Alert not found', 404);
-        }
+		// Check if alert exists
+		$alert = $wpdb->get_row(
+			$wpdb->prepare( "SELECT * FROM {$table_name} WHERE id = %d", $id ),
+			ARRAY_A
+		);
 
-        // Update alert status
-        $result = $wpdb->update(
-            $table_name,
-            [
-                'is_resolved' => 1,
-                'resolved_at' => current_time('mysql'),
-            ],
-            ['id' => $id],
-            ['%d', '%s'],
-            ['%d']
-        );
+		if ( ! $alert ) {
+			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
+		}
 
-        if ($result === false) {
-            return $this->get_error_response('update_failed', 'Failed to resolve alert', 500);
-        }
+		// Update alert status
+		$result = $wpdb->update(
+			$table_name,
+			array(
+				'is_resolved' => 1,
+				'resolved_at' => current_time( 'mysql' ),
+			),
+			array( 'id' => $id ),
+			array( '%d', '%s' ),
+			array( '%d' )
+		);
 
-        // Get updated alert
-        $updated_alert = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d", $id),
-            ARRAY_A
-        );
+		if ( $result === false ) {
+			return $this->get_error_response( 'update_failed', 'Failed to resolve alert', 500 );
+		}
 
-        return $this->get_success_response($this->format_alert($updated_alert));
-    }
+		// Get updated alert
+		$updated_alert = $wpdb->get_row(
+			$wpdb->prepare( "SELECT * FROM {$table_name} WHERE id = %d", $id ),
+			ARRAY_A
+		);
 
-    /**
-     * Format alert for API response
-     */
-    private function format_alert($alert)
-    {
-        // Generate title from alert_type
-        $alert_type_titles = [
-            'gateway_down'       => 'Gateway Down',
-            'low_success_rate'   => 'Low Success Rate',
-            'high_failure_count' => 'High Failure Count',
-            'gateway_error'      => 'Gateway Error',
-        ];
+		return $this->get_success_response( $this->format_alert( $updated_alert ) );
+	}
 
-        $title = isset($alert_type_titles[$alert['alert_type']])
-            ? $alert_type_titles[$alert['alert_type']]
-            : ucwords(str_replace('_', ' ', $alert['alert_type']));
+	/**
+	 * Format alert for API response
+	 */
+	private function format_alert( $alert ) {
+		// Generate title from alert_type
+		$alert_type_titles = array(
+			'gateway_down'       => 'Gateway Down',
+			'low_success_rate'   => 'Low Success Rate',
+			'high_failure_count' => 'High Failure Count',
+			'gateway_error'      => 'Gateway Error',
+		);
 
-        return [
-            'id'          => intval($alert['id']),
-            'alert_type'  => $alert['alert_type'],
-            'gateway_id'  => $alert['gateway_id'],
-            'gateway_name' => WC_Payment_Monitor::get_friendly_gateway_name($alert['gateway_id']),
-            'title'       => $title,
-            'message'     => $alert['message'],
-            'severity'    => $alert['severity'],
-            'status'      => $alert['is_resolved'] ? 'resolved' : 'active',
-            'metadata'    => !empty($alert['metadata']) ? json_decode($alert['metadata'], true) : null,
-            'created_at'  => $alert['created_at'],
-            'resolved_at' => $alert['resolved_at'],
-        ];
-    }
+		$title = isset( $alert_type_titles[ $alert['alert_type'] ] )
+			? $alert_type_titles[ $alert['alert_type'] ]
+			: ucwords( str_replace( '_', ' ', $alert['alert_type'] ) );
+
+		return array(
+			'id'           => intval( $alert['id'] ),
+			'alert_type'   => $alert['alert_type'],
+			'gateway_id'   => $alert['gateway_id'],
+			'gateway_name' => WC_Payment_Monitor::get_friendly_gateway_name( $alert['gateway_id'] ),
+			'title'        => $title,
+			'message'      => $alert['message'],
+			'severity'     => $alert['severity'],
+			'status'       => $alert['is_resolved'] ? 'resolved' : 'active',
+			'metadata'     => ! empty( $alert['metadata'] ) ? json_decode( $alert['metadata'], true ) : null,
+			'created_at'   => $alert['created_at'],
+			'resolved_at'  => $alert['resolved_at'],
+		);
+	}
 }
