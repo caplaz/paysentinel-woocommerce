@@ -54,6 +54,13 @@ class WC_Payment_Monitor_Admin_Page_Renderer
         $this->license = $license;
         $this->settings_handler = $settings_handler;
     }
+
+    /**
+     * Render dashboard page
+     *
+     * Renders the main dashboard page for the Payment Monitor plugin with license info,
+     * SMS quota display, and the React-based dashboard component.
+     */
     public function render_dashboard_page()
     {
         if (!current_user_can('manage_woocommerce')) {
@@ -446,6 +453,13 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 		</div>
 		<?php
     }
+
+    /**
+     * Render diagnostics page
+     *
+     * Renders the diagnostics tools page including system diagnostics, failure simulator,
+     * and maintenance tools for troubleshooting payment issues.
+     */
     public function render_diagnostics_page()
     {
         if (!current_user_can('manage_woocommerce')) {

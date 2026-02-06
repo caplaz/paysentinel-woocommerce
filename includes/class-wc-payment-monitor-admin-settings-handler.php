@@ -45,6 +45,13 @@ class WC_Payment_Monitor_Admin_Settings_Handler
         $this->security = $security;
         $this->license = $license;
     }
+
+    /**
+     * Register plugin settings
+     *
+     * Registers WordPress settings API sections and fields for the Payment Monitor plugin.
+     * This includes general settings, notification settings, gateway settings, and advanced settings.
+     */
     public function register_settings()
     {
         // Register setting group
@@ -999,6 +1006,13 @@ class WC_Payment_Monitor_Admin_Settings_Handler
 		</p>
 		<?php
     }
+
+    /**
+     * Render license section
+     *
+     * Renders the license management section on the settings page with license validation,
+     * activation status, and upgrade options.
+     */
     public function render_license_section()
     {
         $license_key = $this->license->get_license_key();
