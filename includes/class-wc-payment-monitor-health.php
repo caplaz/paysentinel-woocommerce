@@ -28,13 +28,16 @@ class WC_Payment_Monitor_Health {
 
 	/**
 	 * Health calculation periods in seconds
+	 *
+	 * All tiers get: 1hour, 24hour, 7day
+	 * PRO and Agency tiers also get: 30day, 90day
 	 */
 	public const PERIODS = array(
 		'1hour'  => 3600,
 		'24hour' => 86400,
 		'7day'   => 604800,
-		'30day'  => 2592000,
-		'90day'  => 7776000,
+		'30day'  => 2592000,  // PRO/Agency only
+		'90day'  => 7776000,  // PRO/Agency only
 	);
 
 	/**
@@ -108,9 +111,13 @@ class WC_Payment_Monitor_Health {
 	/**
 	 * Calculate health metrics for a specific gateway
 	 *
+	 * This method calculates health metrics for all applicable time periods based on the
+	 * current license tier. Extended periods (30-day and 90-day) are only calculated for
+	 * PRO and Agency tiers.
+	 *
 	 * @param string $gateway_id Gateway ID
 	 *
-	 * @return array Health data for all periods
+	 * @return array Health data for all periods available to the current license tier
 	 */
 	public function calculate_health( $gateway_id ) {
 		$health_data = array();
@@ -118,7 +125,9 @@ class WC_Payment_Monitor_Health {
 		$tier        = $license->get_license_tier();
 
 		foreach ( self::PERIODS as $period => $seconds ) {
-			// Gate extended periods behind PRO tier
+			// Gate extended periods (30-day, 90-day) behind PRO and Agency tiers
+			// Free and Starter tiers only get: 1hour, 24hour, 7day
+			// PRO and Agency tiers also get: 30day, 90day
 			if ( ( '30day' === $period || '90day' === $period ) && ! in_array( $tier, array( 'pro', 'agency' ), true ) ) {
 				continue;
 			}
