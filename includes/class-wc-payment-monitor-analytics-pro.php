@@ -146,13 +146,13 @@ class WC_Payment_Monitor_Analytics_Pro {
 
 		global $wpdb;
 		$table_name = $this->database->get_transactions_table();
-		$cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days", current_time( 'timestamp' ) ) );
 
 		// Get failure reasons grouped by frequency
 		$failure_reasons = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT failure_reason, failure_code, COUNT(*) as count 
-				FROM {$table_name} 
+				FROM `{$wpdb->esc_like( $table_name )}` 
 				WHERE gateway_id = %s 
 				AND status = 'failed' 
 				AND created_at >= %s 
@@ -170,7 +170,7 @@ class WC_Payment_Monitor_Analytics_Pro {
 		$hourly_distribution = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT HOUR(created_at) as hour, COUNT(*) as failures 
-				FROM {$table_name} 
+				FROM `{$wpdb->esc_like( $table_name )}` 
 				WHERE gateway_id = %s 
 				AND status = 'failed' 
 				AND created_at >= %s 
@@ -189,7 +189,7 @@ class WC_Payment_Monitor_Analytics_Pro {
 				COUNT(*) as total_transactions,
 				SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_transactions,
 				SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_transactions
-				FROM {$table_name} 
+				FROM `{$wpdb->esc_like( $table_name )}` 
 				WHERE gateway_id = %s 
 				AND created_at >= %s 
 				GROUP BY DATE(created_at) 
