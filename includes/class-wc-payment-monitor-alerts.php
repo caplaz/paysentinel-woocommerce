@@ -21,6 +21,11 @@ class WC_Payment_Monitor_Alerts {
 	private $health;
 
 	/**
+	 * Gateway manager instance
+	 */
+	private $gateway_manager;
+
+	/**
 	 * Alert severity thresholds
 	 */
 	public const SEVERITY_THRESHOLDS = array(
@@ -38,8 +43,9 @@ class WC_Payment_Monitor_Alerts {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->database = new WC_Payment_Monitor_Database();
-		$this->health   = new WC_Payment_Monitor_Health();
+		$this->database        = new WC_Payment_Monitor_Database();
+		$this->health          = new WC_Payment_Monitor_Health();
+		$this->gateway_manager = new WC_Payment_Monitor_Gateway_Manager();
 		$this->init_hooks();
 	}
 
@@ -64,7 +70,7 @@ class WC_Payment_Monitor_Alerts {
 	 * Check alerts for all gateways
 	 */
 	public function check_all_gateway_alerts() {
-		$active_gateways = $this->get_active_gateways();
+		$active_gateways = $this->gateway_manager->get_active_gateways();
 
 		foreach ( $active_gateways as $gateway_id ) {
 			$health_data = $this->health->get_gateway_health( $gateway_id );
@@ -872,40 +878,6 @@ class WC_Payment_Monitor_Alerts {
 		);
 
 		return isset( $colors[ $severity ] ) ? $colors[ $severity ] : $colors['info'];
-	}
-
-	/**
-	 * Get active payment gateways
-	 *
-	 * @return array Gateway IDs
-	 */
-	private function get_active_gateways() {
-		$gateways = array();
-		$license  = new WC_Payment_Monitor_License();
-		$tier     = $license->get_license_tier();
-		$limit    = isset( WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] ) ? WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] : 1;
-
-		// Get enabled gateways from settings
-		$settings         = get_option( 'wc_payment_monitor_settings', array() );
-		$enabled_gateways = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
-
-		if ( ! empty( $enabled_gateways ) ) {
-			return array_slice( $enabled_gateways, 0, $limit );
-		}
-
-		// If no specific gateways configured, get all WooCommerce gateways
-		if ( class_exists( 'WC_Payment_Gateways' ) ) {
-			$wc_gateways        = WC_Payment_Gateways::instance();
-			$available_gateways = $wc_gateways->get_available_payment_gateways();
-
-			foreach ( $available_gateways as $gateway_id => $gateway ) {
-				if ( $gateway->enabled === 'yes' ) {
-					$gateways[] = $gateway_id;
-				}
-			}
-		}
-
-		return array_slice( $gateways, 0, $limit );
 	}
 
 	/**
