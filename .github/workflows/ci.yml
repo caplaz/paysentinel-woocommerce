@@ -32,7 +32,7 @@ jobs:
             - name: Set up WordPress environment
               run: |
                   docker compose run --rm tests bash -lc "
-                    bash ./tests/entrypoint.sh && \
+                    bash ./tests/bootstrap/entrypoint.sh && \
                     wp config create --dbname=wordpress_test --dbuser=wp --dbpass=wp --dbhost=db --path=/tmp/wordpress --allow-root && \
                     wp core install --url=http://localhost --title='Test Site' --admin_user=admin --admin_password=password --admin_email=admin@example.com --path=/tmp/wordpress --allow-root
                   "
