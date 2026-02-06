@@ -28,6 +28,13 @@ class WC_Payment_Monitor_Admin_Ajax_Handler
     private $license;
 
     /**
+     * Config instance
+     *
+     * @var WC_Payment_Monitor_Config
+     */
+    private $config;
+
+    /**
      * Constructor
      *
      * @param WC_Payment_Monitor_License $license License instance.
@@ -35,6 +42,7 @@ class WC_Payment_Monitor_Admin_Ajax_Handler
     public function __construct($license)
     {
         $this->license = $license;
+        $this->config = WC_Payment_Monitor_Config::instance();
     }
 
     /**
@@ -50,7 +58,7 @@ class WC_Payment_Monitor_Admin_Ajax_Handler
             wp_send_json_error(['message' => __('Unauthorized', 'wc-payment-monitor')]);
         }
 
-        $integration_id = get_option('wc_payment_monitor_slack_workspace', '');
+        $integration_id = $this->config->get_slack_workspace();
 
         if (empty($integration_id)) {
             wp_send_json_error(['message' => __('No Slack workspace connected', 'wc-payment-monitor')]);
@@ -175,7 +183,7 @@ class WC_Payment_Monitor_Admin_Ajax_Handler
             }
 
             // Get current integration ID
-            $integration_id = get_option('wc_payment_monitor_slack_workspace', '');
+            $integration_id = $this->config->get_slack_workspace();
 
             if (!empty($integration_id)) {
                 // Call SaaS to remove tokens
@@ -185,7 +193,7 @@ class WC_Payment_Monitor_Admin_Ajax_Handler
                 ]);
             }
 
-            delete_option('wc_payment_monitor_slack_workspace');
+            $this->config->set_slack_workspace('');
 
             add_settings_error(
                 'wc_payment_monitor_settings',
@@ -215,12 +223,12 @@ class WC_Payment_Monitor_Admin_Ajax_Handler
         }
 
         $integration_id = sanitize_text_field($_GET['integration_id']);
-        update_option('wc_payment_monitor_slack_workspace', $integration_id);
+        $this->config->set_slack_workspace($integration_id);
 
         // Also sync into main options array for compatibility
-        $options = get_option('wc_payment_monitor_options', []);
+        $options = $this->config->get_all();
         $options['alert_slack_workspace'] = $integration_id;
-        update_option('wc_payment_monitor_options', $options);
+        $this->config->update_all($options);
 
         add_settings_error(
             'wc_payment_monitor_options',

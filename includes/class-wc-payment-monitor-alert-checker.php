@@ -50,6 +50,13 @@ class WC_Payment_Monitor_Alert_Checker {
 	private $notifier;
 
 	/**
+	 * Config instance
+	 *
+	 * @var WC_Payment_Monitor_Config
+	 */
+	private $config;
+
+	/**
 	 * Alert severity thresholds
 	 */
 	public const SEVERITY_THRESHOLDS = array(
@@ -76,6 +83,7 @@ class WC_Payment_Monitor_Alert_Checker {
 		$this->health          = $health;
 		$this->gateway_manager = $gateway_manager;
 		$this->notifier        = $notifier;
+		$this->config          = WC_Payment_Monitor_Config::instance();
 	}
 
 	/**
@@ -153,7 +161,7 @@ class WC_Payment_Monitor_Alert_Checker {
 		}
 
 		// Check if immediate alerts are enabled for this gateway
-		$settings = get_option( 'wc_payment_monitor_settings', array() );
+		$settings = $this->config->get_all_settings();
 		if ( ! $this->is_gateway_alerts_enabled( $payment_method, $settings ) ) {
 			return;
 		}
@@ -202,7 +210,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	 * @param array  $health_data Health data for all periods.
 	 */
 	public function check_and_send( $gateway_id, $health_data ) {
-		$settings = get_option( 'wc_payment_monitor_settings', array() );
+		$settings = $this->config->get_all_settings();
 
 		// Check if alerts are enabled for this gateway
 		if ( ! $this->is_gateway_alerts_enabled( $gateway_id, $settings ) ) {
@@ -281,7 +289,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	 * @return bool True if alert should be triggered.
 	 */
 	private function should_trigger_alert( $gateway_id, $success_rate, $severity ) {
-		$settings = get_option( 'wc_payment_monitor_settings', array() );
+		$settings = $this->config->get_all_settings();
 
 		// Get threshold for this gateway
 		$threshold = $this->get_gateway_alert_threshold( $gateway_id, $settings );
@@ -416,7 +424,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	 * @param float  $success_rate Current success rate.
 	 */
 	private function check_alert_resolution( $gateway_id, $success_rate ) {
-		$settings  = get_option( 'wc_payment_monitor_settings', array() );
+		$settings  = $this->config->get_all_settings();
 		$threshold = $this->get_gateway_alert_threshold( $gateway_id, $settings );
 
 		// If success rate is back above threshold, resolve alerts
