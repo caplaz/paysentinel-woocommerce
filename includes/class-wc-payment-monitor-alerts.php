@@ -217,7 +217,7 @@ class WC_Payment_Monitor_Alerts {
 		$params = array( $gateway_id );
 
 		if ( $resolved_only !== null ) {
-			$sql     .= ' AND resolved = %d';
+			$sql     .= ' AND is_resolved = %d';
 			$params[] = $resolved_only ? 1 : 0;
 		}
 
@@ -251,7 +251,7 @@ class WC_Payment_Monitor_Alerts {
 		$params[] = $limit;
 
 		if ( empty( $params ) ) {
-			return $wpdb->get_results( "SELECT * FROM {$table_name} ORDER BY created_at DESC LIMIT " . intval( $limit ), ARRAY_A );
+			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table_name} ORDER BY created_at DESC LIMIT %d", $limit ), ARRAY_A );
 		}
 
 		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
@@ -267,7 +267,7 @@ class WC_Payment_Monitor_Alerts {
 		global $wpdb;
 
 		$table_name = $this->database->get_alerts_table();
-		$start_date = gmdate( 'Y-m-d H:i:s', time() - ( $days * 86400 ) );
+		$start_date = date( 'Y-m-d H:i:s', time() - ( $days * 86400 ) );
 
 		$stats = $wpdb->get_row(
 			$wpdb->prepare(
@@ -277,8 +277,8 @@ class WC_Payment_Monitor_Alerts {
                 SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) as high_alerts,
                 SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning_alerts,
                 SUM(CASE WHEN severity = 'info' THEN 1 ELSE 0 END) as info_alerts,
-                SUM(CASE WHEN resolved = 1 THEN 1 ELSE 0 END) as resolved_alerts,
-                SUM(CASE WHEN resolved = 0 THEN 1 ELSE 0 END) as unresolved_alerts
+                SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) as resolved_alerts,
+                SUM(CASE WHEN is_resolved = 0 THEN 1 ELSE 0 END) as unresolved_alerts
              FROM {$table_name} 
              WHERE created_at >= %s",
 				$start_date

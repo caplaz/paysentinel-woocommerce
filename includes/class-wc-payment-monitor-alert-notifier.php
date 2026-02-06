@@ -464,7 +464,7 @@ class WC_Payment_Monitor_Alert_Notifier {
 	 */
 	private function is_premium_feature_available() {
 		$license = new WC_Payment_Monitor_License();
-		$tier    = $license->get_tier();
+		$tier    = $license->get_license_tier();
 		return in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
 	}
 
@@ -475,7 +475,7 @@ class WC_Payment_Monitor_Alert_Notifier {
 	 */
 	private function get_license_tier() {
 		$license = new WC_Payment_Monitor_License();
-		return $license->get_tier();
+		return $license->get_license_tier();
 	}
 
 	/**

@@ -128,7 +128,7 @@ class WC_Payment_Monitor_Alert_Checker {
 			'period'       => 'current',
 			'message'      => sprintf(
 				__( 'Payment gateway %s is currently unavailable. Customers cannot complete payments.', 'wc-payment-monitor' ),
-				$this->gateway_manager->get_gateway_name( $gateway_id )
+				$this->gateway_manager->get_gateway_display_name( $gateway_id )
 			),
 			'metadata'     => array(
 				'error'      => isset( $status['error'] ) ? $status['error'] : '',
@@ -182,7 +182,7 @@ class WC_Payment_Monitor_Alert_Checker {
 			'message'      => sprintf(
 				__( 'Payment failed for order #%d using %s gateway.', 'wc-payment-monitor' ),
 				$order_id,
-				$this->gateway_manager->get_gateway_name( $payment_method )
+				$this->gateway_manager->get_gateway_display_name( $payment_method )
 			),
 			'metadata'     => array(
 				'order_id'     => $order_id,
@@ -355,7 +355,7 @@ class WC_Payment_Monitor_Alert_Checker {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'wc_payment_monitor_alerts';
-		$time_limit = gmdate( 'Y-m-d H:i:s', time() - self::RATE_LIMIT_WINDOW );
+		$time_limit = date( 'Y-m-d H:i:s', time() - self::RATE_LIMIT_WINDOW );
 
 		$recent_alert = $wpdb->get_var(
 			$wpdb->prepare(
@@ -391,7 +391,7 @@ class WC_Payment_Monitor_Alert_Checker {
 			'message'      => $alert_data['message'] ?? '',
 			'metadata'     => isset( $alert_data['metadata'] ) ? wp_json_encode( $alert_data['metadata'] ) : null,
 			'created_at'   => current_time( 'mysql' ),
-			'resolved'     => 0,
+			'is_resolved'  => 0,
 		);
 
 		$alert_id = $this->save_alert( $alert_record );
@@ -440,13 +440,13 @@ class WC_Payment_Monitor_Alert_Checker {
 		$updated = $wpdb->update(
 			$table_name,
 			array(
-				'resolved'    => 1,
+				'is_resolved' => 1,
 				'resolved_at' => current_time( 'mysql' ),
 			),
 			array(
-				'gateway_id' => $gateway_id,
-				'alert_type' => $alert_type,
-				'resolved'   => 0,
+				'gateway_id'  => $gateway_id,
+				'alert_type'  => $alert_type,
+				'is_resolved' => 0,
 			),
 			array( '%d', '%s' ),
 			array( '%s', '%s', '%d' )
@@ -483,7 +483,7 @@ class WC_Payment_Monitor_Alert_Checker {
 				'%s', // message
 				'%s', // metadata
 				'%s', // created_at
-				'%d', // resolved
+				'%d', // is_resolved
 			)
 		);
 
