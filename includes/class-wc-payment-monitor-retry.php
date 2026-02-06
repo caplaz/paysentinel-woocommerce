@@ -58,10 +58,7 @@ class WC_Payment_Monitor_Retry {
 	 */
 	public function schedule_retry_on_failure( $order_id, $old_status = '' ) {
 		// Check if auto-retry is enabled
-		$settings = get_option( 'wc_payment_monitor_options', array() );
-		$enabled  = isset( $settings['retry_enabled'] ) ? $settings['retry_enabled'] : true;
-
-		if ( ! $enabled ) {
+		if ( ! WC_Payment_Monitor_Config::instance()->is_retry_enabled() ) {
 			return;
 		}
 
@@ -158,14 +155,15 @@ class WC_Payment_Monitor_Retry {
 			)
 		);
 
-		$settings    = get_option( 'wc_payment_monitor_options', array() );
-		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+		$config      = WC_Payment_Monitor_Config::instance();
+		$max_retries = $config->get_max_retry_attempts();
 
 		if ( ! $transaction || $transaction->retry_count >= $max_retries ) {
 			return false;
 		}
 
 		// Get retry schedule from settings
+		$settings       = $config->get_all();
 		$retry_schedule = isset( $settings['retry_schedule'] ) ? $settings['retry_schedule'] : self::DEFAULT_RETRY_SCHEDULE;
 
 		// Calculate next retry time
@@ -234,8 +232,7 @@ class WC_Payment_Monitor_Retry {
 			return false;
 		}
 
-		$settings    = get_option( 'wc_payment_monitor_options', array() );
-		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+		$max_retries = WC_Payment_Monitor_Config::instance()->get_max_retry_attempts();
 
 		// Check retry limits
 		if ( $transaction->retry_count >= $max_retries ) {

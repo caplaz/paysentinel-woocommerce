@@ -32,6 +32,19 @@ class WC_Payment_Monitor_API_Diagnostics extends WC_Payment_Monitor_API_Base {
 	 * Register routes
 	 */
 	public function register_routes() {
+		$this->register_diagnostic_routes();
+		$this->register_recovery_routes();
+		$this->register_simulator_routes();
+	}
+
+	/**
+	 * Register diagnostic routes
+	 *
+	 * Registers REST API routes for diagnostics, health checks, and failure analysis.
+	 *
+	 * @return void
+	 */
+	private function register_diagnostic_routes() {
 		// Full diagnostics
 		register_rest_route(
 			$this->namespace,
@@ -99,6 +112,26 @@ class WC_Payment_Monitor_API_Diagnostics extends WC_Payment_Monitor_API_Base {
 			)
 		);
 
+		// Test gateway connectivity
+		register_rest_route(
+			$this->namespace,
+			'/diagnostics/gateway/test/(?P<gateway_id>[a-zA-Z0-9_-]+)',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'test_gateway' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+	}
+
+	/**
+	 * Register recovery routes
+	 *
+	 * Registers REST API routes for payment recovery, health management, and cleanup operations.
+	 *
+	 * @return void
+	 */
+	private function register_recovery_routes() {
 		// Force retry
 		register_rest_route(
 			$this->namespace,
@@ -134,17 +167,6 @@ class WC_Payment_Monitor_API_Diagnostics extends WC_Payment_Monitor_API_Base {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'recalculate_health' ),
-				'permission_callback' => array( $this, 'check_permission' ),
-			)
-		);
-
-		// Test gateway connectivity
-		register_rest_route(
-			$this->namespace,
-			'/diagnostics/gateway/test/(?P<gateway_id>[a-zA-Z0-9_-]+)',
-			array(
-				'methods'             => 'POST',
-				'callback'            => array( $this, 'test_gateway' ),
 				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
@@ -203,7 +225,16 @@ class WC_Payment_Monitor_API_Diagnostics extends WC_Payment_Monitor_API_Base {
 				),
 			)
 		);
+	}
 
+	/**
+	 * Register simulator routes
+	 *
+	 * Registers REST API routes for payment failure simulation and testing.
+	 *
+	 * @return void
+	 */
+	private function register_simulator_routes() {
 		// Failure simulator routes
 		register_rest_route(
 			$this->namespace,
