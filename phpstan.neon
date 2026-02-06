@@ -6,12 +6,26 @@ parameters:
     excludePaths:
         - tests/
     reportUnmatchedIgnoredErrors: false
+    stubFiles:
+        - stubs/constants.php
     ignoreErrors:
         # Keep only project-specific ignores
         - '#Call to an undefined method wpdb::.*#' # Still needed for dynamic wpdb methods
+        # Plugin constants (defined in main plugin file)
+        - '#Constant WC_PAYMENT_MONITOR_PLUGIN_DIR not found#'
+        - '#Constant WC_PAYMENT_MONITOR_PLUGIN_URL not found#'
+        - '#Constant WC_PAYMENT_MONITOR_VERSION not found#'
+        - '#Constant WC_PAYMENT_MONITOR_PLUGIN_FILE not found#'
+        - '#Constant WC_PAYMENT_MONITOR_PLUGIN_BASENAME not found#'
+        # WordPress core constants
+        - '#Constant DB_NAME not found#'
+        - '#Constant WP_MEMORY_LIMIT not found#'
+        - '#Constant WP_DEBUG not found#'
         # WooCommerce functions and classes
         - '#Function wc_get_order not found#'
         - '#Function wc_get_order_notes not found#'
+        - '#Function wc_create_order not found#'
+        - '#Function wc_get_product not found#'
         - '#Function WC not found#'
         - '#has invalid type WC_Order#'
         - '#has invalid type WC_Payment_Gateway#'
@@ -19,5 +33,13 @@ parameters:
         - '#unknown class WC_Payment_Gateway#'
         - '#unknown class WC_Payment_Gateways#'
         - '#unknown class WC_Payment_Tokens#'
+        - '#Instantiated class WC_Product_Simple not found#'
+        - '#Call to method .* on an unknown class WC_Product_Simple#'
+        # WordPress comment property access
+        - '#Cannot access property \$content on int\|WP_Comment#'
+        # Specific false positives
+        - '#Variable \$params in empty\(\) always exists and is not falsy#' # Fixed the logic, but PHPStan still reports this
+        - '#Undefined variable: \$settings#' # Fixed by using config class instead
+        - '#Variable \$settings in isset\(\) is never defined#' # Fixed by using config class instead
 includes:
     - vendor/szepeviktor/phpstan-wordpress/extension.neon

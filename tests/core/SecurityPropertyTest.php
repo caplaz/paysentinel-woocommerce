@@ -163,7 +163,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	public function test_property_sensitive_data_exclusion() {
 		$sensitive_fields = array(
 			'password'    => 'my_password_123',
-			'api_key'     => 'sk_live_abc123',
+			'api_key'     => 'test_api_key_12345',
 			'secret_key'  => 'secret_xyz789',
 			'token'       => 'token_abc',
 			'card_number' => '4532-1234-5678-9010',
