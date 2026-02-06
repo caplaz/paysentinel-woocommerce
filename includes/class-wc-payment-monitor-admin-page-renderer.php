@@ -946,10 +946,6 @@ class WC_Payment_Monitor_Admin_Page_Renderer
     }
 
     /**
-     * Handle Slack Test Alert AJAX
-     */
-
-    /**
      * Get settings tabs
      *
      * @return array Settings tabs configuration

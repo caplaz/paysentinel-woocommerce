@@ -165,14 +165,37 @@ class WC_Payment_Monitor_Admin
             $css_ver
         );
 
+        // Prepare license tier data
+        $tier = $this->license->get_license_tier();
+        $tier_labels = [
+            'free'    => __('Free', 'wc-payment-monitor'),
+            'starter' => __('Starter', 'wc-payment-monitor'),
+            'pro'     => __('Pro', 'wc-payment-monitor'),
+            'agency'  => __('Agency', 'wc-payment-monitor'),
+        ];
+        $tier_colors = [
+            'free'    => '#6c757d',
+            'starter' => '#0073aa',
+            'pro'     => '#46b450',
+            'agency'  => '#9b51e0',
+        ];
+
         // Localize script with admin data
         wp_localize_script('wc-payment-monitor-dashboard', 'wcPaymentMonitor', [
-            'root' => esc_url_raw(rest_url()),
-            'nonce' => wp_create_nonce('wp_rest'),
-            'adminNonce' => wp_create_nonce('wc_payment_monitor_admin_nonce'),
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'tier' => $this->license->get_license_tier(),
-            'isPremium' => $this->is_premium(),
+            'apiUrl'      => rest_url('wc-payment-monitor/v1/'),
+            'root'        => esc_url_raw(rest_url()),
+            'nonce'       => wp_create_nonce('wp_rest'),
+            'restNonce'   => wp_create_nonce('wp_rest'),
+            'currentUser' => get_current_user_id(),
+            'adminNonce'  => wp_create_nonce('wc_payment_monitor_admin_nonce'),
+            'ajaxUrl'     => admin_url('admin-ajax.php'),
+            'tier'        => $tier,
+            'isPremium'   => $this->is_premium(),
+            'license'     => [
+                'tier'  => $tier,
+                'label' => isset($tier_labels[$tier]) ? $tier_labels[$tier] : ucfirst($tier),
+                'color' => isset($tier_colors[$tier]) ? $tier_colors[$tier] : '#0073aa',
+            ],
         ]);
     }
 

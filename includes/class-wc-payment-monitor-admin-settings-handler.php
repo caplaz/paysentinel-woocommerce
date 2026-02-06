@@ -220,7 +220,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler
     }
 
     /**
-     * Render settings section
+     * Render settings section description
      */
     public function render_settings_section()
     {
@@ -228,7 +228,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler
     }
 
     /**
-     * Render license section standalone
+     * Render enable monitoring field
      */
     public function render_field_enable_monitoring()
     {
