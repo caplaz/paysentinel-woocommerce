@@ -82,6 +82,12 @@ class WC_Payment_Monitor {
 
 		// Add custom cron schedules
 		add_filter( 'cron_schedules', array( $this, 'add_custom_cron_schedules' ) );
+
+		// Schedule daily cleanup if not scheduled
+		if ( ! wp_next_scheduled( 'wc_payment_monitor_daily_cleanup' ) ) {
+			wp_schedule_event( time(), 'daily', 'wc_payment_monitor_daily_cleanup' );
+		}
+		add_action( 'wc_payment_monitor_daily_cleanup', array( $this, 'run_daily_cleanup' ) );
 	}
 
 	/**
@@ -346,12 +352,34 @@ class WC_Payment_Monitor {
 			// Log connectivity check results
 			do_action( 'wc_payment_monitor_connectivity_check_complete', $results );
 
-			// Clean up old connectivity records (older than 30 days)
-			$connectivity->cleanup_old_checks( 30 );
+			// Clean up old connectivity records based on license tier
+			$license        = new WC_Payment_Monitor_License();
+			$tier           = $license->get_license_tier();
+			$retention_days = isset( WC_Payment_Monitor_License::RETENTION_LIMITS[ $tier ] ) ? WC_Payment_Monitor_License::RETENTION_LIMITS[ $tier ] : 7;
+
+			$connectivity->cleanup_old_checks( $retention_days );
 		} catch ( Exception $e ) {
 			error_log(
 				'Payment Monitor: Error during gateway connectivity check: ' . $e->getMessage()
 			);
+		}
+	}
+
+	/**
+	 * Run daily cleanup tasks
+	 */
+	public function run_daily_cleanup() {
+		try {
+			$license        = new WC_Payment_Monitor_License();
+			$tier           = $license->get_license_tier();
+			$retention_days = isset( WC_Payment_Monitor_License::RETENTION_LIMITS[ $tier ] ) ? WC_Payment_Monitor_License::RETENTION_LIMITS[ $tier ] : 7;
+
+			$database = new WC_Payment_Monitor_Database();
+			$database->cleanup_old_transactions( $retention_days );
+			$database->cleanup_old_alerts( 30 ); // Alerts kept for 30 days
+			$database->optimize_tables();
+		} catch ( Exception $e ) {
+			error_log( 'Payment Monitor: Error during daily cleanup: ' . $e->getMessage() );
 		}
 	}
 

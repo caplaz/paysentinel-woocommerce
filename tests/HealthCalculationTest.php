@@ -23,6 +23,8 @@ class HealthCalculationTest extends PHPUnit\Framework\TestCase {
 			'1hour'  => 3600,
 			'24hour' => 86400,
 			'7day'   => 604800,
+			'30day'  => 2592000,
+			'90day'  => 7776000,
 		);
 
 		// Verify these are reasonable time windows

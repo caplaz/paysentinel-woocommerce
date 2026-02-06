@@ -47,7 +47,16 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 			'results'               => array(),
 		);
 
+		$license = new WC_Payment_Monitor_License();
+		$tier    = $license->get_license_tier();
+		$limit   = isset( WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] ) ? WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] : 1;
+		$count   = 0;
+
 		foreach ( $this->connectors as $gateway_id => $connector_class ) {
+			if ( $count >= $limit ) {
+				break;
+			}
+
 			// Skip if connector class doesn't exist
 			if ( ! class_exists( $connector_class ) ) {
 				continue;
@@ -58,6 +67,7 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 			if ( null !== $status ) {
 				$results['results'][ $gateway_id ] = $status;
 				++$results['checked_gateways'];
+				$count++;
 
 				if ( 'online' === $status['status'] ) {
 					$results['online_gateways'][] = $gateway_id;

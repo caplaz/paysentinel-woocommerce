@@ -95,7 +95,7 @@ class WC_Payment_Monitor_Database {
 		$sql = "CREATE TABLE {$this->gateway_health_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             gateway_id VARCHAR(50) NOT NULL,
-            period ENUM('1hour', '24hour', '7day') NOT NULL,
+            period ENUM('1hour', '24hour', '7day', '30day', '90day') NOT NULL,
             total_transactions INT(11) UNSIGNED DEFAULT 0,
             successful_transactions INT(11) UNSIGNED DEFAULT 0,
             failed_transactions INT(11) UNSIGNED DEFAULT 0,

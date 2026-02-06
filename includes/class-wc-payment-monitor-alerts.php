@@ -881,13 +881,16 @@ class WC_Payment_Monitor_Alerts {
 	 */
 	private function get_active_gateways() {
 		$gateways = array();
+		$license  = new WC_Payment_Monitor_License();
+		$tier     = $license->get_license_tier();
+		$limit    = isset( WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] ) ? WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] : 1;
 
 		// Get enabled gateways from settings
 		$settings         = get_option( 'wc_payment_monitor_settings', array() );
 		$enabled_gateways = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
 
 		if ( ! empty( $enabled_gateways ) ) {
-			return $enabled_gateways;
+			return array_slice( $enabled_gateways, 0, $limit );
 		}
 
 		// If no specific gateways configured, get all WooCommerce gateways
@@ -902,7 +905,7 @@ class WC_Payment_Monitor_Alerts {
 			}
 		}
 
-		return $gateways;
+		return array_slice( $gateways, 0, $limit );
 	}
 
 	/**

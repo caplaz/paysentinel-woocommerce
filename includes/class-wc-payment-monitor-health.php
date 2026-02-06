@@ -28,6 +28,8 @@ class WC_Payment_Monitor_Health {
 		'1hour'  => 3600,
 		'24hour' => 86400,
 		'7day'   => 604800,
+		'30day'  => 2592000,
+		'90day'  => 7776000,
 	);
 
 	/**
@@ -106,8 +108,15 @@ class WC_Payment_Monitor_Health {
 	 */
 	public function calculate_health( $gateway_id ) {
 		$health_data = array();
+		$license     = new WC_Payment_Monitor_License();
+		$tier        = $license->get_license_tier();
 
 		foreach ( self::PERIODS as $period => $seconds ) {
+			// Gate extended periods behind PRO tier
+			if ( ( '30day' === $period || '90day' === $period ) && ! in_array( $tier, array( 'pro', 'agency' ), true ) ) {
+				continue;
+			}
+
 			$period_health          = $this->calculate_period_health( $gateway_id, $period, $seconds );
 			$health_data[ $period ] = $period_health;
 
@@ -375,13 +384,16 @@ class WC_Payment_Monitor_Health {
 	 */
 	private function get_active_gateways() {
 		$gateways = array();
+		$license  = new WC_Payment_Monitor_License();
+		$tier     = $license->get_license_tier();
+		$limit    = isset( WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] ) ? WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] : 1;
 
 		// Get enabled gateways from settings
 		$settings         = get_option( 'wc_payment_monitor_settings', array() );
 		$enabled_gateways = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
 
 		if ( ! empty( $enabled_gateways ) ) {
-			return $enabled_gateways;
+			return array_slice( $enabled_gateways, 0, $limit );
 		}
 
 		// If no specific gateways configured, get all WooCommerce gateways
@@ -396,7 +408,7 @@ class WC_Payment_Monitor_Health {
 			}
 		}
 
-		return $gateways;
+		return array_slice( $gateways, 0, $limit );
 	}
 
 	/**

@@ -6,5 +6,7 @@ bash ./tests/entrypoint.sh && \
 vendor/bin/phpunit \
   --configuration phpunit.xml \
   tests/SmartRetryLogicTest.php \
+  tests/LicenseGatingTest.php \
+  tests/HealthCalculationTest.php \
   --verbose
 "

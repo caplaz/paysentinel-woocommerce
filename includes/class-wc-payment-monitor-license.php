@@ -31,6 +31,26 @@ class WC_Payment_Monitor_License {
 	public const OPTION_SLACK_WORKSPACE        = 'wc_payment_monitor_slack_workspace';
 
 	/**
+	 * Gateway limits per tier
+	 */
+	public const GATEWAY_LIMITS = array(
+		'free'    => 1,
+		'starter' => 3,
+		'pro'     => 999,
+		'agency'  => 999,
+	);
+
+	/**
+	 * Data retention limits (days) per tier
+	 */
+	public const RETENTION_LIMITS = array(
+		'free'    => 7,
+		'starter' => 30,
+		'pro'     => 90,
+		'agency'  => 90,
+	);
+
+	/**
 	 * Initialize hooks
 	 */
 	public function init_hooks() {

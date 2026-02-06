@@ -187,20 +187,32 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 	public function get_all_gateway_health( $request ) {
 		$period = $this->get_string_param( $request, 'period', '24h' );
 
-		// Map frontend period format (24h, 7d, 30d) to backend format (1hour, 24hour, 7day)
-		$period_map     = array(
+		// Map frontend period format (24h, 7d, 30d, 90d) to backend format (1hour, 24hour, 7day, 30day, 90day)
+		$period_map = array(
 			'24h' => '24hour',
 			'7d'  => '7day',
-			'30d' => '7day', // Use 7day for 30d as we calculate historical trends
+			'30d' => '30day',
+			'90d' => '90day',
 		);
 		$backend_period = isset( $period_map[ $period ] ) ? $period_map[ $period ] : '24hour';
 
-		// Validate period
-		$valid_periods = array( '1hour', '24hour', '7day' );
+		// Validate period and license
+		$license = new WC_Payment_Monitor_License();
+		$tier    = $license->get_license_tier();
+
+		if ( ( '30day' === $backend_period || '90day' === $backend_period ) && ! in_array( $tier, array( 'pro', 'agency' ), true ) ) {
+			return $this->get_error_response(
+				'rest_forbidden_period',
+				__( 'Extended analytics history is only available in PRO and Agency plans.', 'wc-payment-monitor' ),
+				403
+			);
+		}
+
+		$valid_periods = array( '1hour', '24hour', '7day', '30day', '90day' );
 		if ( ! in_array( $backend_period, $valid_periods, true ) ) {
 			return $this->get_error_response(
 				'invalid_period',
-				__( 'Invalid health period. Must be one of: 24h, 7d, 30d', 'wc-payment-monitor' ),
+				__( 'Invalid health period. Must be one of: 24h, 7d, 30d, 90d', 'wc-payment-monitor' ),
 				400
 			);
 		}
@@ -217,10 +229,14 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			// Initialize connectivity checker
 			$connectivity = new WC_Payment_Monitor_Gateway_Connectivity();
 
-			$health_data = array();
+			$health_data   = array();
+			$gateway_limit = WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ];
+			$count         = 0;
 
 			foreach ( $gateways as $gateway ) {
 				$gateway_id = $gateway->id;
+				$is_locked  = $count >= $gateway_limit;
+				$count++;
 
 				// Get health metrics for this gateway
 				$health = $this->get_gateway_health_data( $gateway_id, $backend_period );
@@ -233,33 +249,34 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 
 				if ( $health ) {
 					// Get historical trend data
-					$trend_data = $this->get_gateway_trend_data( $gateway_id, $period );
+					$trend_data = $is_locked ? array() : $this->get_gateway_trend_data( $gateway_id, $period );
 
 					$item = array(
 						'gateway_id'              => $gateway_id,
 						'gateway_name'            => WC_Payment_Monitor::get_friendly_gateway_name( $gateway_id ),
-						'health_percentage'       => floatval( $health->success_rate ),
-						'success_rate'            => floatval( $health->success_rate ),
-						'success_rate_24h'        => floatval( $health->success_rate ),
-						'transaction_count'       => intval( $health->total_transactions ),
-						'successful_transactions' => intval( $health->successful_transactions ),
-						'failed_transactions'     => intval( $health->failed_transactions ),
-						'failed_count_24h'        => intval( $health->failed_transactions ),
-						'avg_response_time'       => isset( $health->avg_response_time ) ? intval( $health->avg_response_time ) : null,
+						'health_percentage'       => $is_locked ? 0 : floatval( $health->success_rate ),
+						'success_rate'            => $is_locked ? 0 : floatval( $health->success_rate ),
+						'success_rate_24h'        => $is_locked ? 0 : floatval( $health->success_rate ),
+						'transaction_count'       => $is_locked ? 0 : intval( $health->total_transactions ),
+						'successful_transactions' => $is_locked ? 0 : intval( $health->successful_transactions ),
+						'failed_transactions'     => $is_locked ? 0 : intval( $health->failed_transactions ),
+						'failed_count_24h'        => $is_locked ? 0 : intval( $health->failed_transactions ),
+						'avg_response_time'       => $is_locked ? null : ( isset( $health->avg_response_time ) ? intval( $health->avg_response_time ) : null ),
 						'last_checked'            => $health->calculated_at,
 						'last_failure'            => null,
 						'trend_data'              => $trend_data,
+						'is_locked'               => $is_locked,
 					);
 
 					// Add connectivity status if available
 					if ( $last_check ) {
-						$item['connectivity_status']           = $last_check->status;
-						$item['connectivity_message']          = $last_check->message;
+						$item['connectivity_status']           = $is_locked ? 'locked' : $last_check->status;
+						$item['connectivity_message']          = $is_locked ? 'Unlock PRO for more gateways' : $last_check->message;
 						$item['connectivity_checked_at']       = $last_check->checked_at;
-						$item['connectivity_response_time_ms'] = floatval( $last_check->response_time_ms );
+						$item['connectivity_response_time_ms'] = $is_locked ? null : floatval( $last_check->response_time_ms );
 					} else {
-						$item['connectivity_status']           = null;
-						$item['connectivity_message']          = 'No connectivity check performed yet';
+						$item['connectivity_status']           = $is_locked ? 'locked' : null;
+						$item['connectivity_message']          = $is_locked ? 'Unlock PRO for more gateways' : 'No connectivity check performed yet';
 						$item['connectivity_checked_at']       = null;
 						$item['connectivity_response_time_ms'] = null;
 					}
@@ -292,17 +309,37 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 	 */
 	public function get_gateway_health( $request ) {
 		$gateway_id = $request->get_param( 'gateway_id' );
-		$period     = $this->get_string_param( $request, 'period', '24hour' );
+		$period     = $this->get_string_param( $request, 'period', '24h' );
 
 		// Sanitize gateway ID
 		$gateway_id = sanitize_text_field( $gateway_id );
 
-		// Validate period
-		$valid_periods = array( '1hour', '24hour', '7day' );
-		if ( ! in_array( $period, $valid_periods, true ) ) {
+		// Map frontend period format (24h, 7d, 30d, 90d) to backend format (1hour, 24hour, 7day, 30day, 90day)
+		$period_map = array(
+			'24h' => '24hour',
+			'7d'  => '7day',
+			'30d' => '30day',
+			'90d' => '90day',
+		);
+		$backend_period = isset( $period_map[ $period ] ) ? $period_map[ $period ] : '24hour';
+
+		// Validate period and license
+		$license = new WC_Payment_Monitor_License();
+		$tier    = $license->get_license_tier();
+
+		if ( ( '30day' === $backend_period || '90day' === $backend_period ) && ! in_array( $tier, array( 'pro', 'agency' ), true ) ) {
+			return $this->get_error_response(
+				'rest_forbidden_period',
+				__( 'Extended analytics history is only available in PRO and Agency plans.', 'wc-payment-monitor' ),
+				403
+			);
+		}
+
+		$valid_periods = array( '1hour', '24hour', '7day', '30day', '90day' );
+		if ( ! in_array( $backend_period, $valid_periods, true ) ) {
 			return $this->get_error_response(
 				'invalid_period',
-				__( 'Invalid health period. Must be one of: 1hour, 24hour, 7day', 'wc-payment-monitor' ),
+				__( 'Invalid health period. Must be one of: 24h, 7d, 30d, 90d', 'wc-payment-monitor' ),
 				400
 			);
 		}
@@ -321,6 +358,12 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			}
 
 			$gateway = $gateways[ $gateway_id ];
+
+			// Check if gateway is within license limits
+			$gateway_limit = WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ];
+			$gateway_ids   = array_keys( $gateways );
+			$index         = array_search( $gateway_id, $gateway_ids, true );
+			$is_locked     = ( $index !== false && $index >= $gateway_limit );
 
 			// Get health metrics
 			$health = $this->get_gateway_health_data( $gateway_id, $period );
@@ -577,6 +620,11 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			case '30d':
 				$start_date  = date_create( current_time( 'mysql' ) )->modify( '-30 days' )->format( 'Y-m-d H:i:s' );
 				$data_limit  = 30;
+				$date_format = '%Y-%m-%d 00:00:00';
+				break;
+			case '90d':
+				$start_date  = date_create( current_time( 'mysql' ) )->modify( '-90 days' )->format( 'Y-m-d H:i:s' );
+				$data_limit  = 90;
 				$date_format = '%Y-%m-%d 00:00:00';
 				break;
 			default:
