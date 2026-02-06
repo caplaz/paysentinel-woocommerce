@@ -401,12 +401,63 @@
         { className: "dashboard-header" },
         React.createElement("h2", null, "Payment Gateway Overview"),
         React.createElement(
-          "button",
-          {
-            className: "button button-primary",
-            onClick: loadDashboardData,
-          },
-          "Refresh Data",
+          "div",
+          { style: { display: "flex", gap: "15px", alignItems: "center" } },
+          window.wcPaymentMonitor &&
+            window.wcPaymentMonitor.license &&
+            React.createElement(
+              "div",
+              {
+                style: {
+                  background: window.wcPaymentMonitor.license.color,
+                  color: "white",
+                  padding: "6px 12px",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                  fontSize: "13px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                },
+              },
+              React.createElement("span", {
+                className: "dashicons dashicons-awards",
+                style: {
+                  fontSize: "16px",
+                  width: "16px",
+                  height: "16px",
+                  marginRight: "5px",
+                },
+              }),
+              window.wcPaymentMonitor.license.label + " Plan",
+            ),
+          window.wcPaymentMonitor.license.tier === "free" &&
+            React.createElement(
+              "a",
+              {
+                href: "https://paysentinel.caplaz.com/plans",
+                target: "_blank",
+                className: "button button-primary",
+                style: { display: "inline-flex", alignItems: "center" },
+              },
+              React.createElement("span", {
+                className: "dashicons dashicons-star-filled",
+                style: {
+                  fontSize: "16px",
+                  width: "16px",
+                  height: "16px",
+                  marginRight: "5px",
+                },
+              }),
+              "Upgrade to Pro",
+            ),
+          React.createElement(
+            "button",
+            {
+              className: "button", // Changed to default button if there's a primary upgrade button next to it
+              onClick: loadDashboardData,
+            },
+            "Refresh Data",
+          ),
         ),
       ),
 

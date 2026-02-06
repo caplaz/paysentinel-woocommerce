@@ -117,14 +117,33 @@ class WC_Payment_Monitor_Admin
         );
 
         // Localize script with API data
+        $tier = $this->license->get_license_tier();
+        $tier_labels = [
+            'free'    => __('Free', 'wc-payment-monitor'),
+            'starter' => __('Starter', 'wc-payment-monitor'),
+            'pro'     => __('Pro', 'wc-payment-monitor'),
+            'agency'  => __('Agency', 'wc-payment-monitor'),
+        ];
+        $tier_colors = [
+            'free'    => '#6c757d',
+            'starter' => '#0073aa',
+            'pro'     => '#46b450',
+            'agency'  => '#9b51e0',
+        ];
+
         wp_localize_script(
             'wc-payment-monitor-dashboard',
             'wcPaymentMonitor',
             [
-                'apiUrl' => rest_url('wc-payment-monitor/v1/'),
-                'nonce' => wp_create_nonce('wp_rest'),
+                'apiUrl'      => rest_url('wc-payment-monitor/v1/'),
+                'nonce'       => wp_create_nonce('wp_rest'),
                 'currentUser' => get_current_user_id(),
-                'restNonce' => sanitize_text_field(wp_create_nonce('wp_rest')),
+                'restNonce'   => sanitize_text_field(wp_create_nonce('wp_rest')),
+                'license'     => [
+                    'tier'  => $tier,
+                    'label' => isset($tier_labels[$tier]) ? $tier_labels[$tier] : ucfirst($tier),
+                    'color' => isset($tier_colors[$tier]) ? $tier_colors[$tier] : '#0073aa',
+                ],
             ]
         );
     }
@@ -1459,15 +1478,8 @@ class WC_Payment_Monitor_Admin
 				</div>
 			<?php endif; ?>
 
-			<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-				<h1 style="margin: 0;"><?php esc_html_e('Payment Monitor Dashboard', 'wc-payment-monitor'); ?></h1>
-				<div style="display: flex; gap: 15px; align-items: center;">
-					<!-- License Tier Badge -->
-					<div style="background: <?php echo esc_attr($tier_color); ?>; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;">
-						<span class="dashicons dashicons-awards" style="font-size: 16px; width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;"></span>
-						<?php echo esc_html($tier_label); ?> <?php esc_html_e('Plan', 'wc-payment-monitor'); ?>
-					</div>
-					
+			<div class="dashboard-banner-area" style="margin-bottom: 20px;">
+				<div style="display: flex; gap: 10px; margin-bottom: 15px;">
 					<!-- SMS Quota Display -->
 					<?php if ($quota && isset($quota['sms_remaining'], $quota['sms_limit'])): ?>
 						<?php
@@ -1478,55 +1490,34 @@ class WC_Payment_Monitor_Admin
 					    } elseif ($usage_percent >= 60) {
 					        $quota_color = '#f0b849'; // yellow
 					    }
-        ?>
-						<div style="background: white; border: 1px solid #ddd; padding: 8px 16px; border-radius: 4px;">
-							<div style="display: flex; align-items: center; gap: 10px;">
-								<span class="dashicons dashicons-email" style="color: <?php echo esc_attr($quota_color); ?>; font-size: 20px; width: 20px; height: 20px;"></span>
-								<div>
-									<div style="font-size: 11px; color: #666; line-height: 1.2;">
-										<?php esc_html_e('SMS Quota', 'wc-payment-monitor'); ?>
-									</div>
-									<div style="font-weight: bold; font-size: 14px; color: <?php echo esc_attr($quota_color); ?>;">
-										<?php echo esc_html($quota['sms_remaining'] . ' / ' . $quota['sms_limit']); ?>
-									</div>
-								</div>
-							</div>
-							<?php if (isset($quota['sms_reset_date'])): ?>
-								<div style="font-size: 10px; color: #999; margin-top: 2px;">
-									<?php
-                    printf(
-                        esc_html__('Resets: %s', 'wc-payment-monitor'),
-                        esc_html(date_i18n(get_option('date_format'), strtotime($quota['sms_reset_date'])))
-                    );
-							    ?>
-								</div>
-							<?php endif; ?>
+					    ?>
+						<div style="background: #fff; border: 1px solid #ccd0d4; padding: 6px 12px; border-radius: 4px; font-size: 13px; display: inline-flex; align-items: center;">
+							<span class="dashicons dashicons-smartphone" style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px; color: #646970;"></span>
+							<span style="color: #646970; margin-right: 5px;"><?php esc_html_e('SMS Quota:', 'wc-payment-monitor'); ?></span>
+							<span style="font-weight: 600; color: <?php echo esc_attr($quota_color); ?>;">
+								<?php echo esc_html($quota['sms_remaining']); ?>/<?php echo esc_html($quota['sms_limit']); ?>
+							</span>
 						</div>
 					<?php endif; ?>
-					
+
 					<!-- Quota Exceeded Warning -->
 					<?php
                     $quota_exceeded = get_option('wc_payment_monitor_quota_exceeded', false);
-        if ($quota_exceeded):
-            ?>
-						<div style="background: #dc3232; color: white; padding: 8px 16px; border-radius: 4px; font-size: 13px;">
-							<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; vertical-align: middle;"></span>
+			        if ($quota_exceeded):
+			            ?>
+						<div style="background: #dc3232; color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; display: inline-flex; align-items: center;">
+							<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px;"></span>
 							<?php esc_html_e('SMS Quota Exceeded', 'wc-payment-monitor'); ?>
 							<a href="https://paysentinel.caplaz.com/upgrade" target="_blank" style="color: white; text-decoration: underline; margin-left: 10px;">
 								<?php esc_html_e('Upgrade', 'wc-payment-monitor'); ?>
 							</a>
 						</div>
 					<?php endif; ?>
-					
-					<!-- Upgrade Button for Free Tier -->
-					<?php if ($tier === 'free'): ?>
-						<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="button button-primary" style="height: auto;">
-							<span class="dashicons dashicons-star-filled" style="font-size: 16px; width: 16px; height: 16px; vertical-align: middle;"></span>
-							<?php esc_html_e('Upgrade to Pro', 'wc-payment-monitor'); ?>
-						</a>
-					<?php endif; ?>
 				</div>
+
+				<h1 style="margin: 0;"><?php esc_html_e('Payment Monitor Dashboard', 'wc-payment-monitor'); ?></h1>
 			</div>
+
 			<div id="wc-payment-monitor-root"></div>
 		</div>
 		<?php
