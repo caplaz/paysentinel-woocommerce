@@ -33,11 +33,11 @@ class WC_Payment_Monitor_Config {
 	/**
 	 * Default values
 	 */
-	public const DEFAULT_ALERT_THRESHOLD      = 85;
+	public const DEFAULT_ALERT_THRESHOLD       = 85;
 	public const DEFAULT_HEALTH_CHECK_INTERVAL = 5;
-	public const DEFAULT_MAX_RETRY_ATTEMPTS   = 3;
-	public const DEFAULT_RETRY_DELAY          = 60;
-	public const DEFAULT_DATA_RETENTION_DAYS  = 30;
+	public const DEFAULT_MAX_RETRY_ATTEMPTS    = 3;
+	public const DEFAULT_RETRY_DELAY           = 60;
+	public const DEFAULT_DATA_RETENTION_DAYS   = 30;
 
 	/**
 	 * Singleton instance
@@ -396,8 +396,8 @@ class WC_Payment_Monitor_Config {
 	 * @return bool True on success, false on failure.
 	 */
 	public function set_slack_workspace( $workspace_id ) {
-		$workspace_id                      = sanitize_text_field( $workspace_id );
-		$this->cache['slack_workspace']    = $workspace_id;
+		$workspace_id                   = sanitize_text_field( $workspace_id );
+		$this->cache['slack_workspace'] = $workspace_id;
 		return update_option( self::OPTION_SLACK_WORKSPACE, $workspace_id );
 	}
 

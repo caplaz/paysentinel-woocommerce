@@ -84,8 +84,8 @@ class WC_Payment_Monitor_Gateway_Manager {
 	 */
 	public function get_gateway_limit() {
 		$tier = $this->license->get_license_tier();
-		return isset( WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] ) 
-			? WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] 
+		return isset( WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ] )
+			? WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ]
 			: 1;
 	}
 

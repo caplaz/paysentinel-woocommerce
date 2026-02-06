@@ -250,7 +250,7 @@ class WC_Payment_Monitor_Alerts {
 		$sql     .= ' ORDER BY created_at DESC LIMIT %d';
 		$params[] = $limit;
 
-		if ( empty( $params ) ) {
+		if ( ! $severity ) {
 			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table_name} ORDER BY created_at DESC LIMIT %d", $limit ), ARRAY_A );
 		}
 

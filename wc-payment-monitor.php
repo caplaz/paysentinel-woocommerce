@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: WooCommerce Payment Monitor
  * Plugin URI: https://github.com/your-username/wc-payment-monitor
@@ -16,9 +15,11 @@
  * Requires PHP: 7.4
  * WC requires at least: 5.0
  * WC tested up to: 9.5
+ *
+ * @package WC_Payment_Monitor
  */
 
-// Declare WooCommerce feature compatibility
+// Declare WooCommerce feature compatibility.
 add_action(
 	'before_woocommerce_init',
 	function () {
@@ -30,12 +31,12 @@ add_action(
 	}
 );
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Define plugin constants
+// Define plugin constants.
 define( 'WC_PAYMENT_MONITOR_VERSION', '1.0.1' );
 define( 'WC_PAYMENT_MONITOR_PLUGIN_FILE', __FILE__ );
 define( 'WC_PAYMENT_MONITOR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
@@ -49,6 +50,8 @@ class WC_Payment_Monitor {
 
 	/**
 	 * Plugin instance
+	 *
+	 * @var WC_Payment_Monitor|null
 	 */
 	private static $instance = null;
 
@@ -80,10 +83,10 @@ class WC_Payment_Monitor {
 
 		add_action( 'init', array( $this, 'init' ) );
 
-		// Add custom cron schedules
+		// Add custom cron schedules.
 		add_filter( 'cron_schedules', array( $this, 'add_custom_cron_schedules' ) );
 
-		// Schedule daily cleanup if not scheduled
+		// Schedule daily cleanup if not scheduled.
 		if ( ! wp_next_scheduled( 'wc_payment_monitor_daily_cleanup' ) ) {
 			wp_schedule_event( time(), 'daily', 'wc_payment_monitor_daily_cleanup' );
 		}
@@ -111,10 +114,10 @@ class WC_Payment_Monitor {
 	 * Load plugin dependencies
 	 */
 	private function load_dependencies() {
-		// Autoloader
+		// Autoloader.
 		spl_autoload_register( array( $this, 'autoload' ) );
 
-		// Load core classes
+		// Load core classes.
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-config.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-database.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-license.php';
@@ -131,24 +134,24 @@ class WC_Payment_Monitor {
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-retry.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-security.php';
 
-		// Load gateway connector classes
+		// Load gateway connector classes.
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-gateway-connector.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-stripe-connector.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-paypal-connector.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-wc-payments-connector.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-gateway-connectivity.php';
 
-		// Load API classes
+		// Load API classes.
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-base.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-health.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-transactions.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-alerts.php';
 
-		// Load PRO analytics classes
+		// Load PRO analytics classes.
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-analytics-pro.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-analytics-pro.php';
 
-		// Load diagnostic and testing tools
+		// Load diagnostic and testing tools.
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-diagnostics.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-failure-simulator.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-diagnostics.php';
@@ -163,6 +166,8 @@ class WC_Payment_Monitor {
 
 	/**
 	 * Autoloader for plugin classes
+	 *
+	 * @param string $class_name The class name to autoload.
 	 */
 	public function autoload( $class_name ) {
 		if ( strpos( $class_name, 'WC_Payment_Monitor_' ) !== 0 ) {
@@ -182,7 +187,7 @@ class WC_Payment_Monitor {
 	 * Initialize plugin
 	 */
 	public function init() {
-		// Check WordPress version
+		// Check WordPress version.
 		global $wp_version;
 		if ( version_compare( $wp_version, '5.0', '<' ) ) {
 			add_action( 'admin_notices', array( $this, 'wordpress_version_notice' ) );
@@ -190,62 +195,76 @@ class WC_Payment_Monitor {
 			return;
 		}
 
-		// Check if WooCommerce is active
+		// Check if WooCommerce is active.
 		if ( ! $this->is_woocommerce_active() ) {
 			add_action( 'admin_notices', array( $this, 'woocommerce_missing_notice' ) );
 			deactivate_plugins( plugin_basename( __FILE__ ) );
 			return;
 		}
 
-		// Check WooCommerce version
+		// Check WooCommerce version.
 		if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '5.0', '<' ) ) {
 			add_action( 'admin_notices', array( $this, 'woocommerce_version_notice' ) );
 			deactivate_plugins( plugin_basename( __FILE__ ) );
 			return;
 		}
 
-		// Load text domain
+		// Load text domain.
 		load_plugin_textdomain( 'wc-payment-monitor', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
-		// Initialize components
+		// Initialize components.
 		$this->init_components();
 	}
 
 	/**
 	 * Component instances
+	 *
+	 * @var WC_Payment_Monitor_Logger $logger Transaction logger instance.
 	 */
 	public $logger;
+
+	/**
+	 * @var WC_Payment_Monitor_Health $health Health calculation engine instance.
+	 */
 	public $health;
+
+	/**
+	 * @var WC_Payment_Monitor_Alerts $alerts Alert system instance.
+	 */
 	public $alerts;
+
+	/**
+	 * @var WC_Payment_Monitor_Retry $retry Retry engine instance.
+	 */
 	public $retry;
 
 	/**
 	 * Initialize plugin components
 	 */
 	private function init_components() {
-		// Initialize transaction logger
+		// Initialize transaction logger.
 		$this->logger = new WC_Payment_Monitor_Logger();
 
-		// Initialize health calculation engine
+		// Initialize health calculation engine.
 		$this->health = new WC_Payment_Monitor_Health();
 
-		// Initialize alert system
+		// Initialize alert system.
 		$this->alerts = new WC_Payment_Monitor_Alerts();
 
-		// Initialize retry engine
+		// Initialize retry engine.
 		$this->retry = new WC_Payment_Monitor_Retry();
 
-		// Initialize license system and hooks
+		// Initialize license system and hooks.
 		$license = new WC_Payment_Monitor_License();
 		$license->init_hooks();
 
-		// Initialize gateway connectivity scheduler
+		// Initialize gateway connectivity scheduler.
 		$this->init_gateway_connectivity_scheduler();
 
-		// Initialize REST API endpoints on rest_api_init
+		// Initialize REST API endpoints on rest_api_init.
 		add_action( 'rest_api_init', array( $this, 'init_api_endpoints' ) );
 
-		// Initialize admin pages
+		// Initialize admin pages.
 		if ( is_admin() ) {
 			new WC_Payment_Monitor_Admin();
 		}

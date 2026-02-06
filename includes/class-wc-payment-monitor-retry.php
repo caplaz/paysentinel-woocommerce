@@ -81,7 +81,7 @@ class WC_Payment_Monitor_Retry {
 		}
 
 		// Don't schedule retry if already at max attempts
-		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+		$max_retries = WC_Payment_Monitor_Config::instance()->get_max_retry_attempts();
 		if ( $transaction->retry_count >= $max_retries ) {
 			return;
 		}

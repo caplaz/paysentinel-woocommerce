@@ -188,7 +188,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 		$period = $this->get_string_param( $request, 'period', '24h' );
 
 		// Map frontend period format (24h, 7d, 30d, 90d) to backend format (1hour, 24hour, 7day, 30day, 90day)
-		$period_map = array(
+		$period_map     = array(
 			'24h' => '24hour',
 			'7d'  => '7day',
 			'30d' => '30day',
@@ -236,7 +236,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			foreach ( $gateways as $gateway ) {
 				$gateway_id = $gateway->id;
 				$is_locked  = $count >= $gateway_limit;
-				$count++;
+				++$count;
 
 				// Get health metrics for this gateway
 				$health = $this->get_gateway_health_data( $gateway_id, $backend_period );
@@ -315,7 +315,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 		$gateway_id = sanitize_text_field( $gateway_id );
 
 		// Map frontend period format (24h, 7d, 30d, 90d) to backend format (1hour, 24hour, 7day, 30day, 90day)
-		$period_map = array(
+		$period_map     = array(
 			'24h' => '24hour',
 			'7d'  => '7day',
 			'30d' => '30day',
