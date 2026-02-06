@@ -31,6 +31,15 @@ class WC_Payment_Monitor_Config {
 	public const OPTION_RETRY_STATS     = 'wc_payment_monitor_retry_stats';
 
 	/**
+	 * Default values
+	 */
+	public const DEFAULT_ALERT_THRESHOLD      = 85;
+	public const DEFAULT_HEALTH_CHECK_INTERVAL = 5;
+	public const DEFAULT_MAX_RETRY_ATTEMPTS   = 3;
+	public const DEFAULT_RETRY_DELAY          = 60;
+	public const DEFAULT_DATA_RETENTION_DAYS  = 30;
+
+	/**
 	 * Singleton instance
 	 *
 	 * @var WC_Payment_Monitor_Config|null
@@ -178,7 +187,7 @@ class WC_Payment_Monitor_Config {
 	 * @return float Alert threshold percentage.
 	 */
 	public function get_alert_threshold() {
-		$threshold = $this->get( 'alert_threshold', 85 );
+		$threshold = $this->get( 'alert_threshold', self::DEFAULT_ALERT_THRESHOLD );
 		return floatval( $threshold );
 	}
 
@@ -202,7 +211,7 @@ class WC_Payment_Monitor_Config {
 	 * @return int Health check interval in minutes.
 	 */
 	public function get_health_check_interval() {
-		$interval = $this->get( 'health_check_interval', 5 );
+		$interval = $this->get( 'health_check_interval', self::DEFAULT_HEALTH_CHECK_INTERVAL );
 		return intval( $interval );
 	}
 
@@ -266,7 +275,7 @@ class WC_Payment_Monitor_Config {
 	 * @return int Maximum retry attempts.
 	 */
 	public function get_max_retry_attempts() {
-		$max = $this->get( 'max_retry_attempts', 3 );
+		$max = $this->get( 'max_retry_attempts', self::DEFAULT_MAX_RETRY_ATTEMPTS );
 		return intval( $max );
 	}
 
@@ -393,6 +402,16 @@ class WC_Payment_Monitor_Config {
 	}
 
 	/**
+	 * Clear Slack workspace ID
+	 *
+	 * @return bool True on success, false on failure.
+	 */
+	public function clear_slack_workspace() {
+		$this->cache['slack_workspace'] = '';
+		return delete_option( self::OPTION_SLACK_WORKSPACE );
+	}
+
+	/**
 	 * Check if quota is exceeded
 	 *
 	 * @return bool True if quota is exceeded.
@@ -504,7 +523,7 @@ class WC_Payment_Monitor_Config {
 	 * @return int Retry delay in minutes.
 	 */
 	public function get_retry_delay() {
-		$delay = $this->get( 'retry_delay', 60 );
+		$delay = $this->get( 'retry_delay', self::DEFAULT_RETRY_DELAY );
 		return intval( $delay );
 	}
 
@@ -528,7 +547,7 @@ class WC_Payment_Monitor_Config {
 	 * @return int Data retention days.
 	 */
 	public function get_data_retention_days() {
-		$days = $this->get( 'data_retention_days', 30 );
+		$days = $this->get( 'data_retention_days', self::DEFAULT_DATA_RETENTION_DAYS );
 		return intval( $days );
 	}
 

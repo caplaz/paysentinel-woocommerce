@@ -193,7 +193,7 @@ class WC_Payment_Monitor_Admin_Ajax_Handler
                 ]);
             }
 
-            $this->config->set_slack_workspace('');
+            $this->config->clear_slack_workspace();
 
             add_settings_error(
                 'wc_payment_monitor_settings',
