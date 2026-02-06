@@ -367,7 +367,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 
 			<div class="tab-content">
 				<?php if ('license' === $active_tab): ?>
-					<?php $this->render_license_section(); ?>
+					<?php $this->settings_handler->render_license_section(); ?>
 					
 					<div style="margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #ccd0d4; border-radius: 4px;">
 						<h3 style="margin-top: 0;"><?php esc_html_e('Subscription Benefits', 'wc-payment-monitor'); ?></h3>
@@ -934,7 +934,6 @@ class WC_Payment_Monitor_Admin_Page_Renderer
     /**
      * Handle Slack Test Alert AJAX
      */
-}
 
     /**
      * Get settings tabs
