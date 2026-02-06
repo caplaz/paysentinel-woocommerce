@@ -136,6 +136,10 @@ class WC_Payment_Monitor {
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-transactions.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-alerts.php';
 
+		// Load PRO analytics classes
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-analytics-pro.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-analytics-pro.php';
+
 		// Load diagnostic and testing tools
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-diagnostics.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-failure-simulator.php';
@@ -243,6 +247,7 @@ class WC_Payment_Monitor {
 		new WC_Payment_Monitor_API_Transactions();
 		new WC_Payment_Monitor_API_Alerts();
 		new WC_Payment_Monitor_API_Diagnostics();
+		new WC_Payment_Monitor_API_Analytics_Pro();
 	}
 
 	/**
