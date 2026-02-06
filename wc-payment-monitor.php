@@ -120,7 +120,13 @@ class WC_Payment_Monitor {
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-gateway-manager.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-logger.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-health.php';
+
+		// Load alert system classes (order matters - dependencies first)
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-alert-template-manager.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-alert-notifier.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-alert-checker.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-alerts.php';
+
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-retry.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-security.php';
 
