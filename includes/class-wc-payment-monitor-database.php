@@ -86,6 +86,9 @@ class WC_Payment_Monitor_Database {
 
 	/**
 	 * Create gateway health table
+	 *
+	 * This table stores health metrics for different time periods. The period column includes
+	 * extended periods (30day, 90day) that are only calculated and populated for PRO and Agency tiers.
 	 */
 	private function create_gateway_health_table() {
 		global $wpdb;
