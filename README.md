@@ -2,6 +2,25 @@
 
 A WordPress plugin that monitors WooCommerce payment gateway health in real-time, alerts store owners when payments fail, and provides actionable diagnostics to recover lost revenue.
 
+## Features
+
+### Free Tier
+- ✅ Monitor 1 payment gateway
+- ✅ Basic analytics (1-hour, 24-hour, 7-day periods)
+- ✅ 7-day data retention
+- ✅ Email alerts
+- ✅ Real-time health monitoring
+
+### PRO Tier ($99/year)
+- ✅ **Unlimited gateways** - Monitor all your payment methods
+- ✅ **Extended analytics** - 30-day and 90-day success rate tracking
+- ✅ **90-day data retention** - Keep historical data for 3 months
+- ✅ SMS alerts (500/month)
+- ✅ Slack integration
+- ✅ Per-gateway configuration
+
+See [PRO Features Documentation](docs/PRO_FEATURES.md) for complete details on all license tiers.
+
 ## Plugin Structure
 
 ```
@@ -56,6 +75,13 @@ Before deploying to production, review the [Pre-Launch Testing Checklist](docs/P
 ## Development
 
 This plugin follows WordPress coding standards and uses an autoloader for class management.
+
+### Documentation
+
+- [PRO Features Guide](docs/PRO_FEATURES.md) - Details on PRO plan features and implementation
+- [Alert Logic Documentation](docs/ALERT_LOGIC.md) - How alerts are triggered and managed
+- [Pre-Launch Checklist](docs/PRE_LAUNCH_CHECKLIST.md) - Testing checklist for production deployment
+- [Test Suite Documentation](tests/README.md) - Guide to running and writing tests
 
 ### Class Naming Convention
 
