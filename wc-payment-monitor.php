@@ -145,7 +145,11 @@ class WC_Payment_Monitor {
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-failure-simulator.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-api-diagnostics.php';
 
-		// Load admin classes
+		// Load admin handler classes (order matters - dependencies first)
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-admin-menu-handler.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-admin-settings-handler.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-admin-page-renderer.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-admin-ajax-handler.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/class-wc-payment-monitor-admin.php';
 	}
 
