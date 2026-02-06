@@ -10,8 +10,8 @@ if ( file_exists( dirname( __DIR__ ) . '/vendor/autoload.php' ) ) {
 }
 
 // Define test environment constants
-define( 'WC_PAYMENT_MONITOR_PLUGIN_FILE', dirname( __DIR__ ) . '/wc-payment-monitor.php' );
-define( 'WC_PAYMENT_MONITOR_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
+define( 'WC_PAYMENT_MONITOR_PLUGIN_FILE', dirname( dirname( __DIR__ ) ) . '/wc-payment-monitor.php' );
+define( 'WC_PAYMENT_MONITOR_PLUGIN_DIR', dirname( dirname( __DIR__ ) ) . '/' );
 define( 'WC_PAYMENT_MONITOR_PLUGIN_URL', 'http://example.org/wp-content/plugins/wc-payment-monitor/' );
 define( 'WC_PAYMENT_MONITOR_PLUGIN_BASENAME', 'wc-payment-monitor/wc-payment-monitor.php' );
 define( 'WC_PAYMENT_MONITOR_VERSION', '1.0.0' );
