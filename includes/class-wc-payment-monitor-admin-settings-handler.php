@@ -65,7 +65,19 @@ class WC_Payment_Monitor_Admin_Settings_Handler
             ]
         );
 
-        // Define sections
+        $this->register_settings_sections();
+        $this->register_settings_fields();
+    }
+
+    /**
+     * Register settings sections
+     *
+     * Registers WordPress settings sections for organizing plugin settings.
+     *
+     * @return void
+     */
+    private function register_settings_sections()
+    {
         add_settings_section(
             'wc_payment_monitor_general',
             __('General Settings', 'wc-payment-monitor'),
@@ -93,7 +105,18 @@ class WC_Payment_Monitor_Admin_Settings_Handler
             [$this, 'render_advanced_section'],
             'wc_payment_monitor_settings'
         );
+    }
 
+    /**
+     * Register settings fields
+     *
+     * Registers all settings fields for the Payment Monitor plugin, including
+     * general, notification, gateway, and advanced settings fields.
+     *
+     * @return void
+     */
+    private function register_settings_fields()
+    {
         // General fields
         add_settings_field(
             'enable_monitoring',
