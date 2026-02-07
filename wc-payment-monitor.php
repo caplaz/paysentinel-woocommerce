@@ -121,7 +121,7 @@ class WC_Payment_Monitor {
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/core/class-wc-payment-monitor-config.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/core/class-wc-payment-monitor-database.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/core/class-wc-payment-monitor-license.php';
-		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/core/class-wc-payment-monitor-gateway-manager.php';
+		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/gateways/class-wc-payment-monitor-gateway-manager.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/core/class-wc-payment-monitor-logger.php';
 		require_once WC_PAYMENT_MONITOR_PLUGIN_DIR . 'includes/core/class-wc-payment-monitor-health.php';
 
