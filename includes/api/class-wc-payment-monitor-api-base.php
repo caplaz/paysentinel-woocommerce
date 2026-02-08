@@ -14,7 +14,7 @@ abstract class WC_Payment_Monitor_API_Base {
 	/**
 	 * REST namespace
 	 */
-	protected $namespace = 'wc_payment_monitor/v1';
+	protected $namespace = 'wc-payment-monitor/v1';
 
 	/**
 	 * Database instance
@@ -33,7 +33,7 @@ abstract class WC_Payment_Monitor_API_Base {
 	 * Initialize hooks
 	 */
 	protected function init_hooks() {
-		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+		$this->register_routes();
 	}
 
 	/**
