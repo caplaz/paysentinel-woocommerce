@@ -278,11 +278,11 @@
         // Load gateway health data
         console.log(
           "Loading health data from:",
-          "/wp-json/wc-payment-monitor/v1/health/gateways",
+          `${window.wcPaymentMonitor.apiUrl}health/gateways`,
         );
 
         const healthResponse = await fetch(
-          "/wp-json/wc-payment-monitor/v1/health/gateways",
+          `${window.wcPaymentMonitor.apiUrl}health/gateways`,
           {
             method: "GET",
             headers,
@@ -311,7 +311,7 @@
         console.log("Loading transactions...");
 
         const transactionsResponse = await fetch(
-          "/wp-json/wc-payment-monitor/v1/transactions?per_page=10",
+          `${window.wcPaymentMonitor.apiUrl}transactions?per_page=10`,
           {
             method: "GET",
             headers,
@@ -337,7 +337,7 @@
         console.log("Loading alerts...");
 
         const alertsResponse = await fetch(
-          "/wp-json/wc-payment-monitor/v1/alerts?per_page=5",
+          `${window.wcPaymentMonitor.apiUrl}alerts?per_page=5`,
           {
             method: "GET",
             headers,
@@ -750,7 +750,7 @@
         console.log("Fetching gateway health with period:", timePeriod);
 
         const response = await fetch(
-          `/wp-json/wc-payment-monitor/v1/health/gateways?period=${timePeriod}&scope=${scope}`,
+          `${window.wcPaymentMonitor.apiUrl}health/gateways?period=${timePeriod}&scope=${scope}`,
           {
             method: "GET",
             headers,
@@ -804,7 +804,7 @@
 
         console.log("Triggering health recalculation...");
         const response = await fetch(
-          "/wp-json/wc-payment-monitor/v1/health/recalculate",
+          `${window.wcPaymentMonitor.apiUrl}health/recalculate`,
           {
             method: "POST",
             headers,
@@ -1205,7 +1205,7 @@
           headers["X-WP-Nonce"] = nonce;
         }
 
-        let url = `/wp-json/wc-payment-monitor/v1/transactions?page=${page}&per_page=${perPage}`;
+        let url = `${window.wcPaymentMonitor.apiUrl}transactions?page=${page}&per_page=${perPage}`;
 
         if (statusFilter) {
           url += `&status=${statusFilter}`;
@@ -1633,7 +1633,8 @@
         params.append("status", statusFilter);
       }
 
-      const url = "/wp-json/wc-payment-monitor/v1/alerts?" + params.toString();
+      const url =
+        `${window.wcPaymentMonitor.apiUrl}alerts?` + params.toString();
 
       try {
         setIsLoading(true);
@@ -1711,7 +1712,7 @@
         headers["X-WP-Nonce"] = nonce;
       }
 
-      fetch(`/wp-json/wc-payment-monitor/v1/alerts/${alertId}/resolve`, {
+      fetch(`${window.wcPaymentMonitor.apiUrl}alerts/${alertId}/resolve`, {
         method: "POST",
         headers,
         credentials: "same-origin",

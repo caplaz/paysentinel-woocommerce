@@ -14,7 +14,7 @@ abstract class WC_Payment_Monitor_API_Base {
 	/**
 	 * REST namespace
 	 */
-	protected $namespace = 'wc-payment-monitor/v1';
+	protected $namespace = 'wc_payment_monitor/v1';
 
 	/**
 	 * Database instance

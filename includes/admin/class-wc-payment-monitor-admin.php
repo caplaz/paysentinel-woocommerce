@@ -182,7 +182,7 @@ class WC_Payment_Monitor_Admin
 
         // Localize script with admin data
         wp_localize_script('wc-payment-monitor-dashboard', 'wcPaymentMonitor', [
-            'apiUrl'      => rest_url('wc-payment-monitor/v1/'),
+            'apiUrl'      => rest_url('wc_payment_monitor/v1/'),
             'root'        => esc_url_raw(rest_url()),
             'nonce'       => wp_create_nonce('wp_rest'),
             'restNonce'   => wp_create_nonce('wp_rest'),
