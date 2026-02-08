@@ -724,7 +724,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				'site_url'    => $site_url,
 				'timestamp'   => $timestamp,
 				'signature'   => $signature,
-				'return_url'  => $return_url,
+				'return_url'  => rawurlencode( $return_url ),
 				'state'       => wp_create_nonce( 'slack_auth_nonce' ),
 			),
 			'https://paysentinel.caplaz.com/integrations/slack/connect'

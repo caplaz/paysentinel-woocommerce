@@ -597,7 +597,7 @@ class WC_Payment_Monitor_License {
 			);
 		}
 
-		$response = $this->make_authenticated_request( self::API_ENDPOINT_SYNC, 'GET', null );
+		$response = $this->make_authenticated_request( self::API_ENDPOINT_SYNC, 'GET', array() );
 
 		if ( is_wp_error( $response ) ) {
 			error_log( 'WC Payment Monitor: License sync failed - ' . $response->get_error_message() );
@@ -881,10 +881,15 @@ class WC_Payment_Monitor_License {
 	private function make_authenticated_request_with_secret( $endpoint, $method, $body, $site_secret, $license_key, $include_site_url = true ) {
 		$timestamp = time();
 		
-		// JSON encode the body with consistent flags to match signature generation
-		$body_json = ! empty( $body ) ? wp_json_encode( $body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) : '';
+		// Sort and encode the body to ensure consistency
+		$body_json = '';
+		if ( ! empty( $body ) ) {
+			$body_array = (array) $body;
+			WC_Payment_Monitor_Security::recursive_ksort( $body_array );
+			$body_json = wp_json_encode( $body_array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		}
 		
-		// Generate signature from the JSON string (not the array)
+		// Generate signature from the canonical JSON string
 		$signature = WC_Payment_Monitor_Security::generate_hmac_signature( $body_json, $timestamp, $site_secret );
 
 		$headers = array(

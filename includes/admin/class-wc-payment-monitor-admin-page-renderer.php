@@ -673,7 +673,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 
 					// Load available payment gateways on page load
 					$.ajax({
-						url: wcPaymentMonitor.apiUrl + 'simulator/gateways',
+						url: wcPaymentMonitor.apiUrl + '/simulator/gateways',
 						method: 'GET',
 						headers: {
 							'X-WP-Nonce': wcPaymentMonitor.restNonce
@@ -699,7 +699,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 						$btn.prop('disabled', true).text('<?php esc_attr_e('Running...', 'wc-payment-monitor'); ?>');
 
 						$.ajax({
-							url: wcPaymentMonitor.apiUrl + 'diagnostics/full',
+							url: wcPaymentMonitor.apiUrl + '/diagnostics/full',
 							method: 'GET',
 							headers: {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
@@ -721,7 +721,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 						$btn.prop('disabled', true);
 
 						$.ajax({
-							url: wcPaymentMonitor.apiUrl + 'diagnostics/health/recalculate',
+							url: wcPaymentMonitor.apiUrl + '/diagnostics/health/recalculate',
 							method: 'POST',
 							headers: {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
@@ -747,7 +747,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 						$btn.prop('disabled', true).text('<?php esc_attr_e('Simulating...', 'wc-payment-monitor'); ?>');
 
 						$.ajax({
-							url: wcPaymentMonitor.apiUrl + 'simulator/simulate',
+							url: wcPaymentMonitor.apiUrl + '/simulator/simulate',
 							method: 'POST',
 							headers: {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce,
@@ -782,7 +782,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 						$btn.prop('disabled', true);
 
 						$.ajax({
-							url: wcPaymentMonitor.apiUrl + 'simulator/clear',
+							url: wcPaymentMonitor.apiUrl + '/simulator/clear',
 							method: 'POST',
 							headers: {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
@@ -808,7 +808,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 						$btn.prop('disabled', true);
 
 						$.ajax({
-							url: wcPaymentMonitor.apiUrl + 'diagnostics/maintenance/orphaned',
+							url: wcPaymentMonitor.apiUrl + '/diagnostics/maintenance/orphaned',
 							method: 'POST',
 							headers: {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
@@ -834,7 +834,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 						$btn.prop('disabled', true);
 
 						$.ajax({
-							url: wcPaymentMonitor.apiUrl + 'diagnostics/maintenance/archive',
+							url: wcPaymentMonitor.apiUrl + '/diagnostics/maintenance/archive',
 							method: 'POST',
 							headers: {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
@@ -860,7 +860,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer
 						$btn.prop('disabled', true);
 
 						$.ajax({
-							url: wcPaymentMonitor.apiUrl + 'diagnostics/health/reset',
+							url: wcPaymentMonitor.apiUrl + '/diagnostics/health/reset',
 							method: 'POST',
 							headers: {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce

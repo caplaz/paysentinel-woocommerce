@@ -22,6 +22,13 @@ abstract class WC_Payment_Monitor_API_Base {
 	protected $database;
 
 	/**
+	 * Whether routes have been registered
+	 *
+	 * @var bool
+	 */
+	protected $routes_registered = false;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -33,7 +40,22 @@ abstract class WC_Payment_Monitor_API_Base {
 	 * Initialize hooks
 	 */
 	protected function init_hooks() {
+		if ( did_action( 'rest_api_init' ) || doing_action( 'rest_api_init' ) ) {
+			$this->register_routes_once();
+		} else {
+			add_action( 'rest_api_init', array( $this, 'register_routes_once' ) );
+		}
+	}
+
+	/**
+	 * Wrapper to ensure routes are only registered once
+	 */
+	public function register_routes_once() {
+		if ( $this->routes_registered ) {
+			return;
+		}
 		$this->register_routes();
+		$this->routes_registered = true;
 	}
 
 	/**

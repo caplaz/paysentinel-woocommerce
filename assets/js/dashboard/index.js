@@ -296,6 +296,7 @@
             healthResponse.status,
             healthResponse.statusText,
           );
+          throw new Error(`Health API error: ${healthResponse.status}`);
         }
 
         const healthData = await healthResponse.json();
@@ -325,6 +326,9 @@
             transactionsResponse.status,
             transactionsResponse.statusText,
           );
+          throw new Error(
+            `Transactions API error: ${transactionsResponse.status}`,
+          );
         }
 
         const transactionsData = await transactionsResponse.json();
@@ -351,6 +355,7 @@
             alertsResponse.status,
             alertsResponse.statusText,
           );
+          throw new Error(`Alerts API error: ${alertsResponse.status}`);
         }
 
         const alertsData = await alertsResponse.json();
@@ -1647,14 +1652,31 @@
           headers,
           credentials: "same-origin",
         })
-          .then((response) => {
+          .then(async (response) => {
             console.log("Alerts response status:", response.status);
 
             if (!response.ok) {
-              const errorText = response.text();
-              console.error("Response error body:", errorText);
+              let errorDetail = "";
+              try {
+                const errorData = await response.json();
+                errorDetail =
+                  errorData.message || errorData.error || errorData.code || "";
+              } catch (e) {
+                try {
+                  errorDetail = await response.text();
+                  // Truncate HTML if necessary
+                  if (errorDetail.includes("<html")) {
+                    errorDetail = "HTML error response (see console)";
+                  }
+                } catch (e2) {
+                  errorDetail = response.statusText;
+                }
+              }
+
               throw new Error(
-                `HTTP error! status: ${response.status} - ${errorText}`,
+                `HTTP error! status: ${response.status}${
+                  errorDetail ? " - " + errorDetail : ""
+                }`,
               );
             }
 

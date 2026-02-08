@@ -155,7 +155,7 @@ class WC_Payment_Monitor_Security {
 		}
 
 		// The SaaS expects: timestamp.request_body
-		// For empty body, just timestamp (no dot) based on the latest SaaS update
+		// For empty body, just timestamp (no dot)
 		$data_to_sign = $timestamp . ( ! empty( $payload_string ) ? '.' . $payload_string : '' );
 
 		return hash_hmac( 'sha256', $data_to_sign, $site_secret );
@@ -166,8 +166,13 @@ class WC_Payment_Monitor_Security {
 	 *
 	 * @param array $array Array to sort
 	 */
-	private static function recursive_ksort( &$array ) {
+	public static function recursive_ksort( &$array ) {
+		if ( ! is_array( $array ) ) {
+			return;
+		}
+
 		ksort( $array );
+		
 		foreach ( $array as &$value ) {
 			if ( is_array( $value ) ) {
 				self::recursive_ksort( $value );
