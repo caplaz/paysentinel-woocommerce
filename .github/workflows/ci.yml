@@ -1,49 +1,75 @@
 name: CI
 
 on:
-    push:
-        branches: [main]
-    pull_request:
-        branches: [main]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Set up Docker
-              run: |
-                  docker --version
-                  docker compose --version
+      - name: Set up Docker
+        run: |
+          docker --version
+          docker compose --version
 
-            - name: Start database
-              run: docker compose up -d db
+      - name: Start database
+        run: docker compose up -d db
 
-            - name: Wait for database to be ready
-              run: |
-                  timeout 60 bash -c 'until docker compose exec -T db mysqladmin ping --silent; do sleep 1; done'
+      - name: Wait for database to be ready
+        run: |
+          timeout 60 bash -c 'until docker compose exec -T db mysqladmin ping --silent; do sleep 1; done'
 
-            - name: Install Composer dependencies
-              run: composer install --no-progress --prefer-dist --optimize-autoloader
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-            - name: Set up WordPress environment
-              run: |
-                  docker compose run --rm tests bash -lc "
-                    bash ./tests/bootstrap/entrypoint.sh && \
-                    wp config create --dbname=wordpress_test --dbuser=wp --dbpass=wp --dbhost=db --path=/tmp/wordpress --allow-root && \
-                    wp core install --url=http://localhost --title='Test Site' --admin_user=admin --admin_password=password --admin_email=admin@example.com --path=/tmp/wordpress --allow-root
-                  "
+      - name: Set up WordPress environment
+        run: |
+          docker compose run --rm tests bash -lc "
+            bash ./tests/bootstrap/entrypoint.sh && \
+            wp config create --dbname=wordpress_test --dbuser=wp --dbpass=wp --dbhost=db --path=/tmp/wordpress --allow-root && \
+            wp core install --url=http://localhost --title='Test Site' --admin_user=admin --admin_password=password --admin_email=admin@example.com --path=/tmp/wordpress --allow-root
+          "
 
-            - name: Install WooCommerce plugin
-              run: |
-                  docker compose run --rm tests wp plugin install woocommerce --activate --path=/tmp/wordpress --allow-root
+      - name: Install WooCommerce plugin
+        run: |
+          docker compose run --rm tests wp plugin install woocommerce --activate --path=/tmp/wordpress --allow-root
 
-            - name: Run tests
-              run: |
-                  docker compose run --rm tests vendor/bin/phpunit tests/ 2>&1 | grep -v -E 'SERIALIZATION_FORMAT|^There were [0-9]+ warnings|^[0-9]+\) Database'
+      - name: Run tests
+        run: |
+          docker compose run --rm tests vendor/bin/phpunit tests/ 2>&1 | grep -v -E 'SERIALIZATION_FORMAT|^There were [0-9]+ warnings|^[0-9]+\) Database'
 
-            - name: Stop services
-              run: docker compose down
+      - name: Stop services
+        run: docker compose down
+
+  build-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Build plugin ZIP
+        run: npm run build
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: wc-payment-monitor.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
