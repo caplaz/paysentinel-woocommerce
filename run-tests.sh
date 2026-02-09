@@ -5,8 +5,8 @@ docker compose run --rm tests bash -lc "
 bash ./tests/bootstrap/entrypoint.sh && \
 vendor/bin/phpunit \
   --configuration phpunit.xml \
-  tests/SmartRetryLogicTest.php \
-  tests/LicenseGatingTest.php \
-  tests/HealthCalculationTest.php \
+  tests/core/SmartRetryLogicTest.php \
+  tests/core/LicenseGatingTest.php \
+  tests/core/HealthCalculationTest.php \
   --verbose
 "

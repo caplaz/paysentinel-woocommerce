@@ -56,14 +56,25 @@ if [[ $WP_VERSION == 'nightly' ]] || [[ $WP_VERSION == 'trunk' ]]; then
 	unzip -q $TMPDIR/wordpress-nightly/wordpress-nightly.zip -d $TMPDIR/wordpress-nightly/
 	mv $TMPDIR/wordpress-nightly/wordpress/* $WP_CORE_DIR
 elif [ $WP_VERSION == 'latest' ]; then
-	LATEST_VERSION=$(download https://api.wordpress.org/core/version-check/1.7/ | head -1)
+	LATEST_VERSION=$(download https://api.wordpress.org/core/version-check/1.7/ | head -1 | sed 's/.*"version":"\([^"]*\)".*/\1/')
+	if [ -z "$LATEST_VERSION" ]; then
+		LATEST_VERSION="6.8"  # fallback
+	fi
 	download https://wordpress.org/wordpress-$LATEST_VERSION.zip  $TMPDIR/wordpress-$LATEST_VERSION.zip
 	unzip -q $TMPDIR/wordpress-$LATEST_VERSION.zip -d $TMPDIR/
 	mv $TMPDIR/wordpress/* $WP_CORE_DIR
 elif [[ $WP_VERSION =~ [0-9]+\.[0-9]+ ]]; then
 	# https serves multiple offers, whereas http serves single.
 	download https://wordpress.org/wordpress-$WP_VERSION.zip $TMPDIR/wordpress-$WP_VERSION.zip
+	if [ ! -f $TMPDIR/wordpress-$WP_VERSION.zip ]; then
+		echo "Failed to download WordPress $WP_VERSION"
+		exit 1
+	fi
 	unzip -q $TMPDIR/wordpress-$WP_VERSION.zip -d $TMPDIR/
+	if [ ! -d $TMPDIR/wordpress ]; then
+		echo "Failed to extract WordPress $WP_VERSION"
+		exit 1
+	fi
 	mv $TMPDIR/wordpress/* $WP_CORE_DIR
 else
 	archive_path=$(find . -name "*wordpress-$WP_BRANCH*.zip" | head -1)
