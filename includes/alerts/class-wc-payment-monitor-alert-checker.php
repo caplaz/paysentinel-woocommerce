@@ -188,7 +188,7 @@ class WC_Payment_Monitor_Alert_Checker {
 			'success_rate' => null,
 			'period'       => 'immediate',
 			'message'      => sprintf(
-				__( 'Payment failed for order #%d using %s gateway.', 'wc-payment-monitor' ),
+				__( 'Payment failed for order #%1$d using %2$s gateway.', 'wc-payment-monitor' ),
 				$order_id,
 				$this->gateway_manager->get_gateway_display_name( $payment_method )
 			),
@@ -232,12 +232,12 @@ class WC_Payment_Monitor_Alert_Checker {
 			// Check if we should trigger an alert
 			if ( $this->should_trigger_alert( $gateway_id, $success_rate, $severity ) ) {
 				$alert_data = array(
-					'gateway_id'        => $gateway_id,
-					'alert_type'        => 'health',
-					'severity'          => $severity,
-					'success_rate'      => $success_rate,
-					'period'            => $period,
-					'total_transactions' => $total_transactions,
+					'gateway_id'          => $gateway_id,
+					'alert_type'          => 'health',
+					'severity'            => $severity,
+					'success_rate'        => $success_rate,
+					'period'              => $period,
+					'total_transactions'  => $total_transactions,
 					'failed_transactions' => $data['failed_transactions'] ?? 0,
 				);
 

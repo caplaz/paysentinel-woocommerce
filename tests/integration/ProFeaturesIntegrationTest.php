@@ -2,7 +2,7 @@
 
 /**
  * Integration tests for PRO plan features
- * 
+ *
  * This test suite verifies that all PRO features work correctly:
  * - 30-day and 90-day analytics
  * - Unlimited gateway monitoring
@@ -27,13 +27,13 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		// Verify that calculate_health skips 30day period for free tier
 		$gateway_id = 'test_gateway';
 		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
-		
+
 		$health_data = $health->calculate_health( $gateway_id );
-		
+
 		// Free tier should NOT have 30day or 90day
 		$this->assertArrayNotHasKey( '30day', $health_data );
 		$this->assertArrayNotHasKey( '90day', $health_data );
-		
+
 		// But should have the standard periods
 		$this->assertArrayHasKey( '1hour', $health_data );
 		$this->assertArrayHasKey( '24hour', $health_data );
@@ -57,13 +57,13 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		// Verify that calculate_health includes 90day period for PRO tier
 		$gateway_id = 'test_gateway';
 		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
-		
+
 		$health_data = $health->calculate_health( $gateway_id );
-		
+
 		// PRO tier SHOULD have 30day and 90day
 		$this->assertArrayHasKey( '30day', $health_data );
 		$this->assertArrayHasKey( '90day', $health_data );
-		
+
 		// And still have the standard periods
 		$this->assertArrayHasKey( '1hour', $health_data );
 		$this->assertArrayHasKey( '24hour', $health_data );
@@ -87,9 +87,9 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		// Verify that calculate_health includes extended periods for Agency tier
 		$gateway_id = 'test_gateway';
 		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
-		
+
 		$health_data = $health->calculate_health( $gateway_id );
-		
+
 		// Agency tier SHOULD have all periods
 		$this->assertArrayHasKey( '30day', $health_data );
 		$this->assertArrayHasKey( '90day', $health_data );
@@ -112,9 +112,9 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		// Verify that calculate_health skips extended periods for Starter tier
 		$gateway_id = 'test_gateway';
 		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
-		
+
 		$health_data = $health->calculate_health( $gateway_id );
-		
+
 		// Starter tier should NOT have 30day or 90day
 		$this->assertArrayNotHasKey( '30day', $health_data );
 		$this->assertArrayNotHasKey( '90day', $health_data );
@@ -129,7 +129,7 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		for ( $i = 1; $i <= 10; $i++ ) {
 			$many_gateways[] = "gateway_$i";
 		}
-		
+
 		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => $many_gateways ) );
 
 		// Test PRO tier (999 gateway limit - effectively unlimited)
@@ -137,14 +137,14 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
 
 		$health = new WC_Payment_Monitor_Health();
-		
+
 		// Use Reflection to access private method
 		$reflection = new ReflectionClass( $health );
-		$method = $reflection->getMethod( 'get_active_gateways' );
+		$method     = $reflection->getMethod( 'get_active_gateways' );
 		$method->setAccessible( true );
 
 		$active_gateways = $method->invoke( $health );
-		
+
 		// PRO tier should get all 10 gateways
 		$this->assertCount( 10, $active_gateways );
 	}
@@ -162,14 +162,14 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		delete_option( 'wc_payment_monitor_license_data' );
 
 		$health = new WC_Payment_Monitor_Health();
-		
+
 		// Use Reflection to access private method
 		$reflection = new ReflectionClass( $health );
-		$method = $reflection->getMethod( 'get_active_gateways' );
+		$method     = $reflection->getMethod( 'get_active_gateways' );
 		$method->setAccessible( true );
 
 		$active_gateways = $method->invoke( $health );
-		
+
 		// Free tier should only get 1 gateway
 		$this->assertCount( 1, $active_gateways );
 		$this->assertEquals( 'gw1', $active_gateways[0] );
@@ -188,14 +188,14 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'starter' ) );
 
 		$health = new WC_Payment_Monitor_Health();
-		
+
 		// Use Reflection to access private method
 		$reflection = new ReflectionClass( $health );
-		$method = $reflection->getMethod( 'get_active_gateways' );
+		$method     = $reflection->getMethod( 'get_active_gateways' );
 		$method->setAccessible( true );
 
 		$active_gateways = $method->invoke( $health );
-		
+
 		// Starter tier should get 3 gateways
 		$this->assertCount( 3, $active_gateways );
 		$this->assertEquals( array( 'gw1', 'gw2', 'gw3' ), $active_gateways );
@@ -207,13 +207,13 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	public function test_data_retention_limits() {
 		// Free tier - 7 days
 		$this->assertEquals( 7, WC_Payment_Monitor_License::RETENTION_LIMITS['free'] );
-		
+
 		// Starter tier - 30 days
 		$this->assertEquals( 30, WC_Payment_Monitor_License::RETENTION_LIMITS['starter'] );
-		
+
 		// PRO tier - 90 days
 		$this->assertEquals( 90, WC_Payment_Monitor_License::RETENTION_LIMITS['pro'] );
-		
+
 		// Agency tier - 90 days
 		$this->assertEquals( 90, WC_Payment_Monitor_License::RETENTION_LIMITS['agency'] );
 	}
@@ -226,12 +226,12 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_license_status', 'valid' );
 		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
 
-		$health = new WC_Payment_Monitor_Health();
+		$health     = new WC_Payment_Monitor_Health();
 		$gateway_id = 'test_gateway';
 		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
-		
+
 		$health_data = $health->calculate_health( $gateway_id );
-		
+
 		// Verify 30day data structure
 		if ( isset( $health_data['30day'] ) ) {
 			$this->assertArrayHasKey( 'gateway_id', $health_data['30day'] );
@@ -240,10 +240,10 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 			$this->assertArrayHasKey( 'successful_transactions', $health_data['30day'] );
 			$this->assertArrayHasKey( 'failed_transactions', $health_data['30day'] );
 			$this->assertArrayHasKey( 'success_rate', $health_data['30day'] );
-			
+
 			$this->assertEquals( '30day', $health_data['30day']['period'] );
 		}
-		
+
 		// Verify 90day data structure
 		if ( isset( $health_data['90day'] ) ) {
 			$this->assertArrayHasKey( 'gateway_id', $health_data['90day'] );
@@ -257,13 +257,13 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	 */
 	public function test_database_supports_extended_periods() {
 		global $wpdb;
-		
+
 		$database = new WC_Payment_Monitor_Database();
-		$table = $wpdb->prefix . 'payment_monitor_gateway_health';
-		
+		$table    = $wpdb->prefix . 'payment_monitor_gateway_health';
+
 		// Get the ENUM values for the period column
 		$result = $wpdb->get_row( "SHOW COLUMNS FROM {$table} LIKE 'period'" );
-		
+
 		$this->assertNotNull( $result );
 		$this->assertStringContainsString( '30day', $result->Type );
 		$this->assertStringContainsString( '90day', $result->Type );
@@ -278,7 +278,7 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 		$this->assertEquals( 3, WC_Payment_Monitor_License::GATEWAY_LIMITS['starter'] );
 		$this->assertEquals( 999, WC_Payment_Monitor_License::GATEWAY_LIMITS['pro'] );
 		$this->assertEquals( 999, WC_Payment_Monitor_License::GATEWAY_LIMITS['agency'] );
-		
+
 		// Retention limits
 		$this->assertEquals( 7, WC_Payment_Monitor_License::RETENTION_LIMITS['free'] );
 		$this->assertEquals( 30, WC_Payment_Monitor_License::RETENTION_LIMITS['starter'] );

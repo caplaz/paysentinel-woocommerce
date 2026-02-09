@@ -172,7 +172,7 @@ class WC_Payment_Monitor_Security {
 		}
 
 		ksort( $array );
-		
+
 		foreach ( $array as &$value ) {
 			if ( is_array( $value ) ) {
 				self::recursive_ksort( $value );
@@ -474,51 +474,50 @@ class WC_Payment_Monitor_Security {
 	 *
 	 * @return array Validated and merged settings
 	 */
-	public static function validate_admin_settings($settings)
-	{
-		if (!is_array($settings)) {
+	public static function validate_admin_settings( $settings ) {
+		if ( ! is_array( $settings ) ) {
 			return array();
 		}
 
 		// Get existing settings to prevent data loss across tabs
-		$old_settings = get_option('wc_payment_monitor_options', array());
-		$current_tab = isset($settings['current_tab']) ? sanitize_key($settings['current_tab']) : '';
-		unset($settings['current_tab']);
+		$old_settings = get_option( 'wc_payment_monitor_options', array() );
+		$current_tab  = isset( $settings['current_tab'] ) ? sanitize_key( $settings['current_tab'] ) : '';
+		unset( $settings['current_tab'] );
 
 		$validated = array();
 
-		foreach ($settings as $key => $value) {
+		foreach ( $settings as $key => $value ) {
 			// Reject if key contains SQL or suspicious patterns
-			if (self::contains_sql_injection($key)) {
+			if ( self::contains_sql_injection( $key ) ) {
 				continue;
 			}
 
 			// Sanitize key
-			$clean_key = sanitize_key($key);
+			$clean_key = sanitize_key( $key );
 
 			// Sanitize value based on type
-			if (is_array($value)) {
-				$validated[$clean_key] = self::sanitize_recursive($value);
-			} elseif (is_numeric($value)) {
-				$validated[$clean_key] = intval($value);
+			if ( is_array( $value ) ) {
+				$validated[ $clean_key ] = self::sanitize_recursive( $value );
+			} elseif ( is_numeric( $value ) ) {
+				$validated[ $clean_key ] = intval( $value );
 			} else {
-				$validated[$clean_key] = sanitize_text_field($value);
+				$validated[ $clean_key ] = sanitize_text_field( $value );
 			}
 		}
 
 		// Merge with old settings
-		$final_settings = array_merge($old_settings, $validated);
+		$final_settings = array_merge( $old_settings, $validated );
 
 		// Handle checkboxes (which are missing from $_POST when unchecked)
-		if ('general' === $current_tab) {
-			if (!isset($validated['enable_monitoring'])) {
+		if ( 'general' === $current_tab ) {
+			if ( ! isset( $validated['enable_monitoring'] ) ) {
 				$final_settings['enable_monitoring'] = 0;
 			}
-			if (!isset($validated['retry_enabled'])) {
+			if ( ! isset( $validated['retry_enabled'] ) ) {
 				$final_settings['retry_enabled'] = 0;
 			}
-		} elseif ('advanced' === $current_tab) {
-			if (!isset($validated['enable_test_mode'])) {
+		} elseif ( 'advanced' === $current_tab ) {
+			if ( ! isset( $validated['enable_test_mode'] ) ) {
 				$final_settings['enable_test_mode'] = 0;
 			}
 		}
@@ -528,19 +527,18 @@ class WC_Payment_Monitor_Security {
 
 	/**
 	 * Sanitize array recursively
-	 * 
+	 *
 	 * @param array $array Array to sanitize
 	 * @return array Sanitized array
 	 */
-	private static function sanitize_recursive($array)
-	{
+	private static function sanitize_recursive( $array ) {
 		$sanitized = array();
-		foreach ($array as $key => $value) {
-			$clean_key = sanitize_key($key);
-			if (is_array($value)) {
-				$sanitized[$clean_key] = self::sanitize_recursive($value);
+		foreach ( $array as $key => $value ) {
+			$clean_key = sanitize_key( $key );
+			if ( is_array( $value ) ) {
+				$sanitized[ $clean_key ] = self::sanitize_recursive( $value );
 			} else {
-				$sanitized[$clean_key] = sanitize_text_field($value);
+				$sanitized[ $clean_key ] = sanitize_text_field( $value );
 			}
 		}
 		return $sanitized;

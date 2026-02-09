@@ -500,7 +500,7 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 		);
 
 		$admin = new WC_Payment_Monitor_Admin();
-		$tier = $admin->get_license_tier();
+		$tier  = $admin->get_license_tier();
 		$this->assertEquals( 'free', $tier, 'Empty license key should be free tier' );
 	}
 }

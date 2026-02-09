@@ -15,8 +15,8 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 		$this->analytics = new WC_Payment_Monitor_Analytics_Pro();
-		$this->license = new WC_Payment_Monitor_License();
-		$this->database = new WC_Payment_Monitor_Database();
+		$this->license   = new WC_Payment_Monitor_License();
+		$this->database  = new WC_Payment_Monitor_Database();
 	}
 
 	/**
@@ -60,7 +60,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
 
 		$gateway_id = 'stripe';
-		$result = $this->analytics->get_comparative_analytics( $gateway_id );
+		$result     = $this->analytics->get_comparative_analytics( $gateway_id );
 
 		$this->assertArrayNotHasKey( 'error', $result );
 		$this->assertArrayHasKey( 'gateway_id', $result );
@@ -133,7 +133,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 
 		// Use reflection to access private method
 		$reflection = new ReflectionClass( $this->analytics );
-		$method = $reflection->getMethod( 'calculate_trends' );
+		$method     = $reflection->getMethod( 'calculate_trends' );
 		$method->setAccessible( true );
 
 		$periods = array(
@@ -185,7 +185,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
 		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( 'stripe' ) ) );
 
-		$health = new WC_Payment_Monitor_Health();
+		$health      = new WC_Payment_Monitor_Health();
 		$health_data = $health->calculate_health( 'stripe' );
 
 		// PRO users should have access to all periods
@@ -204,7 +204,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_license_status', 'valid' );
 		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
 
-		$tier = $this->license->get_license_tier();
+		$tier           = $this->license->get_license_tier();
 		$retention_days = WC_Payment_Monitor_License::RETENTION_LIMITS[ $tier ];
 
 		$this->assertEquals( 'pro', $tier );
@@ -212,7 +212,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 
 		// Free tier should have 7-day retention
 		update_option( 'wc_payment_monitor_license_status', 'invalid' );
-		$tier_free = $this->license->get_license_tier();
+		$tier_free           = $this->license->get_license_tier();
 		$retention_days_free = WC_Payment_Monitor_License::RETENTION_LIMITS[ $tier_free ];
 
 		$this->assertEquals( 'free', $tier_free );
@@ -231,7 +231,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 
 		// Use reflection to access private method
 		$reflection = new ReflectionClass( $health );
-		$method = $reflection->getMethod( 'get_active_gateways' );
+		$method     = $reflection->getMethod( 'get_active_gateways' );
 		$method->setAccessible( true );
 
 		// Free tier - should limit to 1

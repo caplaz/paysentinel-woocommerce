@@ -165,7 +165,7 @@ class WC_Payment_Monitor_API_Analytics_Pro extends WC_Payment_Monitor_API_Base {
 	 */
 	public function get_failure_patterns( $request ) {
 		$gateway_id = $this->get_string_param( $request, 'gateway_id' );
-		$days = $this->get_int_param( $request, 'days', 30 );
+		$days       = $this->get_int_param( $request, 'days', 30 );
 
 		if ( empty( $gateway_id ) ) {
 			return $this->get_error_response(
@@ -230,7 +230,7 @@ class WC_Payment_Monitor_API_Analytics_Pro extends WC_Payment_Monitor_API_Base {
 	 */
 	public function get_extended_history( $request ) {
 		$gateway_id = $this->get_string_param( $request, 'gateway_id' );
-		$days = $this->get_int_param( $request, 'days', 90 );
+		$days       = $this->get_int_param( $request, 'days', 90 );
 
 		if ( empty( $gateway_id ) ) {
 			return $this->get_error_response(

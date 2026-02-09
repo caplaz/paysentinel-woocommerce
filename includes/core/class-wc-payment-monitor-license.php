@@ -13,10 +13,10 @@ class WC_Payment_Monitor_License {
 	/**
 	 * License API endpoints
 	 */
-	public const API_ENDPOINT_ACTIVATE  = 'https://paysentinel.caplaz.com/api/activate-license';
-	public const API_ENDPOINT_VALIDATE  = 'https://paysentinel.caplaz.com/api/validate-license';
-	public const API_ENDPOINT_SYNC      = 'https://paysentinel.caplaz.com/api/sync';
-	public const API_ENDPOINT_ALERTS    = 'https://paysentinel.caplaz.com/api/alerts';
+	public const API_ENDPOINT_ACTIVATE = 'https://paysentinel.caplaz.com/api/activate-license';
+	public const API_ENDPOINT_VALIDATE = 'https://paysentinel.caplaz.com/api/validate-license';
+	public const API_ENDPOINT_SYNC     = 'https://paysentinel.caplaz.com/api/sync';
+	public const API_ENDPOINT_ALERTS   = 'https://paysentinel.caplaz.com/api/alerts';
 
 	/**
 	 * Option names
@@ -157,7 +157,7 @@ class WC_Payment_Monitor_License {
 		}
 
 		// Extract site_secret from response
-		$site_secret = isset( $data['site_registration']['site_secret'] ) ? 
+		$site_secret = isset( $data['site_registration']['site_secret'] ) ?
 			sanitize_text_field( $data['site_registration']['site_secret'] ) : null;
 
 		if ( empty( $site_secret ) ) {
@@ -170,7 +170,7 @@ class WC_Payment_Monitor_License {
 		}
 
 		// Check if site is registered
-		$site_registered = isset( $data['site_registration']['registered'] ) ? 
+		$site_registered = isset( $data['site_registration']['registered'] ) ?
 			(bool) $data['site_registration']['registered'] : false;
 
 		return array(
@@ -209,7 +209,7 @@ class WC_Payment_Monitor_License {
 		if ( null === $site_secret ) {
 			$site_secret = $this->get_site_secret();
 		}
-		
+
 		if ( empty( $site_secret ) ) {
 			return array(
 				'valid'   => false,
@@ -341,7 +341,7 @@ class WC_Payment_Monitor_License {
 
 		// Extract site_secret from activation
 		$site_secret = isset( $activation_result['site_secret'] ) ? $activation_result['site_secret'] : null;
-		
+
 		if ( empty( $site_secret ) ) {
 			return array(
 				'valid'   => false,
@@ -620,7 +620,7 @@ class WC_Payment_Monitor_License {
 				$current_data['quota']      = isset( $data['quota'] ) ? $data['quota'] : null;
 				$current_data['expires_at'] = isset( $data['expires_at'] ) ? $data['expires_at'] : ( isset( $current_data['expiration_ts'] ) ? $current_data['expiration_ts'] : null );
 				$current_data['valid']      = isset( $data['valid'] ) ? $data['valid'] : true;
-				
+
 				// Ensure integrations are cached in license data too
 				if ( isset( $data['integrations'] ) ) {
 					$current_data['integrations'] = $data['integrations'];
@@ -632,9 +632,9 @@ class WC_Payment_Monitor_License {
 			// Sync integrations (Standalone options)
 			if ( isset( $data['integrations']['slack']['id'] ) ) {
 				update_option( 'wc_payment_monitor_slack_workspace', $data['integrations']['slack']['id'] );
-				
+
 				// Also update main options for compatibility
-				$options = get_option( 'wc_payment_monitor_options', array() );
+				$options                          = get_option( 'wc_payment_monitor_options', array() );
 				$options['alert_slack_workspace'] = $data['integrations']['slack']['id'];
 				update_option( 'wc_payment_monitor_options', $options );
 			}
@@ -880,7 +880,7 @@ class WC_Payment_Monitor_License {
 	 */
 	private function make_authenticated_request_with_secret( $endpoint, $method, $body, $site_secret, $license_key, $include_site_url = true ) {
 		$timestamp = time();
-		
+
 		// Sort and encode the body to ensure consistency
 		$body_json = '';
 		if ( ! empty( $body ) ) {
@@ -888,7 +888,7 @@ class WC_Payment_Monitor_License {
 			WC_Payment_Monitor_Security::recursive_ksort( $body_array );
 			$body_json = wp_json_encode( $body_array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 		}
-		
+
 		// Generate signature from the canonical JSON string
 		$signature = WC_Payment_Monitor_Security::generate_hmac_signature( $body_json, $timestamp, $site_secret );
 

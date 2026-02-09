@@ -32,7 +32,7 @@ class LicenseGatingTest extends WP_UnitTestCase {
 	 * Test health period gating
 	 */
 	public function test_health_period_gating() {
-		$health = new WC_Payment_Monitor_Health();
+		$health     = new WC_Payment_Monitor_Health();
 		$gateway_id = 'stripe';
 
 		// Mock active gateways to return at least our test gateway
@@ -80,10 +80,10 @@ class LicenseGatingTest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => $gateways ) );
 
 		$health = new WC_Payment_Monitor_Health();
-		
+
 		// Use Reflection to access private method get_active_gateways
 		$reflection = new ReflectionClass( $health );
-		$method = $reflection->getMethod( 'get_active_gateways' );
+		$method     = $reflection->getMethod( 'get_active_gateways' );
 		$method->setAccessible( true );
 
 		// Free tier - should limit to 1

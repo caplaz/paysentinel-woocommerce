@@ -67,7 +67,7 @@ class WC_Payment_Monitor_Gateway_Connectivity {
 			if ( null !== $status ) {
 				$results['results'][ $gateway_id ] = $status;
 				++$results['checked_gateways'];
-				$count++;
+				++$count;
 
 				if ( 'online' === $status['status'] ) {
 					$results['online_gateways'][] = $gateway_id;

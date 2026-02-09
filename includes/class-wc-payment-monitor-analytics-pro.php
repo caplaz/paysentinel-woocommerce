@@ -66,7 +66,7 @@ class WC_Payment_Monitor_Analytics_Pro {
 			);
 		}
 
-		$periods = array( '1hour', '24hour', '7day', '30day', '90day' );
+		$periods   = array( '1hour', '24hour', '7day', '30day', '90day' );
 		$analytics = array(
 			'gateway_id' => $gateway_id,
 			'periods'    => array(),
@@ -145,7 +145,7 @@ class WC_Payment_Monitor_Analytics_Pro {
 		}
 
 		global $wpdb;
-		$table_name = $this->database->get_transactions_table();
+		$table_name  = $this->database->get_transactions_table();
 		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days", current_time( 'timestamp' ) ) );
 
 		// Get failure reasons grouped by frequency
@@ -222,11 +222,11 @@ class WC_Payment_Monitor_Analytics_Pro {
 			);
 		}
 
-		$tier = $this->license->get_license_tier();
+		$tier  = $this->license->get_license_tier();
 		$limit = WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ];
 
-		$settings = get_option( 'wc_payment_monitor_settings', array() );
-		$enabled_gateways = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
+		$settings            = get_option( 'wc_payment_monitor_settings', array() );
+		$enabled_gateways    = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
 		$gateways_to_monitor = array_slice( $enabled_gateways, 0, $limit );
 
 		$summary = array(
@@ -261,9 +261,9 @@ class WC_Payment_Monitor_Analytics_Pro {
 		}
 
 		// Ensure days doesn't exceed PRO limit
-		$tier = $this->license->get_license_tier();
+		$tier     = $this->license->get_license_tier();
 		$max_days = WC_Payment_Monitor_License::RETENTION_LIMITS[ $tier ];
-		$days = min( $days, $max_days );
+		$days     = min( $days, $max_days );
 
 		return $this->health->get_health_history( $gateway_id, '24hour', $days );
 	}
@@ -281,11 +281,11 @@ class WC_Payment_Monitor_Analytics_Pro {
 			);
 		}
 
-		$tier = $this->license->get_license_tier();
+		$tier  = $this->license->get_license_tier();
 		$limit = WC_Payment_Monitor_License::GATEWAY_LIMITS[ $tier ];
 
-		$settings = get_option( 'wc_payment_monitor_settings', array() );
-		$enabled_gateways = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
+		$settings            = get_option( 'wc_payment_monitor_settings', array() );
+		$enabled_gateways    = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
 		$gateways_to_compare = array_slice( $enabled_gateways, 0, $limit );
 
 		$comparison = array(
@@ -301,15 +301,15 @@ class WC_Payment_Monitor_Analytics_Pro {
 			if ( $health_24h ) {
 				$comparison['gateways'][ $gateway_id ] = array(
 					'24hour' => array(
-						'success_rate' => floatval( $health_24h->success_rate ),
+						'success_rate'       => floatval( $health_24h->success_rate ),
 						'total_transactions' => intval( $health_24h->total_transactions ),
 					),
 					'7day'   => $health_7d ? array(
-						'success_rate' => floatval( $health_7d->success_rate ),
+						'success_rate'       => floatval( $health_7d->success_rate ),
 						'total_transactions' => intval( $health_7d->total_transactions ),
 					) : null,
 					'30day'  => $health_30d ? array(
-						'success_rate' => floatval( $health_30d->success_rate ),
+						'success_rate'       => floatval( $health_30d->success_rate ),
 						'total_transactions' => intval( $health_30d->total_transactions ),
 					) : null,
 				);

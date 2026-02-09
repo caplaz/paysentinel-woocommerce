@@ -13,7 +13,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 */
 	public function setUp(): void {
 		parent::setUp();
-		$this->api = new WC_Payment_Monitor_API_Analytics_Pro();
+		$this->api     = new WC_Payment_Monitor_API_Analytics_Pro();
 		$this->license = new WC_Payment_Monitor_License();
 
 		// Create admin user for API access
@@ -27,7 +27,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	public function test_comparative_analytics_endpoint_free_tier() {
 		update_option( 'wc_payment_monitor_license_status', 'invalid' );
 
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/comparative/stripe' );
+		$request  = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/comparative/stripe' );
 		$response = $this->api->get_comparative_analytics( $request );
 
 		$this->assertInstanceOf( 'WP_REST_Response', $response );
@@ -76,7 +76,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
 
 		$response = $this->api->get_failure_patterns( $request );
-		$data = $response->get_data();
+		$data     = $response->get_data();
 		$this->assertTrue( $data['success'] );
 		$this->assertArrayHasKey( 'top_failure_reasons', $data['data'] );
 	}
@@ -88,7 +88,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		// Free tier - should fail
 		update_option( 'wc_payment_monitor_license_status', 'invalid' );
 
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/metrics-summary' );
+		$request  = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/metrics-summary' );
 		$response = $this->api->get_metrics_summary( $request );
 
 		$data = $response->get_data();
@@ -100,7 +100,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( 'stripe' ) ) );
 
 		$response = $this->api->get_metrics_summary( $request );
-		$data = $response->get_data();
+		$data     = $response->get_data();
 		$this->assertTrue( $data['success'] );
 		$this->assertArrayHasKey( 'total_gateways', $data['data'] );
 	}
@@ -125,7 +125,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
 
 		$response = $this->api->get_extended_history( $request );
-		$data = $response->get_data();
+		$data     = $response->get_data();
 		$this->assertTrue( $data['success'] );
 	}
 
@@ -136,7 +136,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		// Free tier - should fail
 		update_option( 'wc_payment_monitor_license_status', 'invalid' );
 
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/gateway-comparison' );
+		$request  = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/gateway-comparison' );
 		$response = $this->api->get_gateway_comparison( $request );
 
 		$data = $response->get_data();
@@ -147,7 +147,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
 
 		$response = $this->api->get_gateway_comparison( $request );
-		$data = $response->get_data();
+		$data     = $response->get_data();
 		$this->assertTrue( $data['success'] );
 		$this->assertArrayHasKey( 'gateways', $data['data'] );
 		$this->assertArrayHasKey( 'rankings', $data['data'] );
