@@ -616,6 +616,7 @@ class WC_Payment_Monitor_License {
 			// Merge sync data with existing license data
 			if ( is_array( $current_data ) ) {
 				$current_data['plan']       = isset( $data['plan'] ) ? $data['plan'] : ( isset( $current_data['plan'] ) ? $current_data['plan'] : 'free' );
+				$current_data['plan_color'] = isset( $data['plan_color'] ) ? $data['plan_color'] : ( isset( $current_data['plan_color'] ) ? $current_data['plan_color'] : null );
 				$current_data['features']   = isset( $data['features'] ) ? $data['features'] : ( isset( $current_data['features'] ) ? $current_data['features'] : array() );
 				$current_data['quota']      = isset( $data['quota'] ) ? $data['quota'] : null;
 				$current_data['expires_at'] = isset( $data['expires_at'] ) ? $data['expires_at'] : ( isset( $current_data['expiration_ts'] ) ? $current_data['expiration_ts'] : null );

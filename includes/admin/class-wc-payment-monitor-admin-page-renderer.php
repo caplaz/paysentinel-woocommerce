@@ -74,14 +74,23 @@ class WC_Payment_Monitor_Admin_Page_Renderer {
 			'pro'     => __( 'Pro', 'wc-payment-monitor' ),
 			'agency'  => __( 'Agency', 'wc-payment-monitor' ),
 		);
-		$tier_colors = array(
-			'free'    => '#6c757d',
-			'starter' => '#0073aa',
-			'pro'     => '#46b450',
-			'agency'  => '#9b51e0',
-		);
-		$tier_label  = isset( $tier_labels[ $tier ] ) ? $tier_labels[ $tier ] : ucfirst( $tier );
-		$tier_color  = isset( $tier_colors[ $tier ] ) ? $tier_colors[ $tier ] : '#0073aa';
+
+		// Get plan color from API data, fallback to hardcoded colors
+		$license_data = $this->license->get_license_data();
+		if ( $license_data && isset( $license_data['plan_color'] ) && ! empty( $license_data['plan_color'] ) ) {
+			$tier_color = $license_data['plan_color'];
+		} else {
+			// Fallback to hardcoded colors
+			$tier_colors = array(
+				'free'    => '#6c757d',
+				'starter' => '#0073aa',
+				'pro'     => '#46b450',
+				'agency'  => '#9b51e0',
+			);
+			$tier_color  = isset( $tier_colors[ $tier ] ) ? $tier_colors[ $tier ] : '#0073aa';
+		}
+
+		$tier_label = isset( $tier_labels[ $tier ] ) ? $tier_labels[ $tier ] : ucfirst( $tier );
 
 		?>
 		<div class="wrap">
