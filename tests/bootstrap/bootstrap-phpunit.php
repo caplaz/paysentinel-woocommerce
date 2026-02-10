@@ -192,20 +192,24 @@ if ( ! function_exists( 'register_rest_route' ) ) {
 
 // Load test base class and all plugin classes
 require_once __DIR__ . '/includes/class-wc-payment-monitor-test-case.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-database.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-logger.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-health.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-alerts.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-retry.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-security.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-base.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-health.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-transactions.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-api-diagnostics.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-gateway-connectivity.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-failure-simulator.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-diagnostics.php';
-require_once dirname( __DIR__ ) . '/includes/class-wc-payment-monitor-admin.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-security.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-license.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-config.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-database.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-logger.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-health.php';
+require_once dirname( __DIR__ ) . '/includes/alerts/class-wc-payment-monitor-alerts.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-retry.php';
+require_once dirname( __DIR__ ) . '/includes/api/class-wc-payment-monitor-api-base.php';
+require_once dirname( __DIR__ ) . '/includes/api/class-wc-payment-monitor-api-health.php';
+require_once dirname( __DIR__ ) . '/includes/api/class-wc-payment-monitor-api-transactions.php';
+require_once dirname( __DIR__ ) . '/includes/api/class-wc-payment-monitor-api-diagnostics.php';
+require_once dirname( __DIR__ ) . '/includes/utils/class-wc-payment-monitor-gateway-connectivity.php';
+require_once dirname( __DIR__ ) . '/includes/utils/class-wc-payment-monitor-failure-simulator.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-diagnostics.php';
+require_once dirname( __DIR__ ) . '/includes/admin/class-wc-payment-monitor-admin.php';
+require_once dirname( __DIR__ ) . '/includes/admin/class-wc-payment-monitor-admin-ajax-handler.php';
+require_once dirname( __DIR__ ) . '/includes/admin/class-wc-payment-monitor-admin-settings-handler.php';
 
 // Minimal WooCommerce stubs for tests when WooCommerce isn't loaded
 if ( ! function_exists( 'WC' ) ) {
@@ -282,5 +286,152 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 if ( ! function_exists( 'wp_json_encode' ) ) {
 	function wp_json_encode( $data, $options = 0, $depth = 512 ) {
 		return json_encode( $data, $options, $depth );
+	}
+}
+
+if ( ! function_exists( 'wp_send_json_success' ) ) {
+	function wp_send_json_success( $data = null, $status_code = null ) {
+		echo json_encode( array( 'success' => true, 'data' => $data ) );
+		throw new Exception( 'wp_send_json_success' );
+	}
+}
+
+if ( ! function_exists( 'wp_send_json_error' ) ) {
+	function wp_send_json_error( $data = null, $status_code = null ) {
+		echo json_encode( array( 'success' => false, 'data' => $data ) );
+		throw new Exception( 'wp_send_json_error' );
+	}
+}
+
+if ( ! function_exists( 'admin_url' ) ) {
+	function admin_url( $path = '', $scheme = 'admin' ) {
+		return 'http://example.org/wp-admin/' . ltrim( $path, '/' );
+	}
+}
+
+if ( ! function_exists( 'wp_create_nonce' ) ) {
+	function wp_create_nonce( $action = -1 ) {
+		return substr( md5( $action ), 0, 10 );
+	}
+}
+
+if ( ! function_exists( 'check_ajax_referer' ) ) {
+	function check_ajax_referer( $action = -1, $query_arg = '_wpnonce', $die = true ) {
+		// In tests, always pass nonce check
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_remote_post' ) ) {
+	function wp_remote_post( $url, $args = array() ) {
+		return wp_remote_request( $url, array_merge( $args, array( 'method' => 'POST' ) ) );
+	}
+}
+
+if ( ! function_exists( 'wp_remote_request' ) ) {
+	function wp_remote_request( $url, $args = array() ) {
+		// Apply filters to allow test mocking
+		$pre = apply_filters( 'pre_http_request', false, $args, $url );
+		if ( false !== $pre ) {
+			return $pre;
+		}
+		// Default mock response
+		return array(
+			'response' => array( 'code' => 200 ),
+			'body'     => json_encode( array( 'success' => true ) ),
+		);
+	}
+}
+
+if ( ! function_exists( 'wp_remote_retrieve_response_code' ) ) {
+	function wp_remote_retrieve_response_code( $response ) {
+		if ( is_wp_error( $response ) ) {
+			return 0;
+		}
+		return isset( $response['response']['code'] ) ? $response['response']['code'] : 0;
+	}
+}
+
+if ( ! function_exists( 'wp_remote_retrieve_body' ) ) {
+	function wp_remote_retrieve_body( $response ) {
+		if ( is_wp_error( $response ) ) {
+			return '';
+		}
+		return isset( $response['body'] ) ? $response['body'] : '';
+	}
+}
+
+if ( ! function_exists( 'is_wp_error' ) ) {
+	function is_wp_error( $thing ) {
+		return ( $thing instanceof WP_Error );
+	}
+}
+
+if ( ! function_exists( 'get_site_url' ) ) {
+	function get_site_url( $blog_id = null, $path = '', $scheme = null ) {
+		return 'http://example.org' . $path;
+	}
+}
+
+if ( ! function_exists( 'apply_filters' ) ) {
+	function apply_filters( $tag, $value, ...$args ) {
+		global $wp_filter;
+		if ( ! isset( $wp_filter ) ) {
+			$wp_filter = array();
+		}
+		if ( isset( $wp_filter[ $tag ] ) ) {
+			foreach ( $wp_filter[ $tag ] as $priority => $callbacks ) {
+				foreach ( $callbacks as $callback ) {
+					$value = call_user_func_array( $callback['function'], array_merge( array( $value ), $args ) );
+				}
+			}
+		}
+		return $value;
+	}
+}
+
+if ( ! function_exists( 'add_filter' ) ) {
+	function add_filter( $tag, $function_to_add, $priority = 10, $accepted_args = 1 ) {
+		global $wp_filter;
+		if ( ! isset( $wp_filter ) ) {
+			$wp_filter = array();
+		}
+		if ( ! isset( $wp_filter[ $tag ] ) ) {
+			$wp_filter[ $tag ] = array();
+		}
+		if ( ! isset( $wp_filter[ $tag ][ $priority ] ) ) {
+			$wp_filter[ $tag ][ $priority ] = array();
+		}
+		$wp_filter[ $tag ][ $priority ][] = array(
+			'function'      => $function_to_add,
+			'accepted_args' => $accepted_args,
+		);
+		return true;
+	}
+}
+
+if ( ! class_exists( 'WP_Error' ) ) {
+	class WP_Error {
+		private $code;
+		private $message;
+		private $data;
+
+		public function __construct( $code = '', $message = '', $data = '' ) {
+			$this->code    = $code;
+			$this->message = $message;
+			$this->data    = $data;
+		}
+
+		public function get_error_code() {
+			return $this->code;
+		}
+
+		public function get_error_message() {
+			return $this->message;
+		}
+
+		public function get_error_data() {
+			return $this->data;
+		}
 	}
 }

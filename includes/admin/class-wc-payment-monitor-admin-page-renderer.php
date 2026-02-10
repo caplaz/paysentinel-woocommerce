@@ -130,7 +130,7 @@ class WC_Payment_Monitor_Admin_Page_Renderer {
 						<div style="background: #dc3232; color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; display: inline-flex; align-items: center;">
 							<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px;"></span>
 							<?php esc_html_e( 'SMS Quota Exceeded', 'wc-payment-monitor' ); ?>
-							<a href="https://paysentinel.caplaz.com/upgrade" target="_blank" style="color: white; text-decoration: underline; margin-left: 10px;">
+							<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/upgrade' ); ?>" target="_blank" style="color: white; text-decoration: underline; margin-left: 10px;">
 								<?php esc_html_e( 'Upgrade', 'wc-payment-monitor' ); ?>
 							</a>
 						</div>

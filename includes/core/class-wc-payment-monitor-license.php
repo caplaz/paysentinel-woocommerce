@@ -11,12 +11,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Payment_Monitor_License {
 
 	/**
+	 * SaaS API Base URL
+	 */
+	public const SAAS_URL = 'https://paysentinel.caplaz.com';
+
+	/**
 	 * License API endpoints
 	 */
-	public const API_ENDPOINT_ACTIVATE = 'https://paysentinel.caplaz.com/api/activate-license';
-	public const API_ENDPOINT_VALIDATE = 'https://paysentinel.caplaz.com/api/validate-license';
-	public const API_ENDPOINT_SYNC     = 'https://paysentinel.caplaz.com/api/sync';
-	public const API_ENDPOINT_ALERTS   = 'https://paysentinel.caplaz.com/api/alerts';
+	public const API_ENDPOINT_ACTIVATE = self::SAAS_URL . '/api/activate-license';
+	public const API_ENDPOINT_VALIDATE = self::SAAS_URL . '/api/validate-license';
+	public const API_ENDPOINT_SYNC     = self::SAAS_URL . '/api/sync';
+	public const API_ENDPOINT_ALERTS   = self::SAAS_URL . '/api/alerts';
 
 	/**
 	 * Option names
@@ -881,6 +886,13 @@ class WC_Payment_Monitor_License {
 	 */
 	private function make_authenticated_request_with_secret( $endpoint, $method, $body, $site_secret, $license_key, $include_site_url = true ) {
 		$timestamp = time();
+		$method    = strtoupper( $method );
+
+		// For GET requests, we move parameters to the query string
+		if ( 'GET' === $method && ! empty( $body ) ) {
+			$endpoint = add_query_arg( $body, $endpoint );
+			$body     = array(); // Clear body so it's not signed
+		}
 
 		// Sort and encode the body to ensure consistency
 		$body_json = '';

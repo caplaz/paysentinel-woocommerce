@@ -563,7 +563,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 							<?php
 								$next_tier = ( $tier === 'free' ) ? 'Starter' : ( ( $tier === 'starter' ) ? 'Pro' : 'Agency' );
 							?>
-							<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="upgrade-button">
+							<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank" class="upgrade-button">
 								<span class="dashicons dashicons-star-filled"></span>
 								<?php echo esc_html( sprintf( __( 'Upgrade to %s', 'wc-payment-monitor' ), $next_tier ) ); ?>
 							</a>
@@ -575,7 +575,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 						<?php esc_html_e( 'Enter a valid license key to unlock real-time monitoring and SMS/Slack alerts.', 'wc-payment-monitor' ); ?>
 					</p>
 					<div style="margin-top: 15px;">
-						<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="button button-primary">
+						<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank" class="button button-primary">
 							<?php esc_html_e( 'Get a License Key', 'wc-payment-monitor' ); ?>
 						</a>
 					</div>
@@ -651,7 +651,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 			if ( $is_locked ) {
 				printf(
 					__( 'SMS alerts delivered via PaySentinel servers. <strong>Requires Starter plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor' ),
-					'https://paysentinel.caplaz.com/plans'
+					WC_Payment_Monitor_License::SAAS_URL . '/plans'
 				);
 			} else {
 				$quota = $this->license->get_sms_quota();
@@ -690,7 +690,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		$connection_error      = '';
 
 		if ( ! $is_locked && ! empty( $slack ) ) {
-			$status_endpoint = add_query_arg( 'integration_id', $slack, 'https://paysentinel.caplaz.com/api/integrations/slack/status' );
+			$status_endpoint = add_query_arg( 'integration_id', $slack, WC_Payment_Monitor_License::SAAS_URL . '/api/integrations/slack/status' );
 			$status_response = $this->license->make_authenticated_request( $status_endpoint, 'GET', array(), true );
 
 			if ( is_wp_error( $status_response ) ) {
@@ -724,10 +724,10 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				'site_url'    => $site_url,
 				'timestamp'   => $timestamp,
 				'signature'   => $signature,
-				'return_url'  => rawurlencode( $return_url ),
+				'return_url'  => $return_url,
 				'state'       => wp_create_nonce( 'slack_auth_nonce' ),
 			),
-			'https://paysentinel.caplaz.com/integrations/slack/connect'
+			WC_Payment_Monitor_License::SAAS_URL . '/api/integrations/slack/connect'
 		);
 
 		$disconnect_url = admin_url( 'admin.php?page=wc-payment-monitor-settings&tab=notifications&slack_disconnect=1&_wpnonce=' . wp_create_nonce( 'slack_disconnect_nonce' ) );
@@ -790,7 +790,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				if ( $is_locked ) {
 					printf(
 						__( 'Slack notifications delivered via PaySentinel. <strong>Requires Pro plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'wc-payment-monitor' ),
-						'https://paysentinel.caplaz.com/plans'
+						WC_Payment_Monitor_License::SAAS_URL . '/plans'
 					);
 				} elseif ( $is_actually_connected ) {
 					esc_html_e( 'Your Slack workspace is successfully connected. Alerts will be delivered to the channel shown above.', 'wc-payment-monitor' );
@@ -912,7 +912,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 						<?php
 						printf(
 							__( 'Per-gateway alert configuration requires Pro plan or higher. <a href="%s" target="_blank" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'wc-payment-monitor' ),
-							'https://paysentinel.caplaz.com/plans'
+							WC_Payment_Monitor_License::SAAS_URL . '/plans'
 						);
 						?>
 					</p>
@@ -1172,7 +1172,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 									<?php
 										$next_tier = ( $tier === 'free' ) ? 'Starter' : ( ( $tier === 'starter' ) ? 'Pro' : 'Agency' );
 									?>
-									<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="upgrade-button">
+									<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank" class="upgrade-button">
 										<span class="dashicons dashicons-star-filled"></span>
 										<?php echo esc_html( sprintf( __( 'Upgrade to %s', 'wc-payment-monitor' ), $next_tier ) ); ?>
 									</a>
@@ -1185,7 +1185,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 							<?php esc_html_e( 'Enter a valid license key to unlock real-time monitoring and SMS/Slack alerts.', 'wc-payment-monitor' ); ?>
 						</p>
 						<div style="margin-top: 15px;">
-							<a href="https://paysentinel.caplaz.com/plans" target="_blank" class="button button-secondary">
+							<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank" class="button button-secondary">
 								<?php esc_html_e( 'Get a License Key', 'wc-payment-monitor' ); ?>
 							</a>
 						</div>

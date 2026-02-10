@@ -36,10 +36,10 @@ components:
       description: |
         HMAC-SHA256 signature for WordPress plugin authentication.
 
-        **Required headers:**
+        **Required headers (all must be present):**
         - `X-PaySentinel-License-Key`: The license key
-        - `X-PaySentinel-Timestamp`: Unix timestamp in seconds
-        - `X-PaySentinel-Signature`: HMAC-SHA256 hex digest
+        - `X-PaySentinel-Timestamp`: Unix timestamp in seconds (within 5 minutes of server time)
+        - `X-PaySentinel-Signature`: HMAC-SHA256 hex digest of the message
         - `X-PaySentinel-Site-Url`: Site URL (optional, depends on endpoint)
 
         **Signature generation:**
@@ -48,7 +48,9 @@ components:
         signature = HMAC-SHA256(site_secret, message)
         ```
 
-        **Note for empty request bodies:** Both `timestamp.` and `timestamp` formats are accepted for backward compatibility.
+        **Note:** For empty request bodies, both `timestamp.` and `timestamp` formats are accepted for backward compatibility.
+
+        **Security:** All HMAC credentials MUST be passed as HTTP headers. Query parameters are not supported.
 
         **Rate limiting:** Varies by endpoint (see individual operations)
 
@@ -70,6 +72,7 @@ components:
         details:
           type: string
           description: Additional error details (optional)
+      additionalProperties: true
 
     LicenseValidationRequest:
       type: object
@@ -342,6 +345,14 @@ components:
           description: Expiration date
         activated_devices:
           description: List of activated devices/sites
+        plan_name:
+          type: string
+          description: Display name of the plan (Free, Starter, Pro, Agency)
+          example: "Pro"
+        plan_color:
+          type: string
+          description: Hex color code for the plan badge
+          example: "#46b450"
 
     LicensesResponse:
       type: object
@@ -402,6 +413,39 @@ components:
           items:
             $ref: "#/components/schemas/Integration"
 
+    AlertDelivery:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        license_key:
+          type: string
+        channel:
+          type: string
+          enum: [SMS, SLACK, EMAIL, DISCORD, TEAMS]
+        status:
+          type: string
+          example: "delivered"
+        recipient:
+          type: string
+          nullable: true
+        message:
+          type: string
+        delivered_at:
+          type: string
+          format: date-time
+
+    AlertDeliveriesResponse:
+      type: object
+      required:
+        - deliveries
+      properties:
+        deliveries:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertDelivery"
+
     CheckoutRequest:
       type: object
       required:
@@ -422,6 +466,117 @@ components:
           format: uri
           description: Stripe checkout session URL
           example: "https://checkout.stripe.com/..."
+
+    UpdateSubscriptionRequest:
+      type: object
+      required:
+        - priceId
+      properties:
+        priceId:
+          type: string
+          description: New Stripe price ID to change subscription to
+          example: "price_9876543210"
+
+    UpdateSubscriptionResponse:
+      type: object
+      required:
+        - message
+        - subscriptionId
+        - licenseId
+        - status
+      properties:
+        message:
+          type: string
+          example: "Subscription updated"
+        subscriptionId:
+          type: string
+          description: PayBee subscription ID
+        licenseId:
+          type: string
+          description: Updated license ID
+        status:
+          type: string
+          description: Subscription status
+          example: "active"
+
+    SubscribeRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address to subscribe to waitlist
+          example: "user@example.com"
+
+    SubscribeResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: "Subscribed successfully"
+
+    SupportRequest:
+      type: object
+      required:
+        - subject
+        - message
+        - email
+      properties:
+        subject:
+          type: string
+          description: Support request subject
+          example: "Need help with license activation"
+        message:
+          type: string
+          description: Support request message body
+          example: "I'm having trouble activating my license on my WordPress site."
+        name:
+          type: string
+          description: Sender's name (optional)
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          description: Contact email address
+          example: "john@example.com"
+
+    ProInsightsResponse:
+      type: object
+      required:
+        - gatewayStatuses
+        - benchmarks
+      properties:
+        gatewayStatuses:
+          type: array
+          description: Status of all monitored payment gateways
+          items:
+            type: object
+            properties:
+              gateway:
+                type: string
+                example: "stripe"
+              status:
+                type: string
+                enum: [operational, degraded, down]
+              last_checked:
+                type: string
+                format: date-time
+        benchmarks:
+          type: object
+          nullable: true
+          description: Industry benchmark data (if enabled)
+          properties:
+            industry:
+              type: string
+              example: "ecommerce"
+            data:
+              type: array
+              items:
+                type: object
 
 paths:
   /activate-license:
@@ -536,11 +691,13 @@ paths:
       description: |
         Fetches current plan, features, and quota limits for a registered site.
 
+        **Authentication:** Requires HMAC authentication via headers (see HMAC security scheme for details).
+
         **Required headers:**
-        - X-PaySentinel-License-Key
-        - X-PaySentinel-Timestamp
-        - X-PaySentinel-Signature
-        - X-PaySentinel-Site-Url (optional)
+        - `X-PaySentinel-License-Key`: The license key
+        - `X-PaySentinel-Timestamp`: Unix timestamp (within 5 minutes)
+        - `X-PaySentinel-Signature`: HMAC-SHA256 signature
+        - `X-PaySentinel-Site-Url`: Site URL (optional)
       operationId: syncLicense
       security:
         - HMAC: []
@@ -633,6 +790,35 @@ paths:
                 $ref: "#/components/schemas/Error"
         "502":
           description: Integration service error (Slack/SMS provider failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    get:
+      tags:
+        - Dashboard
+      summary: Get Alert History
+      description: |
+        Retrieves the history of alerts sent for the user's licenses.
+      operationId: getAlertHistory
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Alert history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertDeliveriesResponse"
+        "401":
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -840,36 +1026,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
   /sites:
-    get:
-      tags:
-        - Dashboard
-      summary: List Sites (Deprecated)
-      description: |
-        Returns empty array. Sites are now managed via PayBee directly in the `/licenses` endpoint.
-      operationId: listSites
-      security:
-        - SessionAuth: []
-      responses:
-        "200":
-          description: Empty sites array
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  sites:
-                    type: array
-                    items: {}
-                    example: []
-        "401":
-          description: Unauthorized (no valid session)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
     delete:
       tags:
         - Dashboard
@@ -1046,29 +1203,288 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /update-subscription:
+    post:
+      tags:
+        - Billing
+      summary: Update Subscription Plan
+      description: |
+        Updates the authenticated user's subscription to a new plan/price.
+
+        **Authentication:** Requires valid Supabase session (user must be logged in)
+      operationId: updateSubscription
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubscriptionRequest"
+      responses:
+        "200":
+          description: Subscription updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateSubscriptionResponse"
+        "400":
+          description: Missing required field (priceId)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error or PayBee API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /subscribe:
+    post:
+      tags:
+        - Dashboard
+      summary: Subscribe to Waitlist
+      description: |
+        Subscribes an email to the PaySentinel waitlist/newsletter.
+
+        **Authentication:** None required (public endpoint)
+      operationId: subscribeEmail
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscribeRequest"
+      responses:
+        "200":
+          description: Subscription successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscribeResponse"
+        "400":
+          description: Invalid email address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /support:
+    post:
+      tags:
+        - Dashboard
+      summary: Submit Support Request
+      description: |
+        Submits a support request. Can be used by both authenticated and unauthenticated users.
+
+        If the user is authenticated, their plan information is included for priority handling.
+
+        **Authentication:** Optional (public endpoint, but provides enhanced features for logged-in users)
+      operationId: submitSupport
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportRequest"
+      responses:
+        "200":
+          description: Support request submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /pro/insights:
+    get:
+      tags:
+        - Dashboard
+      summary: Get PRO Analytics Insights
+      description: |
+        Retrieves advanced analytics data for PRO and AGENCY plan users.
+
+        **Features:**
+        - Gateway status monitoring (proactive alerts)
+        - Industry benchmarks (if enabled)
+
+        **Authentication:** Requires valid Supabase session with PRO or AGENCY plan
+      operationId: getProInsights
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Insights data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProInsightsResponse"
+        "401":
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Feature restricted to PRO users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Feature restricted to PRO users"
+                required_plan: "professional"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/integrations/slack/connect:
+    get:
+      tags:
+        - Integrations
+      summary: Initiate Slack OAuth (WordPress Plugin)
+      description: |
+        Initiates the Slack OAuth flow from the WordPress plugin. This is the entry point for connecting Slack workspaces.
+
+        **Authentication:** Requires HMAC authentication via headers or query parameters.
+
+        **Flow:**
+        1. WordPress plugin calls this endpoint with HMAC credentials
+        2. Endpoint validates HMAC and redirects user to Slack authorization
+        3. User authorizes the app on Slack
+        4. Slack redirects to `/api/auth/slack/callback`
+        5. Callback exchanges code for token and redirects back to WordPress with integration_id
+
+        **HMAC Authentication (choose one method):**
+
+        *Via Headers:*
+        - `X-PaySentinel-License-Key`: The license key
+        - `X-PaySentinel-Timestamp`: Unix timestamp (within 5 minutes)
+        - `X-PaySentinel-Signature`: HMAC-SHA256 signature
+
+        *Via Query Parameters:*
+        - `license_key`: License key
+        - `timestamp`: Unix timestamp (within 5 minutes)
+        - `signature`: HMAC-SHA256 signature
+
+        **Required query parameters:**
+        - `license_key`: License key (also in header)
+        - `site_url`: WordPress site URL
+        - `return_url`: Where to redirect after OAuth completes
+        - `state`: CSRF nonce from WordPress plugin
+      operationId: initiateSlackOAuth
+      security:
+        - HMAC: []
+      parameters:
+        - name: license_key
+          in: query
+          required: true
+          schema:
+            type: string
+          description: License key
+        - name: timestamp
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Unix timestamp (within 5 minutes)
+        - name: signature
+          in: query
+          required: true
+          schema:
+            type: string
+          description: HMAC-SHA256 signature
+        - name: site_url
+          in: query
+          required: true
+          schema:
+            type: string
+          description: WordPress site URL
+        - name: return_url
+          in: query
+          required: true
+          schema:
+            type: string
+          description: WordPress admin URL to return to after OAuth
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+          description: CSRF nonce from WordPress
+      responses:
+        "200":
+          description: OAuth flow initiated successfully (redirects to Slack)
+        "302":
+          description: Redirects to Slack OAuth authorization page
+        "401":
+          description: Invalid HMAC credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /auth/slack/callback:
     get:
       tags:
         - Integrations
-      summary: Slack OAuth Callback
+      summary: Slack OAuth Callback (WordPress Plugin)
       description: |
-        OAuth callback handler for Slack integration.
+        OAuth callback handler for Slack integration initiated from WordPress plugin.
 
         This endpoint is called by Slack after user authorizes the app.
         It exchanges the authorization code for an access token and creates
         the integration record in the database.
 
         **Flow:**
-        1. User initiates Slack OAuth from dashboard
-        2. Slack redirects to this endpoint with `code` and `state`
-        3. Backend exchanges code for access token
-        4. Creates integration record with token stored in vault
-        5. Redirects user back to dashboard
+        1. WordPress plugin initiates OAuth via `/api/integrations/slack/connect`
+        2. User authorizes on Slack
+        3. Slack redirects to this endpoint with `code` and `state`
+        4. Backend exchanges code for access token
+        5. Resolves user_id by looking up license_key
+        6. Creates/updates integration record with token stored in vault
+        7. Redirects user back to WordPress admin page
 
-        **Note:** This endpoint requires a valid Supabase session stored in state parameter
+        **Note:** This endpoint only supports WordPress plugin flows (no dashboard flows).
+        The return_url must be present in the OAuth state metadata.
       operationId: slackOAuthCallback
-      security:
-        - SessionAuth: []
+      security: []
       parameters:
         - name: code
           in: query
@@ -1081,7 +1497,7 @@ paths:
           required: true
           schema:
             type: string
-          description: State parameter containing session info and redirect URL
+          description: State parameter for CSRF protection (matches cookie)
         - name: error
           in: query
           schema:
@@ -1089,27 +1505,24 @@ paths:
           description: Error code if OAuth failed
       responses:
         "200":
-          description: OAuth callback processed successfully, redirects to dashboard
-          content:
-            text/html:
-              schema:
-                type: string
-                description: HTML redirect page
+          description: OAuth callback processed successfully (redirects to WordPress)
+        "302":
+          description: OAuth callback processed, redirects back to WordPress admin
         "400":
-          description: Invalid request (missing code or state)
+          description: Invalid request (missing code/state/return_url)
           content:
-            text/html:
+            application/json:
               schema:
-                type: string
-        "401":
-          description: Unauthorized (invalid session)
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: License not found or not associated with a user
           content:
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/Error"
         "500":
           description: Internal server error
           content:
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/Error"

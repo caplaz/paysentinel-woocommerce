@@ -62,7 +62,7 @@ class WC_Payment_Monitor_Admin_Ajax_Handler {
 			wp_send_json_error( array( 'message' => __( 'No Slack workspace connected', 'wc-payment-monitor' ) ) );
 		}
 
-		$endpoint = 'https://paysentinel.caplaz.com/api/integrations/slack/test';
+		$endpoint = WC_Payment_Monitor_License::SAAS_URL . '/api/integrations/slack/test';
 		$response = $this->license->make_authenticated_request(
 			$endpoint,
 			'POST',
@@ -185,13 +185,14 @@ class WC_Payment_Monitor_Admin_Ajax_Handler {
 
 			if ( ! empty( $integration_id ) ) {
 				// Call SaaS to remove tokens
-				$endpoint = 'https://paysentinel.caplaz.com/api/integrations/slack';
+				$endpoint = WC_Payment_Monitor_License::SAAS_URL . '/api/integrations/slack';
 				$this->license->make_authenticated_request(
 					$endpoint,
 					'DELETE',
 					array(
 						'integration_id' => $integration_id,
-					)
+					),
+					true
 				);
 			}
 
