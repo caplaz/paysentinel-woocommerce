@@ -478,11 +478,13 @@
                   key: gateway.gateway_id,
                   className:
                     "gateway-card " +
-                    (gateway.success_rate >= 95
-                      ? "healthy"
-                      : gateway.success_rate >= 85
-                        ? "warning"
-                        : "critical"),
+                    (gateway.total_transactions === 0
+                      ? "neutral"
+                      : gateway.success_rate >= 95
+                        ? "healthy"
+                        : gateway.success_rate >= 85
+                          ? "warning"
+                          : "critical"),
                 },
                 React.createElement(
                   "h3",
@@ -500,7 +502,9 @@
                   React.createElement(
                     "span",
                     { className: "value" },
-                    gateway.success_rate + "%",
+                    gateway.total_transactions === 0
+                      ? "N/A"
+                      : gateway.success_rate + "%",
                   ),
                 ),
                 React.createElement(
@@ -528,7 +532,9 @@
                   React.createElement(
                     "span",
                     { className: "value" },
-                    gateway.avg_response_time + "ms",
+                    gateway.total_transactions === 0
+                      ? "N/A"
+                      : gateway.avg_response_time + "ms",
                   ),
                 ),
               ),
@@ -1030,7 +1036,9 @@
                 React.createElement(
                   "span",
                   { className: "stat-value" },
-                  gateway.health_percentage.toFixed(1) + "%",
+                  gateway.transaction_count === 0
+                    ? "N/A"
+                    : gateway.health_percentage.toFixed(1) + "%",
                 ),
               ),
               React.createElement(
@@ -1044,7 +1052,9 @@
                 React.createElement(
                   "span",
                   { className: "stat-value" },
-                  gateway.success_rate.toFixed(1) + "%",
+                  gateway.transaction_count === 0
+                    ? "N/A"
+                    : gateway.success_rate.toFixed(1) + "%",
                 ),
               ),
               React.createElement(

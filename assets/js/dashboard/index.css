@@ -115,7 +115,9 @@
   border-radius: 4px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.2s ease, height 0.3s ease;
+  transition:
+    box-shadow 0.2s ease,
+    height 0.3s ease;
 }
 
 .gateway-card:hover {
@@ -136,6 +138,10 @@
 
 .gateway-card.critical {
   border-left: 4px solid #d63638;
+}
+
+.gateway-card.neutral {
+  border-left: 4px solid #6c757d;
 }
 
 .gateway-card h3 {
@@ -183,6 +189,11 @@
 .status-critical {
   background: #f8d7da;
   color: #721c24;
+}
+
+.status-unknown {
+  background: #e2e3e5;
+  color: #383d41;
 }
 
 .gateway-stats {
@@ -349,7 +360,7 @@
 }
 
 .connection-status::before {
-  content: '';
+  content: "";
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -370,8 +381,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* Mini Sparkline Styles */
@@ -394,20 +410,19 @@
 
 /* Loading Shimmer Animation */
 .loading-shimmer {
-  background: linear-gradient(
-    90deg,
-    #f0f0f1 25%,
-    #e5e5e5 50%,
-    #f0f0f1 75%
-  );
+  background: linear-gradient(90deg, #f0f0f1 25%, #e5e5e5 50%, #f0f0f1 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .chart-loading {
@@ -418,7 +433,6 @@
   background: #f6f7f7;
   border-radius: 4px;
 }
-
 
 .sparkline {
   display: flex;
