@@ -188,6 +188,27 @@ class WC_Payment_Monitor_Alerts {
 	}
 
 	/**
+	 * Check and send alerts for a gateway
+	 *
+	 * Delegates to checker and notifier classes.
+	 *
+	 * @param string $gateway_id Gateway ID.
+	 * @param array  $health_data Health data for the gateway.
+	 * @return bool True if alerts were processed successfully.
+	 */
+	public function check_and_send( $gateway_id, $health_data ) {
+		$alerts_triggered = $this->check_gateway_alerts( $gateway_id, $health_data );
+		
+		if ( ! empty( $alerts_triggered ) ) {
+			foreach ( $alerts_triggered as $alert ) {
+				$this->notifier->send_notifications( $alert, $alert['id'] ?? null );
+			}
+		}
+		
+		return true;
+	}
+
+	/**
 	 * Resolve open alerts for a gateway
 	 *
 	 * Delegates to checker class.

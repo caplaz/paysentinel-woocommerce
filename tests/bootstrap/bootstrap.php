@@ -54,16 +54,19 @@ function _install_woocommerce_for_tests() {
 	if ( class_exists( 'WC_Install' ) ) {
 		WC_Install::install();
 	}
-
-	// Create plugin tables
-	if ( class_exists( 'WC_Payment_Monitor_Database' ) ) {
-		( new WC_Payment_Monitor_Database() )->create_tables();
-	}
 }
 
 // Run installation on setup_theme hook - this is called during test bootstrap
 // and ensures WooCommerce database tables and options are properly initialized
 tests_add_filter( 'setup_theme', '_install_woocommerce_for_tests' );
+
+// Create plugin tables after classes are loaded
+function _create_plugin_tables() {
+	if ( class_exists( 'WC_Payment_Monitor_Database' ) ) {
+		( new WC_Payment_Monitor_Database() )->create_tables();
+	}
+}
+tests_add_filter( 'init', '_create_plugin_tables' );
 
 // Start up the WP testing environment
 // This will trigger the muplugins_loaded and setup_theme hooks we registered above

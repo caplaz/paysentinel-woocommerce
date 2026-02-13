@@ -34,7 +34,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		$data = $response->get_data();
 
 		$this->assertFalse( $data['success'] );
-		$this->assertArrayHasKey( 'error', $data );
+		$this->assertArrayHasKey( 'code', $data );
 	}
 
 	/**

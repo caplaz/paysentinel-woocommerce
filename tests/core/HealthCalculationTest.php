@@ -10,8 +10,8 @@ class HealthCalculationTest extends PHPUnit\Framework\TestCase {
 	 * Test that health calculator can be instantiated
 	 */
 	public function test_health_constants_defined() {
-		// Verify PERIODS constant is defined correctly
-		$this->assertTrue( defined( 'WC_Payment_Monitor_Health' ) || file_exists( __DIR__ . '/../includes/class-wc-payment-monitor-health.php' ) );
+		// Verify health class can be loaded
+		$this->assertTrue( class_exists( 'WC_Payment_Monitor_Health' ) || file_exists( __DIR__ . '/../includes/core/class-wc-payment-monitor-health.php' ) );
 	}
 
 	/**

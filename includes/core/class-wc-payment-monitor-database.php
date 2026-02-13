@@ -247,6 +247,24 @@ class WC_Payment_Monitor_Database {
 	}
 
 	/**
+	 * Get latest transaction for an order
+	 *
+	 * @param int $order_id Order ID
+	 * @return object|null Transaction data or null if not found
+	 */
+	public function get_latest_transaction_for_order( $order_id ) {
+		global $wpdb;
+
+		$table = $this->get_transactions_table();
+		$query = $wpdb->prepare(
+			"SELECT * FROM {$table} WHERE order_id = %d ORDER BY created_at DESC LIMIT 1",
+			$order_id
+		);
+
+		return $wpdb->get_row( $query );
+	}
+
+	/**
 	 * Check if database needs update
 	 */
 	public function needs_update() {

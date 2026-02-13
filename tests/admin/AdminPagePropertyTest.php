@@ -11,9 +11,14 @@
 class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 
 	/**
-	 * Admin instance
+	 * Menu handler instance
 	 */
-	private $admin;
+	private $menu_handler;
+
+	/**
+	 * Settings handler instance
+	 */
+	private $settings_handler;
 
 	/**
 	 * Setup test
@@ -143,8 +148,18 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			}
 		}
 
-		// Create admin instance
+		// Create admin instance and get handlers
 		$this->admin = new WC_Payment_Monitor_Admin();
+		
+		// Access the handlers through reflection since they're private
+		$admin_reflection = new ReflectionClass( $this->admin );
+		$menu_handler_property = $admin_reflection->getProperty( 'menu_handler' );
+		$menu_handler_property->setAccessible( true );
+		$this->menu_handler = $menu_handler_property->getValue( $this->admin );
+		
+		$settings_handler_property = $admin_reflection->getProperty( 'settings_handler' );
+		$settings_handler_property->setAccessible( true );
+		$this->settings_handler = $settings_handler_property->getValue( $this->admin );
 	}
 
 	/**
@@ -180,16 +195,16 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 				'Admin class should be instantiable'
 			);
 
-			// Test 2: Admin class should have menu registration method
+			// Test 2: Menu handler should have menu registration method
 			$this->assertTrue(
-				method_exists( $admin, 'register_menu_pages' ),
-				'Admin should have register_menu_pages method'
+				method_exists( $this->menu_handler, 'register_menu_pages' ),
+				'Menu handler should have register_menu_pages method'
 			);
 
-			// Test 3: Admin class should have settings registration method
+			// Test 3: Settings handler should have settings registration method
 			$this->assertTrue(
-				method_exists( $admin, 'register_settings' ),
-				'Admin should have register_settings method'
+				method_exists( $this->settings_handler, 'register_settings' ),
+				'Settings handler should have register_settings method'
 			);
 
 			// Test 4: Admin should have render methods for all pages
@@ -252,12 +267,12 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 				'license_key',
 			);
 
-			// Test 1: All expected field render methods should exist
+			// Test 1: All expected field render methods should exist on settings handler
 			foreach ( $expected_fields as $field ) {
 				$method = 'render_field_' . $field;
 				$this->assertTrue(
-					method_exists( $this->admin, $method ),
-					"Admin should have {$method} render method for field: {$field}"
+					method_exists( $this->settings_handler, $method ),
+					"Settings handler should have {$method} render method for field: {$field}"
 				);
 			}
 
@@ -265,20 +280,20 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			foreach ( $expected_fields as $field ) {
 				$method = 'render_field_' . $field;
 				$this->assertTrue(
-					is_callable( array( $this->admin, $method ) ),
+					is_callable( array( $this->settings_handler, $method ) ),
 					"render_field_{$field} should be callable"
 				);
 			}
 
-			// Test 3: Admin should have settings section renderer
+			// Test 3: Settings handler should have render_settings_section method
 			$this->assertTrue(
-				method_exists( $this->admin, 'render_settings_section' ),
-				'Admin should have render_settings_section method'
+				method_exists( $this->settings_handler, 'render_settings_section' ),
+				'Settings handler should have render_settings_section method'
 			);
 
-			// Test 4: Settings section renderer should be callable
+			// Test 4: render_settings_section should be callable
 			$this->assertTrue(
-				is_callable( array( $this->admin, 'render_settings_section' ) ),
+				is_callable( array( $this->settings_handler, 'render_settings_section' ) ),
 				'render_settings_section should be callable'
 			);
 		}

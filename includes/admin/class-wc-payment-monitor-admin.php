@@ -290,12 +290,299 @@ class WC_Payment_Monitor_Admin {
 	}
 
 	/**
-	 * Check if premium features are available
+	 * Render dashboard page
+	 */
+	public function render_dashboard_page() {
+		$this->page_renderer->render_dashboard_page();
+	}
+
+	/**
+	 * Render health page
+	 */
+	public function render_health_page() {
+		$this->page_renderer->render_health_page();
+	}
+
+	/**
+	 * Render transactions page
+	 */
+	public function render_transactions_page() {
+		$this->page_renderer->render_transactions_page();
+	}
+
+	/**
+	 * Render alerts page
+	 */
+	public function render_alerts_page() {
+		$this->page_renderer->render_alerts_page();
+	}
+
+	/**
+	 * Render settings page
+	 */
+	public function render_settings_page() {
+		$this->page_renderer->render_settings_page();
+	}
+
+	/**
+	 * Get plugin settings
 	 *
-	 * @return bool True if premium tier (pro or agency)
+	 * @return array Plugin settings with defaults
+	 */
+	public static function get_settings() {
+		$defaults = array(
+			'enable_monitoring'     => 1, // Changed to int for test compatibility
+			'health_check_interval' => 300,
+			'alert_threshold'       => 95,
+			'retry_enabled'         => 1, // Changed to int for test compatibility
+			'max_retry_attempts'    => 3,
+			'license_key'           => '',
+			'enable_test_mode'      => 0, // Changed to int for test compatibility
+			'alert_email'           => '',
+			'alert_phone_number'    => '',
+			'alert_slack_workspace' => '',
+			'gateway_alert_config'  => array(),
+			'test_failure_rate'     => 0,
+		);
+
+		$settings = get_option( 'wc_payment_monitor_options', array() );
+		return wp_parse_args( $settings, $defaults );
+	}
+
+	/**
+	 * Get a specific setting value
+	 *
+	 * @param string $key     Setting key
+	 * @param mixed  $default Default value if setting doesn't exist
+	 * @return mixed Setting value
+	 */
+	public static function get_setting( $key, $default = null ) {
+		$settings = self::get_settings();
+		return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
+	}
+
+	/**
+	 * Update plugin settings
+	 *
+	 * @param array $new_settings New settings to merge
+	 * @return bool Success
+	 */
+	public static function update_settings( $new_settings ) {
+		if ( ! is_array( $new_settings ) ) {
+			return false;
+		}
+
+		$current_settings = get_option( 'wc_payment_monitor_options', array() );
+		$updated_settings = array_merge( $current_settings, $new_settings );
+		
+		return update_option( 'wc_payment_monitor_options', $updated_settings );
+	}
+
+	/**
+	 * Validate health check interval
+	 *
+	 * @param int $interval Interval in minutes
+	 * @return array Validation result with 'valid', 'value', and optional 'message'
+	 */
+	public static function validate_health_check_interval( $interval ) {
+		$interval = intval( $interval );
+		
+		if ( $interval < 1 ) {
+			return array(
+				'valid'   => false,
+				'value'   => $interval,
+				'message' => 'Health check interval must be at least 1 minute',
+			);
+		}
+		
+		if ( $interval > 1440 ) {
+			return array(
+				'valid'   => false,
+				'value'   => $interval,
+				'message' => 'Health check interval cannot exceed 1440 minutes (24 hours)',
+			);
+		}
+		
+		return array(
+			'valid' => true,
+			'value' => $interval,
+		);
+	}
+
+	/**
+	 * Validate retry configuration
+	 *
+	 * @param array $config Retry configuration
+	 * @return array Validation result
+	 */
+	public static function validate_retry_configuration( $config ) {
+		if ( ! is_array( $config ) ) {
+			return array(
+				'valid'   => false,
+				'value'   => $config,
+				'message' => 'Retry configuration must be an array',
+				'errors'  => array( 'Retry configuration must be an array' ),
+			);
+		}
+		
+		if ( empty( $config ) ) {
+			return array(
+				'valid'   => false,
+				'value'   => $config,
+				'message' => 'Retry configuration cannot be empty',
+				'errors'  => array( 'Retry configuration cannot be empty' ),
+			);
+		}
+		
+		$validated = array();
+		$errors = array();
+		
+		// Validate max_retry_attempts
+		if ( isset( $config['max_retry_attempts'] ) ) {
+			$attempts = intval( $config['max_retry_attempts'] );
+			if ( $attempts < 1 || $attempts > 10 ) {
+				$errors[] = 'Max retry attempts must be between 1 and 10';
+			} else {
+				$validated['max_retry_attempts'] = $attempts;
+			}
+		}
+		
+		// Validate retry_enabled
+		if ( isset( $config['retry_enabled'] ) ) {
+			$validated['retry_enabled'] = (bool) $config['retry_enabled'];
+		}
+		
+		if ( ! empty( $errors ) ) {
+			return array(
+				'valid'   => false,
+				'value'   => $config,
+				'message' => implode( ', ', $errors ),
+				'errors'  => $errors,
+			);
+		}
+		
+		return array(
+			'valid' => true,
+			'value' => $validated,
+		);
+	}
+
+	/**
+	 * Validate alert threshold
+	 *
+	 * @param float $threshold Alert threshold percentage
+	 * @return array Validation result
+	 */
+	public static function validate_alert_threshold( $threshold ) {
+		$threshold = floatval( $threshold );
+		
+		if ( $threshold < 0.1 || $threshold > 100 ) {
+			return array(
+				'valid'   => false,
+				'value'   => $threshold,
+				'message' => 'Alert threshold must be between 0.1 and 100',
+				'errors'  => array( 'Alert threshold must be between 0.1 and 100' ),
+			);
+		}
+		
+		return array(
+			'valid' => true,
+			'value' => $threshold,
+		);
+	}
+
+	/**
+	 * Validate all admin settings
+	 *
+	 * @param array $settings Settings to validate
+	 * @return array Validation result with 'valid', 'errors', and 'validated_settings'
+	 */
+	public static function validate_all_settings( $settings ) {
+		if ( ! is_array( $settings ) ) {
+			return array(
+				'valid' => false,
+				'errors' => array( 'Settings must be an array' ),
+				'validated_settings' => array(),
+			);
+		}
+
+		$errors = array();
+		$validated_settings = array();
+
+		// Validate health_check_interval
+		if ( isset( $settings['health_check_interval'] ) ) {
+			$value = intval( $settings['health_check_interval'] );
+			if ( $value < 1 || $value > 60 ) {
+				$errors['health_check_interval'] = 'Health check interval must be between 1 and 60 minutes';
+			} else {
+				$validated_settings['health_check_interval'] = $value;
+			}
+		}
+
+		// Validate alert_threshold
+		if ( isset( $settings['alert_threshold'] ) ) {
+			$value = floatval( $settings['alert_threshold'] );
+			if ( $value < 0 || $value > 100 ) {
+				$errors['alert_threshold'] = 'Alert threshold must be between 0 and 100';
+			} else {
+				$validated_settings['alert_threshold'] = $value;
+			}
+		}
+
+		// Validate max_retry_attempts
+		if ( isset( $settings['max_retry_attempts'] ) ) {
+			$value = intval( $settings['max_retry_attempts'] );
+			if ( $value < 0 || $value > 10 ) {
+				$errors['max_retry_attempts'] = 'Max retry attempts must be between 0 and 10';
+			} else {
+				$validated_settings['max_retry_attempts'] = $value;
+			}
+		}
+
+		// Validate other settings (basic validation)
+		$valid_keys = array(
+			'enable_monitoring',
+			'retry_enabled',
+			'enable_test_mode',
+			'alert_threshold',
+			'health_check_interval',
+			'max_retry_attempts',
+			'retry_delay',
+			'alert_email',
+			'slack_webhook_url',
+			'sms_enabled',
+			'twilio_sid',
+			'twilio_token',
+			'twilio_from_number',
+			'alert_phone_numbers',
+		);
+
+		foreach ( $settings as $key => $value ) {
+			if ( in_array( $key, $valid_keys, true ) ) {
+				if ( is_numeric( $value ) ) {
+					$validated_settings[ $key ] = is_float( $value ) ? floatval( $value ) : intval( $value );
+				} elseif ( is_string( $value ) ) {
+					$validated_settings[ $key ] = sanitize_text_field( $value );
+				} elseif ( is_array( $value ) ) {
+					$validated_settings[ $key ] = $value; // Assume arrays are already validated
+				}
+			}
+		}
+
+		return array(
+			'valid' => empty( $errors ),
+			'errors' => $errors,
+			'validated_settings' => $validated_settings,
+		);
+	}
+
+	/**
+	 * Check if the current license is premium (not free)
+	 *
+	 * @return bool True if premium license, false if free
 	 */
 	public function is_premium() {
-		$tier = $this->get_license_tier();
-		return in_array( $tier, array( 'pro', 'agency' ), true );
+		$tier = $this->license->get_license_tier();
+		return in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
 	}
 }

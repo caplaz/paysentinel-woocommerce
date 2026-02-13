@@ -490,4 +490,13 @@ class WC_Payment_Monitor_Health {
 
 		return $stats;
 	}
+
+	/**
+	 * Get active gateways limited by license tier
+	 *
+	 * @return array Gateway IDs
+	 */
+	public function get_active_gateways() {
+		return $this->gateway_manager->get_active_gateways();
+	}
 }

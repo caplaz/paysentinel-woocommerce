@@ -18,6 +18,16 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		// Ensure tables exist
 		$this->database_instance->create_tables();
+
+		// Enable alerts for testing
+		update_option( 'wc_payment_monitor_options', array(
+			'alerts_enabled' => true,
+			'immediate_transaction_alerts' => true,
+			'alert_threshold' => 95.0,
+		) );
+
+		// Clear config cache to pick up new settings
+		WC_Payment_Monitor_Config::instance()->clear_cache();
 	}
 
 	/**
@@ -48,14 +58,16 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		$this->logger_instance->save_transaction( $data );
 
-		// 2. Trigger the hook manually (simulating the failure event)
-		// check_immediate_transaction_alert($order_id, $order_object) - Order object is unused in the method body currently
-		$order_dummy = new stdClass();
+		// Create a mock order object with get_payment_method method
+		$order_mock = $this->getMockBuilder( 'WC_Order' )
+			->disableOriginalConstructor()
+			->getMock();
+		$order_mock->method( 'get_payment_method' )->willReturn( 'stripe' );
 
 		// Capture alerts created
 		$start_count = $this->get_alert_count();
 
-		$this->alerts_instance->check_immediate_transaction_alert( $order_id, $order_dummy );
+		$this->alerts_instance->check_immediate_transaction_alert( $order_id, $order_mock );
 
 		$end_count = $this->get_alert_count();
 		$this->assertEquals( $start_count + 1, $end_count, 'Should create one alert' );
@@ -93,10 +105,14 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		$this->logger_instance->save_transaction( $data );
 
-		$order_dummy = new stdClass();
+		// Create a mock order object with get_payment_method method
+		$order_mock = $this->getMockBuilder( 'WC_Order' )
+			->disableOriginalConstructor()
+			->getMock();
+		$order_mock->method( 'get_payment_method' )->willReturn( 'stripe' );
 
 		$start_count = $this->get_alert_count();
-		$this->alerts_instance->check_immediate_transaction_alert( $order_id, $order_dummy );
+		$this->alerts_instance->check_immediate_transaction_alert( $order_id, $order_mock );
 		$end_count = $this->get_alert_count();
 
 		$this->assertEquals( $start_count, $end_count, 'Should NOT create immediate alert for soft errors' );
@@ -148,6 +164,12 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		$this->alerts_instance->check_gateway_alerts( $gateway_id, $health_data );
 
+		// Debug: Check if alert was created
+		global $wpdb;
+		$table = $this->database_instance->get_alerts_table();
+		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+		$this->assertGreaterThan( 0, $count, "No alerts were created in table {$table}" );
+
 		$latest_alert = $this->get_latest_alert();
 		$this->assertNotNull( $latest_alert );
 		$this->assertEquals( 'low_success_rate', $latest_alert['alert_type'] );
@@ -181,7 +203,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		$latest_alert = $this->get_latest_alert();
 		$this->assertNotNull( $latest_alert );
-		$this->assertEquals( 'high', $latest_alert['severity'], '0% success rate on 15 transactions should be high severity' );
+		$this->assertEquals( 'critical', $latest_alert['severity'], '0% success rate on 15 transactions should be critical severity' );
 	}
 
 	private function get_latest_alert() {

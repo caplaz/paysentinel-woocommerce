@@ -161,7 +161,7 @@ class WC_Payment_Monitor_Alert_Checker {
 		}
 
 		// Check if immediate alerts are enabled for this gateway
-		$settings = $this->config->get_all_settings();
+		$settings = $this->config->get_all();
 		if ( ! $this->is_gateway_alerts_enabled( $payment_method, $settings ) ) {
 			return;
 		}
@@ -180,11 +180,17 @@ class WC_Payment_Monitor_Alert_Checker {
 			return;
 		}
 
+		// Check if this is a soft error that shouldn't trigger alerts
+		$latest_transaction = $this->database->get_latest_transaction_for_order( $order_id );
+		if ( $latest_transaction && $this->is_soft_error( $latest_transaction ) ) {
+			return;
+		}
+
 		// Get order details for context
 		$alert_data = array(
 			'gateway_id'   => $payment_method,
-			'alert_type'   => 'immediate_transaction',
-			'severity'     => 'high',
+			'alert_type'   => 'gateway_error',
+			'severity'     => 'critical',
 			'success_rate' => null,
 			'period'       => 'immediate',
 			'message'      => sprintf(
@@ -210,7 +216,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	 * @param array  $health_data Health data for all periods.
 	 */
 	public function check_and_send( $gateway_id, $health_data ) {
-		$settings = $this->config->get_all_settings();
+		$settings = $this->config->get_all();
 
 		// Check if alerts are enabled for this gateway
 		if ( ! $this->is_gateway_alerts_enabled( $gateway_id, $settings ) ) {
@@ -233,12 +239,18 @@ class WC_Payment_Monitor_Alert_Checker {
 			if ( $this->should_trigger_alert( $gateway_id, $success_rate, $severity ) ) {
 				$alert_data = array(
 					'gateway_id'          => $gateway_id,
-					'alert_type'          => 'health',
+					'alert_type'          => 'low_success_rate',
 					'severity'            => $severity,
 					'success_rate'        => $success_rate,
 					'period'              => $period,
 					'total_transactions'  => $total_transactions,
 					'failed_transactions' => $data['failed_transactions'] ?? 0,
+					'metadata'            => array(
+						'success_rate'        => $success_rate,
+						'total_transactions'  => $total_transactions,
+						'failed_transactions' => $data['failed_transactions'] ?? 0,
+						'period'              => $period,
+					),
 				);
 
 				$this->trigger_alert( $alert_data );
@@ -257,6 +269,26 @@ class WC_Payment_Monitor_Alert_Checker {
 	 * @return string Severity level: 'critical', 'high', 'warning', or 'info'.
 	 */
 	private function calculate_severity( $success_rate, $total_transactions = 0 ) {
+		// Volume awareness: For very low transaction counts, reduce severity
+		// 1 transaction: even 0% success is just 'info' (not enough data)
+		// 2-5 transactions: 0% success is 'warning' 
+		// 6+ transactions: use normal severity thresholds
+		if ( $total_transactions <= 1 ) {
+			return $success_rate < 100 ? 'info' : 'info';
+		} elseif ( $total_transactions <= 5 ) {
+			if ( $success_rate < self::SEVERITY_THRESHOLDS['high'] ) {
+				return 'warning';
+			}
+			if ( $success_rate < self::SEVERITY_THRESHOLDS['warning'] ) {
+				return 'warning';
+			}
+			if ( $success_rate < self::SEVERITY_THRESHOLDS['info'] ) {
+				return 'info';
+			}
+			return 'info';
+		}
+
+		// Normal severity calculation for higher volumes
 		// Critical: Very low success rate or complete failure with transactions
 		if ( $success_rate < self::SEVERITY_THRESHOLDS['high'] ) {
 			return 'critical';
@@ -289,7 +321,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	 * @return bool True if alert should be triggered.
 	 */
 	private function should_trigger_alert( $gateway_id, $success_rate, $severity ) {
-		$settings = $this->config->get_all_settings();
+		$settings = $this->config->get_all();
 
 		// Get threshold for this gateway
 		$threshold = $this->get_gateway_alert_threshold( $gateway_id, $settings );
@@ -362,7 +394,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	public function is_rate_limited( $gateway_id, $alert_type ) {
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . 'wc_payment_monitor_alerts';
+		$table_name = $this->database->get_alerts_table();
 		$time_limit = date( 'Y-m-d H:i:s', time() - self::RATE_LIMIT_WINDOW );
 
 		$recent_alert = $wpdb->get_var(
@@ -391,15 +423,13 @@ class WC_Payment_Monitor_Alert_Checker {
 	public function trigger_alert( $alert_data ) {
 		// Save alert to database
 		$alert_record = array(
-			'gateway_id'   => $alert_data['gateway_id'],
-			'alert_type'   => $alert_data['alert_type'],
-			'severity'     => $alert_data['severity'],
-			'success_rate' => $alert_data['success_rate'] ?? null,
-			'period'       => $alert_data['period'] ?? 'unknown',
-			'message'      => $alert_data['message'] ?? '',
-			'metadata'     => isset( $alert_data['metadata'] ) ? wp_json_encode( $alert_data['metadata'] ) : null,
-			'created_at'   => current_time( 'mysql' ),
-			'is_resolved'  => 0,
+			'gateway_id' => $alert_data['gateway_id'],
+			'alert_type' => $alert_data['alert_type'],
+			'severity'   => $alert_data['severity'],
+			'message'    => $alert_data['message'] ?? '',
+			'metadata'   => isset( $alert_data['metadata'] ) ? wp_json_encode( $alert_data['metadata'] ) : null,
+			'created_at' => current_time( 'mysql' ),
+			'is_resolved' => 0,
 		);
 
 		$alert_id = $this->save_alert( $alert_record );
@@ -424,7 +454,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	 * @param float  $success_rate Current success rate.
 	 */
 	private function check_alert_resolution( $gateway_id, $success_rate ) {
-		$settings  = $this->config->get_all_settings();
+		$settings  = $this->config->get_all();
 		$threshold = $this->get_gateway_alert_threshold( $gateway_id, $settings );
 
 		// If success rate is back above threshold, resolve alerts
@@ -443,7 +473,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	public function resolve_alerts( $gateway_id, $alert_type ) {
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . 'wc_payment_monitor_alerts';
+		$table_name = $this->database->get_alerts_table();
 
 		$updated = $wpdb->update(
 			$table_name,
@@ -477,7 +507,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	private function save_alert( $alert_record ) {
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . 'wc_payment_monitor_alerts';
+		$table_name = $this->database->get_alerts_table();
 
 		$inserted = $wpdb->insert(
 			$table_name,
@@ -486,8 +516,6 @@ class WC_Payment_Monitor_Alert_Checker {
 				'%s', // gateway_id
 				'%s', // alert_type
 				'%s', // severity
-				'%f', // success_rate
-				'%s', // period
 				'%s', // message
 				'%s', // metadata
 				'%s', // created_at
@@ -500,5 +528,34 @@ class WC_Payment_Monitor_Alert_Checker {
 		}
 
 		return $wpdb->insert_id;
+	}
+
+	/**
+	 * Check if a transaction represents a soft error that shouldn't trigger alerts
+	 *
+	 * @param object $transaction Transaction data
+	 * @return bool True if this is a soft error
+	 */
+	private function is_soft_error( $transaction ) {
+		// Soft errors are declines that don't indicate gateway issues
+		$soft_error_codes = array( 'decline', 'insufficient_funds', 'card_declined' );
+		$soft_error_messages = array( 'insufficient funds', 'soft decline', 'declined' );
+
+		$failure_code = strtolower( $transaction->failure_code ?? '' );
+		$failure_reason = strtolower( $transaction->failure_reason ?? '' );
+
+		// Check failure code
+		if ( in_array( $failure_code, $soft_error_codes, true ) ) {
+			return true;
+		}
+
+		// Check failure reason for soft indicators
+		foreach ( $soft_error_messages as $soft_message ) {
+			if ( strpos( $failure_reason, $soft_message ) !== false ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

@@ -4,7 +4,7 @@ class RESTAPIRouteRegistrationTest extends WC_Payment_Monitor_Test_Case {
 
 	public function test_api_routes_are_registered() {
 		// Ensure REST API is initialized
-		( new WC_Payment_Monitor() )->init_api_endpoints();
+		WC_Payment_Monitor::get_instance()->init_api_endpoints();
 
 		$server = rest_get_server();
 		$routes = $server->get_routes();
