@@ -49,11 +49,14 @@ class DashboardNeutralStylingTest extends WC_Payment_Monitor_Test_Case {
 		$data = $response->get_data();
 
 		$this->assertIsArray( $data );
-		$this->assertArrayHasKey( 'items', $data );
-		$this->assertArrayHasKey( 'pagination', $data );
+		$this->assertArrayHasKey( 'success', $data );
+		$this->assertTrue( $data['success'] );
+		$this->assertArrayHasKey( 'data', $data );
+		$this->assertArrayHasKey( 'items', $data['data'] );
+		$this->assertArrayHasKey( 'pagination', $data['data'] );
 
 		// Test 2: Each gateway should have transaction_count field
-		foreach ( $data['items'] as $gateway ) {
+		foreach ( $data['data']['items'] as $gateway ) {
 			$this->assertArrayHasKey( 'transaction_count', $gateway );
 			$this->assertIsInt( $gateway['transaction_count'] );
 			$this->assertGreaterThanOrEqual( 0, $gateway['transaction_count'] );
@@ -61,7 +64,7 @@ class DashboardNeutralStylingTest extends WC_Payment_Monitor_Test_Case {
 
 		// Test 3: Gateways with zero transactions should have neutral styling indicators
 		$zero_transaction_gateways = array_filter(
-			$data['items'],
+			$data['data']['items'],
 			function ( $gateway ) {
 				return $gateway['transaction_count'] === 0;
 			}
@@ -156,11 +159,14 @@ class DashboardNeutralStylingTest extends WC_Payment_Monitor_Test_Case {
 		$data = $response->get_data();
 
 		$this->assertIsArray( $data );
-		$this->assertArrayHasKey( 'items', $data );
-		$this->assertArrayHasKey( 'pagination', $data );
+		$this->assertArrayHasKey( 'success', $data );
+		$this->assertTrue( $data['success'] );
+		$this->assertArrayHasKey( 'data', $data );
+		$this->assertArrayHasKey( 'items', $data['data'] );
+		$this->assertArrayHasKey( 'pagination', $data['data'] );
 
-		if ( ! empty( $data['items'] ) ) {
-			$first_gateway = $data['items'][0];
+		if ( ! empty( $data['data']['items'] ) ) {
+			$first_gateway = $data['data']['items'][0];
 
 			// Test 2: Required fields should always be present
 			$required_fields = array(
