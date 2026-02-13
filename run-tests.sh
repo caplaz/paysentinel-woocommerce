@@ -8,5 +8,6 @@ vendor/bin/phpunit \
   tests/core/SmartRetryLogicTest.php \
   tests/core/LicenseGatingTest.php \
   tests/core/HealthCalculationTest.php \
+  tests/admin/DashboardNeutralStylingTest.php \
   --verbose
 "
