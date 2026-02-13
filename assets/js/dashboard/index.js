@@ -301,10 +301,18 @@
 
         const healthData = await healthResponse.json();
         console.log("Health response:", healthData);
+
+        // Check if the response indicates success
+        if (healthData && healthData.success === false) {
+          console.error("Health API error:", healthData.message || healthData.code);
+          setHealthData([]);
+          return;
+        }
+
         const normalizedHealth = normalizeGateways(
           Array.isArray(healthData)
             ? healthData
-            : healthData?.data || healthData?.items || [],
+            : healthData?.data?.items || healthData?.data || healthData?.items || [],
         );
         setHealthData(normalizedHealth);
 
@@ -782,8 +790,14 @@
         const data = await response.json();
         console.log("Gateway health data:", data);
 
+        // Check if the response indicates success
+        if (data && data.success === false) {
+          setError(data.message || data.code || "Failed to fetch gateway health");
+          return;
+        }
+
         const normalized = normalizeGateways(
-          Array.isArray(data) ? data : data?.data || data?.items || [],
+          Array.isArray(data) ? data : data?.data?.items || data?.data || data?.items || [],
         );
 
         if (normalized.length === 0 && data?.message) {
