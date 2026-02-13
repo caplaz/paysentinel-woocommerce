@@ -223,7 +223,14 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 			$gateways = ( 'all' === $scope ) ? $this->get_wc_gateways_all() : $this->get_wc_gateways_enabled();
 
 			if ( empty( $gateways ) ) {
-				return $this->get_paginated_response( array(), 0, 1, 1 );
+				$paginated_response = $this->get_paginated_response( array(), 0, 1, 1 );
+				return new WP_REST_Response(
+					array(
+						'success' => true,
+						'data'    => $paginated_response->get_data(),
+					),
+					$paginated_response->get_status()
+				);
 			}
 
 			// Initialize connectivity checker
@@ -244,6 +251,9 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 					$health = $this->ensure_health_row( $gateway_id, $backend_period );
 				}
 
+				// Get real-time transaction counts (all-time) for consistency with Recent Transactions
+				$realtime_stats = $this->get_realtime_transaction_stats( $gateway_id );
+
 				// Get last connectivity check
 				$last_check = $connectivity->get_last_check( $gateway_id );
 
@@ -258,11 +268,12 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 						'success_rate'            => $is_locked ? 0 : floatval( $health->success_rate ),
 						'success_rate_24h'        => $is_locked ? 0 : floatval( $health->success_rate ),
 						'transaction_count'       => $is_locked ? 0 : intval( $health->total_transactions ),
+						'total_transactions'      => $is_locked ? 0 : intval( $realtime_stats['total'] ),  // Real-time all-time count
 						'successful_transactions' => $is_locked ? 0 : intval( $health->successful_transactions ),
 						'failed_transactions'     => $is_locked ? 0 : intval( $health->failed_transactions ),
 						'failed_count_24h'        => $is_locked ? 0 : intval( $health->failed_transactions ),
 						'avg_response_time'       => $is_locked ? null : ( isset( $health->avg_response_time ) ? intval( $health->avg_response_time ) : null ),
-						'last_checked'            => $health->calculated_at,
+						'last_checked'            => isset( $health->calculated_at ) ? $health->calculated_at : null,
 						'last_failure'            => null,
 						'trend_data'              => $trend_data,
 						'is_locked'               => $is_locked,
@@ -285,11 +296,19 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				}
 			}
 
-			return $this->get_paginated_response(
+			$paginated_response = $this->get_paginated_response(
 				$health_data,
 				count( $health_data ),
 				1,
 				max( 1, count( $health_data ) )
+			);
+
+			return new WP_REST_Response(
+				array(
+					'success' => true,
+					'data'    => $paginated_response->get_data(),
+				),
+				$paginated_response->get_status()
 			);
 		} catch ( Exception $e ) {
 			return $this->get_error_response(
@@ -742,5 +761,60 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				500
 			);
 		}
+	}
+
+	/**
+	 * Get real-time transaction statistics for a gateway (all-time)
+	 *
+	 * This provides consistent data with the Recent Transactions table
+	 *
+	 * @param string $gateway_id Gateway ID
+	 *
+	 * @return array Statistics array with total, successful, failed counts
+	 */
+	private function get_realtime_transaction_stats( $gateway_id ) {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'payment_monitor_transactions';
+
+		// Check if table exists
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
+			return array(
+				'total'      => 0,
+				'successful' => 0,
+				'failed'     => 0,
+				'pending'    => 0,
+			);
+		}
+
+		$stats = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT 
+					COUNT(*) as total,
+					SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful,
+					SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+					SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
+				FROM {$table_name} 
+				WHERE gateway_id = %s",
+				$gateway_id
+			),
+			ARRAY_A
+		);
+
+		if ( ! $stats ) {
+			return array(
+				'total'      => 0,
+				'successful' => 0,
+				'failed'     => 0,
+				'pending'    => 0,
+			);
+		}
+
+		return array(
+			'total'      => intval( $stats['total'] ),
+			'successful' => intval( $stats['successful'] ),
+			'failed'     => intval( $stats['failed'] ),
+			'pending'    => intval( $stats['pending'] ),
+		);
 	}
 }
