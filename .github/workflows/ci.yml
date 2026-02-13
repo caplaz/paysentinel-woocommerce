@@ -45,7 +45,20 @@ jobs:
 
       - name: Run tests
         run: |
-          docker compose run --rm tests vendor/bin/phpunit tests/ 2>&1 | grep -v -E 'SERIALIZATION_FORMAT|^There were [0-9]+ warnings|^[0-9]+\) Database'
+          # Run tests and capture both output and exit code
+          set +e
+          output=$(docker compose run --rm tests vendor/bin/phpunit tests/ 2>&1)
+          exit_code=$?
+          set -e
+
+          # Filter output for display
+          echo "$output" | grep -v -E 'SERIALIZATION_FORMAT|^There were [0-9]+ warnings|^[0-9]+\) Database'
+
+          # Fail the step if tests failed
+          if [ $exit_code -ne 0 ]; then
+            echo "Tests failed with exit code $exit_code"
+            exit $exit_code
+          fi
 
       - name: Stop services
         run: docker compose down
