@@ -559,6 +559,11 @@
   color: #3c434a;
   background: #f6f7f7;
   white-space: nowrap;
+  padding-left: 24px;
+}
+
+.recent-alerts table thead tr {
+  border-left: 4px solid #ccd0d4;
 }
 
 .recent-alerts table thead th:nth-child(1),
@@ -619,6 +624,10 @@
   border-left: 4px solid #d63638;
 }
 
+.recent-alerts .alert-row.alert-high {
+  border-left: 4px solid #e67e22;
+}
+
 .recent-alerts .alert-row.alert-warning {
   border-left: 4px solid #dba617;
 }
@@ -639,6 +648,11 @@
 
 .severity-badge.critical {
   background: #d63638;
+  color: #fff;
+}
+
+.severity-badge.high {
+  background: #e67e22;
   color: #fff;
 }
 

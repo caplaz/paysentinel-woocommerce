@@ -664,7 +664,6 @@
                       React.createElement("br"),
                       React.createElement("small", null, alert.message),
                     ),
-                    React.createElement("td", null, alert.gateway_id || "-"),
                     React.createElement(
                       "td",
                       null,
