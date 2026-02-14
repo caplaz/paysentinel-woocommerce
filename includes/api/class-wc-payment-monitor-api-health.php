@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 
+
 	/**
 	 * Register REST routes for health endpoints
 	 */
@@ -268,7 +269,7 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 						'success_rate'            => $is_locked ? 0 : floatval( $health->success_rate ),
 						'success_rate_24h'        => $is_locked ? 0 : floatval( $health->success_rate ),
 						'transaction_count'       => $is_locked ? 0 : intval( $health->total_transactions ),
-						'total_transactions'      => $is_locked ? 0 : intval( $realtime_stats['total'] ),  // Real-time all-time count
+						'total_transactions'      => $is_locked ? 0 : intval( $realtime_stats['total'] ),  // Real-time all-time count.
 						'successful_transactions' => $is_locked ? 0 : intval( $health->successful_transactions ),
 						'failed_transactions'     => $is_locked ? 0 : intval( $health->failed_transactions ),
 						'failed_count_24h'        => $is_locked ? 0 : intval( $health->failed_transactions ),
@@ -296,19 +297,11 @@ class WC_Payment_Monitor_API_Health extends WC_Payment_Monitor_API_Base {
 				}
 			}
 
-			$paginated_response = $this->get_paginated_response(
+			return $this->get_paginated_response(
 				$health_data,
 				count( $health_data ),
 				1,
 				max( 1, count( $health_data ) )
-			);
-
-			return new WP_REST_Response(
-				array(
-					'success' => true,
-					'data'    => $paginated_response->get_data(),
-				),
-				$paginated_response->get_status()
 			);
 		} catch ( Exception $e ) {
 			return $this->get_error_response(

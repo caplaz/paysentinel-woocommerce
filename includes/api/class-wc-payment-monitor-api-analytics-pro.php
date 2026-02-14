@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Payment_Monitor_API_Analytics_Pro extends WC_Payment_Monitor_API_Base {
 
+
 	/**
 	 * Analytics instance
 	 */
@@ -147,13 +148,7 @@ class WC_Payment_Monitor_API_Analytics_Pro extends WC_Payment_Monitor_API_Base {
 			);
 		}
 
-		return new WP_REST_Response(
-			array(
-				'success' => true,
-				'data'    => $result,
-			),
-			200
-		);
+		return $this->get_success_response( $result );
 	}
 
 	/**
@@ -185,13 +180,7 @@ class WC_Payment_Monitor_API_Analytics_Pro extends WC_Payment_Monitor_API_Base {
 			);
 		}
 
-		return new WP_REST_Response(
-			array(
-				'success' => true,
-				'data'    => $result,
-			),
-			200
-		);
+		return $this->get_success_response( $result );
 	}
 
 	/**
@@ -212,13 +201,7 @@ class WC_Payment_Monitor_API_Analytics_Pro extends WC_Payment_Monitor_API_Base {
 			);
 		}
 
-		return new WP_REST_Response(
-			array(
-				'success' => true,
-				'data'    => $result,
-			),
-			200
-		);
+		return $this->get_success_response( $result );
 	}
 
 	/**
@@ -250,13 +233,7 @@ class WC_Payment_Monitor_API_Analytics_Pro extends WC_Payment_Monitor_API_Base {
 			);
 		}
 
-		return new WP_REST_Response(
-			array(
-				'success' => true,
-				'data'    => $result,
-			),
-			200
-		);
+		return $this->get_success_response( $result );
 	}
 
 	/**

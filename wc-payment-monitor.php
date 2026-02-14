@@ -518,7 +518,7 @@ class WC_Payment_Monitor {
 
 		// Fallback: check if the plugin file exists in active plugins
 		$active_plugins = get_option( 'active_plugins', array() );
-		return in_array( 'woocommerce/woocommerce.php', $active_plugins );
+		return in_array( 'woocommerce/woocommerce.php', $active_plugins, true );
 	}
 
 	/**

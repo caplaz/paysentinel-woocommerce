@@ -20,11 +20,14 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		$this->database_instance->create_tables();
 
 		// Enable alerts for testing
-		update_option( 'wc_payment_monitor_options', array(
-			'alerts_enabled' => true,
-			'immediate_transaction_alerts' => true,
-			'alert_threshold' => 95.0,
-		) );
+		update_option(
+			'wc_payment_monitor_options',
+			array(
+				'alerts_enabled'               => true,
+				'immediate_transaction_alerts' => true,
+				'alert_threshold'              => 95.0,
+			)
+		);
 
 		// Clear config cache to pick up new settings
 		WC_Payment_Monitor_Config::instance()->clear_cache();

@@ -374,7 +374,7 @@ class WC_Payment_Monitor_Admin {
 
 		$current_settings = get_option( 'wc_payment_monitor_options', array() );
 		$updated_settings = array_merge( $current_settings, $new_settings );
-		
+
 		return update_option( 'wc_payment_monitor_options', $updated_settings );
 	}
 
@@ -386,7 +386,7 @@ class WC_Payment_Monitor_Admin {
 	 */
 	public static function validate_health_check_interval( $interval ) {
 		$interval = intval( $interval );
-		
+
 		if ( $interval < 1 ) {
 			return array(
 				'valid'   => false,
@@ -394,7 +394,7 @@ class WC_Payment_Monitor_Admin {
 				'message' => 'Health check interval must be at least 1 minute',
 			);
 		}
-		
+
 		if ( $interval > 1440 ) {
 			return array(
 				'valid'   => false,
@@ -402,7 +402,7 @@ class WC_Payment_Monitor_Admin {
 				'message' => 'Health check interval cannot exceed 1440 minutes (24 hours)',
 			);
 		}
-		
+
 		return array(
 			'valid' => true,
 			'value' => $interval,
@@ -424,7 +424,7 @@ class WC_Payment_Monitor_Admin {
 				'errors'  => array( 'Retry configuration must be an array' ),
 			);
 		}
-		
+
 		if ( empty( $config ) ) {
 			return array(
 				'valid'   => false,
@@ -433,10 +433,10 @@ class WC_Payment_Monitor_Admin {
 				'errors'  => array( 'Retry configuration cannot be empty' ),
 			);
 		}
-		
+
 		$validated = array();
-		$errors = array();
-		
+		$errors    = array();
+
 		// Validate max_retry_attempts
 		if ( isset( $config['max_retry_attempts'] ) ) {
 			$attempts = intval( $config['max_retry_attempts'] );
@@ -446,12 +446,12 @@ class WC_Payment_Monitor_Admin {
 				$validated['max_retry_attempts'] = $attempts;
 			}
 		}
-		
+
 		// Validate retry_enabled
 		if ( isset( $config['retry_enabled'] ) ) {
 			$validated['retry_enabled'] = (bool) $config['retry_enabled'];
 		}
-		
+
 		if ( ! empty( $errors ) ) {
 			return array(
 				'valid'   => false,
@@ -460,7 +460,7 @@ class WC_Payment_Monitor_Admin {
 				'errors'  => $errors,
 			);
 		}
-		
+
 		return array(
 			'valid' => true,
 			'value' => $validated,
@@ -475,7 +475,7 @@ class WC_Payment_Monitor_Admin {
 	 */
 	public static function validate_alert_threshold( $threshold ) {
 		$threshold = floatval( $threshold );
-		
+
 		if ( $threshold < 0.1 || $threshold > 100 ) {
 			return array(
 				'valid'   => false,
@@ -484,7 +484,7 @@ class WC_Payment_Monitor_Admin {
 				'errors'  => array( 'Alert threshold must be between 0.1 and 100' ),
 			);
 		}
-		
+
 		return array(
 			'valid' => true,
 			'value' => $threshold,
@@ -500,13 +500,13 @@ class WC_Payment_Monitor_Admin {
 	public static function validate_all_settings( $settings ) {
 		if ( ! is_array( $settings ) ) {
 			return array(
-				'valid' => false,
-				'errors' => array( 'Settings must be an array' ),
+				'valid'              => false,
+				'errors'             => array( 'Settings must be an array' ),
 				'validated_settings' => array(),
 			);
 		}
 
-		$errors = array();
+		$errors             = array();
 		$validated_settings = array();
 
 		// Validate health_check_interval
@@ -570,8 +570,8 @@ class WC_Payment_Monitor_Admin {
 		}
 
 		return array(
-			'valid' => empty( $errors ),
-			'errors' => $errors,
+			'valid'              => empty( $errors ),
+			'errors'             => $errors,
 			'validated_settings' => $validated_settings,
 		);
 	}

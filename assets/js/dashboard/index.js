@@ -72,34 +72,6 @@
   }
 
   /**
-   * Normalize paginated or direct array responses into { items, total }
-   */
-  function normalizeCollectionResponse(payload) {
-    if (!payload) return { items: [], total: 0 };
-
-    if (Array.isArray(payload)) {
-      return { items: payload, total: payload.length };
-    }
-
-    if (payload.items) {
-      return {
-        items: Array.isArray(payload.items) ? payload.items : [],
-        total: payload.pagination?.total || payload.items.length || 0,
-      };
-    }
-
-    if (payload.data) {
-      const dataItems = Array.isArray(payload.data) ? payload.data : [];
-      return {
-        items: dataItems,
-        total: payload.total || dataItems.length || 0,
-      };
-    }
-
-    return { items: [], total: 0 };
-  }
-
-  /**
    * HealthTrendChart Component
    * Renders a Chart.js line chart for gateway health trends
    */
@@ -303,16 +275,17 @@
         console.log("Health response:", healthData);
 
         // Check if the response indicates success
-        if (healthData && healthData.success === false) {
-          console.error("Health API error:", healthData.message || healthData.code);
+        if (healthData.success === false) {
+          console.error(
+            "Health API error:",
+            healthData.message || healthData.code,
+          );
           setHealthData([]);
           return;
         }
 
         const normalizedHealth = normalizeGateways(
-          Array.isArray(healthData)
-            ? healthData
-            : healthData?.data?.items || healthData?.data || healthData?.items || [],
+          healthData.data?.items || [],
         );
         setHealthData(normalizedHealth);
 
@@ -341,9 +314,17 @@
 
         const transactionsData = await transactionsResponse.json();
         console.log("Transactions response:", transactionsData);
-        const normalizedTransactions =
-          normalizeCollectionResponse(transactionsData);
-        setTransactions(normalizedTransactions.items);
+
+        if (transactionsData.success === false) {
+          console.error(
+            "Transactions API error:",
+            transactionsData.message || transactionsData.code,
+          );
+          setTransactions([]);
+          return;
+        }
+
+        setTransactions(transactionsData.data?.items || []);
 
         // Load recent alerts
         console.log("Loading alerts...");
@@ -368,8 +349,17 @@
 
         const alertsData = await alertsResponse.json();
         console.log("Alerts response:", alertsData);
-        const normalizedAlerts = normalizeCollectionResponse(alertsData);
-        setAlerts(normalizedAlerts.items);
+
+        if (alertsData.success === false) {
+          console.error(
+            "Alerts API error:",
+            alertsData.message || alertsData.code,
+          );
+          setAlerts([]);
+          return;
+        }
+
+        setAlerts(alertsData.data?.items || []);
 
         setLoading(false);
       } catch (err) {
@@ -621,7 +611,11 @@
                 ),
               ),
             )
-          : React.createElement("p", null, "No recent transactions."),
+          : React.createElement(
+              "p",
+              { style: { marginLeft: "20px" } },
+              "No recent transactions.",
+            ),
       ),
 
       // Recent Alerts
@@ -697,7 +691,11 @@
                 ),
               ),
             )
-          : React.createElement("p", null, "No recent alerts."),
+          : React.createElement(
+              "p",
+              { style: { marginLeft: "20px" } },
+              "No recent alerts.",
+            ),
       ),
     );
   }
@@ -791,22 +789,18 @@
         console.log("Gateway health data:", data);
 
         // Check if the response indicates success
-        if (data && data.success === false) {
-          setError(data.message || data.code || "Failed to fetch gateway health");
+        if (data.success === false) {
+          setError(
+            data.message || data.code || "Failed to fetch gateway health",
+          );
           return;
         }
 
-        const normalized = normalizeGateways(
-          Array.isArray(data) ? data : data?.data?.items || data?.data || data?.items || [],
-        );
+        const normalized = normalizeGateways(data.data?.items || []);
 
-        if (normalized.length === 0 && data?.message) {
-          setError(data.message || "Failed to fetch gateway health");
-        } else {
-          setGateways(normalized);
-          // Clear any prior error once we have valid data
-          setError(null);
-        }
+        setGateways(normalized);
+        // Clear any prior error once we have valid data
+        setError(null);
       } catch (err) {
         setError(err.message || "Failed to fetch gateway health");
         console.error("Gateway health fetch error:", err);
@@ -1261,18 +1255,13 @@
         const data = await response.json();
         console.log("Transactions data:", data);
 
-        if (data.items && Array.isArray(data.items)) {
-          setTransactions(data.items);
-          setTotalCount(data.pagination?.total || data.items.length || 0);
-        } else if (data.success && data.data) {
-          setTransactions(data.data);
-          setTotalCount(data.total || data.data.length || 0);
-        } else if (Array.isArray(data)) {
-          setTransactions(data);
-          setTotalCount(data.length);
-        } else {
-          setError(data.message || "Failed to fetch transactions");
+        if (data.success === false) {
+          setError(data.message || data.code || "Failed to fetch transactions");
+          return;
         }
+
+        setTransactions(data.data?.items || []);
+        setTotalCount(data.data?.total || data.data?.items?.length || 0);
       } catch (err) {
         setError(err.message || "Failed to fetch transactions");
         console.error("Transaction fetch error:", err);
@@ -1709,18 +1698,13 @@
           .then((data) => {
             console.log("Alerts data:", data);
 
-            if (data.items && Array.isArray(data.items)) {
-              setAlerts(data.items);
-              setTotalCount(data.pagination?.total || data.items.length || 0);
-            } else if (data.success && data.data) {
-              setAlerts(data.data);
-              setTotalCount(data.total || data.data.length || 0);
-            } else if (Array.isArray(data)) {
-              setAlerts(data);
-              setTotalCount(data.length);
-            } else {
-              setError(data.message || "Failed to fetch alerts");
+            if (data.success === false) {
+              setError(data.message || data.code || "Failed to fetch alerts");
+              return;
             }
+
+            setAlerts(data.data?.items || []);
+            setTotalCount(data.data?.total || data.data?.items?.length || 0);
           })
           .catch((err) => {
             setError(err.message || "Failed to fetch alerts");

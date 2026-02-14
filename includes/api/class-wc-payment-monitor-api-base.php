@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 abstract class WC_Payment_Monitor_API_Base {
 
+
 	/**
 	 * REST namespace
 	 */
@@ -105,7 +106,13 @@ abstract class WC_Payment_Monitor_API_Base {
 	 * @return WP_REST_Response
 	 */
 	protected function get_success_response( $data, $status = 200 ) {
-		return new WP_REST_Response( $data, $status );
+		return new WP_REST_Response(
+			array(
+				'success' => true,
+				'data'    => $data,
+			),
+			$status
+		);
 	}
 
 	/**
@@ -122,12 +129,16 @@ abstract class WC_Payment_Monitor_API_Base {
 	protected function get_paginated_response( $items, $total, $page, $per_page, $status = 200 ) {
 		return new WP_REST_Response(
 			array(
-				'items'      => $items,
-				'pagination' => array(
-					'page'        => intval( $page ),
-					'per_page'    => intval( $per_page ),
-					'total'       => intval( $total ),
-					'total_pages' => intval( ceil( $total / $per_page ) ),
+				'success' => true,
+				'data'    => array(
+					'items'      => $items,
+					'total'      => intval( $total ),
+					'pagination' => array(
+						'page'        => intval( $page ),
+						'per_page'    => intval( $per_page ),
+						'total'       => intval( $total ),
+						'total_pages' => intval( ceil( $total / $per_page ) ),
+					),
 				),
 			),
 			$status

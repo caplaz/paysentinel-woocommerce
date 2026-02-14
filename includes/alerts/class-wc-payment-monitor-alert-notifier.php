@@ -241,10 +241,10 @@ class WC_Payment_Monitor_Alert_Notifier {
 		);
 
 		// Add channel-specific fields
-		if ( in_array( 'sms', $channels ) && ! empty( $contact['phone'] ) ) {
+		if ( in_array( 'sms', $channels, true ) && ! empty( $contact['phone'] ) ) {
 			$payload['alert_type'] = 'SMS';
 			$payload['recipient']  = $contact['phone'];
-		} elseif ( in_array( 'slack', $channels ) && ! empty( $contact['slack_workspace'] ) ) {
+		} elseif ( in_array( 'slack', $channels, true ) && ! empty( $contact['slack_workspace'] ) ) {
 			$payload['alert_type']     = 'SLACK';
 			$payload['integration_id'] = $contact['slack_workspace'];
 		} else {

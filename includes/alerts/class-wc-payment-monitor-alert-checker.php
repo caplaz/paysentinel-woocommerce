@@ -271,7 +271,7 @@ class WC_Payment_Monitor_Alert_Checker {
 	private function calculate_severity( $success_rate, $total_transactions = 0 ) {
 		// Volume awareness: For very low transaction counts, reduce severity
 		// 1 transaction: even 0% success is just 'info' (not enough data)
-		// 2-5 transactions: 0% success is 'warning' 
+		// 2-5 transactions: 0% success is 'warning'
 		// 6+ transactions: use normal severity thresholds
 		if ( $total_transactions <= 1 ) {
 			return $success_rate < 100 ? 'info' : 'info';
@@ -423,12 +423,12 @@ class WC_Payment_Monitor_Alert_Checker {
 	public function trigger_alert( $alert_data ) {
 		// Save alert to database
 		$alert_record = array(
-			'gateway_id' => $alert_data['gateway_id'],
-			'alert_type' => $alert_data['alert_type'],
-			'severity'   => $alert_data['severity'],
-			'message'    => $alert_data['message'] ?? '',
-			'metadata'   => isset( $alert_data['metadata'] ) ? wp_json_encode( $alert_data['metadata'] ) : null,
-			'created_at' => current_time( 'mysql' ),
+			'gateway_id'  => $alert_data['gateway_id'],
+			'alert_type'  => $alert_data['alert_type'],
+			'severity'    => $alert_data['severity'],
+			'message'     => $alert_data['message'] ?? '',
+			'metadata'    => isset( $alert_data['metadata'] ) ? wp_json_encode( $alert_data['metadata'] ) : null,
+			'created_at'  => current_time( 'mysql' ),
 			'is_resolved' => 0,
 		);
 
@@ -538,10 +538,10 @@ class WC_Payment_Monitor_Alert_Checker {
 	 */
 	private function is_soft_error( $transaction ) {
 		// Soft errors are declines that don't indicate gateway issues
-		$soft_error_codes = array( 'decline', 'insufficient_funds', 'card_declined' );
+		$soft_error_codes    = array( 'decline', 'insufficient_funds', 'card_declined' );
 		$soft_error_messages = array( 'insufficient funds', 'soft decline', 'declined' );
 
-		$failure_code = strtolower( $transaction->failure_code ?? '' );
+		$failure_code   = strtolower( $transaction->failure_code ?? '' );
 		$failure_reason = strtolower( $transaction->failure_reason ?? '' );
 
 		// Check failure code

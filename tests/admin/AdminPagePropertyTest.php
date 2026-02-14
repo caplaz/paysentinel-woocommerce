@@ -150,13 +150,13 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 
 		// Create admin instance and get handlers
 		$this->admin = new WC_Payment_Monitor_Admin();
-		
+
 		// Access the handlers through reflection since they're private
-		$admin_reflection = new ReflectionClass( $this->admin );
+		$admin_reflection      = new ReflectionClass( $this->admin );
 		$menu_handler_property = $admin_reflection->getProperty( 'menu_handler' );
 		$menu_handler_property->setAccessible( true );
 		$this->menu_handler = $menu_handler_property->getValue( $this->admin );
-		
+
 		$settings_handler_property = $admin_reflection->getProperty( 'settings_handler' );
 		$settings_handler_property->setAccessible( true );
 		$this->settings_handler = $settings_handler_property->getValue( $this->admin );

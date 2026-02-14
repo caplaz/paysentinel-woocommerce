@@ -68,22 +68,22 @@ class HealthAPITest extends WP_UnitTestCase {
 		// Insert test transactions
 		$transactions = array(
 			array(
-				'gateway_id'    => $gateway_id,
-				'status'        => 'success',
-				'amount'        => 100.00,
-				'created_at'    => current_time( 'mysql' ),
+				'gateway_id' => $gateway_id,
+				'status'     => 'success',
+				'amount'     => 100.00,
+				'created_at' => current_time( 'mysql' ),
 			),
 			array(
-				'gateway_id'    => $gateway_id,
-				'status'        => 'failed',
-				'amount'        => 50.00,
-				'created_at'    => current_time( 'mysql' ),
+				'gateway_id' => $gateway_id,
+				'status'     => 'failed',
+				'amount'     => 50.00,
+				'created_at' => current_time( 'mysql' ),
 			),
 			array(
-				'gateway_id'    => $gateway_id,
-				'status'        => 'pending',
-				'amount'        => 75.00,
-				'created_at'    => current_time( 'mysql' ),
+				'gateway_id' => $gateway_id,
+				'status'     => 'pending',
+				'amount'     => 75.00,
+				'created_at' => current_time( 'mysql' ),
 			),
 		);
 

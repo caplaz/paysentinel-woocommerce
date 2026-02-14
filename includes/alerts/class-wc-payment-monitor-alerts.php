@@ -198,13 +198,13 @@ class WC_Payment_Monitor_Alerts {
 	 */
 	public function check_and_send( $gateway_id, $health_data ) {
 		$alerts_triggered = $this->check_gateway_alerts( $gateway_id, $health_data );
-		
+
 		if ( ! empty( $alerts_triggered ) ) {
 			foreach ( $alerts_triggered as $alert ) {
 				$this->notifier->send_notifications( $alert, $alert['id'] ?? null );
 			}
 		}
-		
+
 		return true;
 	}
 

@@ -291,14 +291,24 @@ if ( ! function_exists( 'wp_json_encode' ) ) {
 
 if ( ! function_exists( 'wp_send_json_success' ) ) {
 	function wp_send_json_success( $data = null, $status_code = null ) {
-		echo json_encode( array( 'success' => true, 'data' => $data ) );
+		echo json_encode(
+			array(
+				'success' => true,
+				'data'    => $data,
+			)
+		);
 		throw new Exception( 'wp_send_json_success' );
 	}
 }
 
 if ( ! function_exists( 'wp_send_json_error' ) ) {
 	function wp_send_json_error( $data = null, $status_code = null ) {
-		echo json_encode( array( 'success' => false, 'data' => $data ) );
+		echo json_encode(
+			array(
+				'success' => false,
+				'data'    => $data,
+			)
+		);
 		throw new Exception( 'wp_send_json_error' );
 	}
 }

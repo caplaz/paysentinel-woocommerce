@@ -272,7 +272,7 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 
 			// Default per_page should be a multiple of common values
 			$this->assertTrue(
-				in_array( $default_per_page, array( 10, 20, 25, 50, 100 ) )
+				in_array( $default_per_page, array( 10, 20, 25, 50, 100 ), true )
 			);
 		}
 	}

@@ -46,7 +46,7 @@ class DashboardNeutralStylingTest extends WC_Payment_Monitor_Test_Case {
 		$request->set_param( 'scope', 'all' );
 
 		$response = $this->api_health->get_all_gateway_health( $request );
-		$data = $response->get_data();
+		$data     = $response->get_data();
 
 		$this->assertIsArray( $data );
 		$this->assertArrayHasKey( 'success', $data );
@@ -156,7 +156,7 @@ class DashboardNeutralStylingTest extends WC_Payment_Monitor_Test_Case {
 		$request->set_param( 'scope', 'all' );
 
 		$response = $this->api_health->get_all_gateway_health( $request );
-		$data = $response->get_data();
+		$data     = $response->get_data();
 
 		$this->assertIsArray( $data );
 		$this->assertArrayHasKey( 'success', $data );

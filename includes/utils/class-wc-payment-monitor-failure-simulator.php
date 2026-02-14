@@ -247,7 +247,7 @@ class WC_Payment_Monitor_Failure_Simulator {
 
 		$scenario = self::FAILURE_SCENARIOS[ $scenario_key ];
 
-		// Add metadata before updating status (like a real gateway would)
+		// Add metadata before updating status (like a real gateway would).
 		$order->add_meta_data( '_wc_payment_monitor_simulated_failure', true );
 		$order->add_meta_data( '_wc_payment_monitor_failure_scenario', $scenario_key );
 		$order->add_meta_data( '_wc_payment_monitor_failure_message', $scenario['message'] );
@@ -257,7 +257,7 @@ class WC_Payment_Monitor_Failure_Simulator {
 		$order->save();
 
 		// Update order status to failed
-		// This triggers the woocommerce_order_status_failed hook, which logs the transaction
+		// This triggers the woocommerce_order_status_failed hook, which logs the transaction.
 		$order->update_status(
 			'failed',
 			sprintf(
@@ -293,15 +293,15 @@ class WC_Payment_Monitor_Failure_Simulator {
 			);
 		}
 
-		// Use random enabled gateway if not specified
+		// Use random enabled gateway if not specified.
 		if ( empty( $gateway_id ) ) {
 			$gateway_id = $this->get_random_enabled_gateway();
 		}
 
-		// Create a test order with realistic data
+		// Create a test order with realistic data.
 		$order = wc_create_order();
 
-		// Set basic order properties
+		// Set basic order properties.
 		$order->set_payment_method( $gateway_id );
 		$order->set_currency( 'USD' );
 		$order->set_billing_first_name( 'Test' );
@@ -318,13 +318,13 @@ class WC_Payment_Monitor_Failure_Simulator {
 			$order->add_product( $product, 1 );
 		}
 
-		// Calculate totals before setting transaction-specific data
+		// Calculate totals before setting transaction-specific data.
 		$order->calculate_totals();
 
-		// Now set transaction-specific data (after calculate_totals to ensure it's not cleared)
+		// Now set transaction-specific data (after calculate_totals to ensure it's not cleared).
 		$transaction_id = strtolower( $gateway_id ) . '_sim_' . uniqid() . '_' . time();
 		$customer_email = 'test-failure-' . uniqid() . '@example.com';
-		$customer_ip    = '192.168.1.' . rand( 1, 254 );
+		$customer_ip    = '192.168.1.' . wp_rand( 1, 254 );
 
 		$order->set_transaction_id( $transaction_id );
 		$order->set_billing_email( $customer_email );
