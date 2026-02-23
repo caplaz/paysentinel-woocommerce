@@ -20,6 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class PaySentinel_Admin_Page_Renderer {
 
+
 	/**
 	 * Database instance
 	 *
@@ -95,7 +96,8 @@ class PaySentinel_Admin_Page_Renderer {
 		?>
 		<div class="wrap">
 			<?php if ( isset( $_GET['message'] ) ) : ?>
-				<div class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( $_GET['type'] ) : 'info' ); ?> is-dismissible">
+				<div
+					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( $_GET['type'] ) : 'info' ); ?> is-dismissible">
 					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
 				</div>
 			<?php endif; ?>
@@ -113,9 +115,12 @@ class PaySentinel_Admin_Page_Renderer {
 							$quota_color = '#f0b849'; // yellow
 						}
 						?>
-						<div style="background: #fff; border: 1px solid #ccd0d4; padding: 6px 12px; border-radius: 4px; font-size: 13px; display: inline-flex; align-items: center;">
-							<span class="dashicons dashicons-smartphone" style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px; color: #646970;"></span>
-							<span style="color: #646970; margin-right: 5px;"><?php esc_html_e( 'SMS Quota:', 'paysentinel' ); ?></span>
+						<div
+							style="background: #fff; border: 1px solid #ccd0d4; padding: 6px 12px; border-radius: 4px; font-size: 13px; display: inline-flex; align-items: center;">
+							<span class="dashicons dashicons-smartphone"
+								style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px; color: #646970;"></span>
+							<span
+								style="color: #646970; margin-right: 5px;"><?php esc_html_e( 'SMS Quota:', 'paysentinel' ); ?></span>
 							<span style="font-weight: 600; color: <?php echo esc_attr( $quota_color ); ?>;">
 								<?php echo esc_html( $quota['sms_remaining'] ); ?>/<?php echo esc_html( $quota['sms_limit'] ); ?>
 							</span>
@@ -127,10 +132,13 @@ class PaySentinel_Admin_Page_Renderer {
 					$quota_exceeded = get_option( 'paysentinel_quota_exceeded', false );
 					if ( $quota_exceeded ) :
 						?>
-						<div style="background: #dc3232; color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; display: inline-flex; align-items: center;">
-							<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px;"></span>
+						<div
+							style="background: #dc3232; color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; display: inline-flex; align-items: center;">
+							<span class="dashicons dashicons-warning"
+								style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px;"></span>
 							<?php esc_html_e( 'SMS Quota Exceeded', 'paysentinel' ); ?>
-							<a href="<?php echo esc_url( PaySentinel_License::SAAS_URL . '/upgrade' ); ?>" target="_blank" style="color: white; text-decoration: underline; margin-left: 10px;">
+							<a href="<?php echo esc_url( PaySentinel_License::SAAS_URL . '/upgrade' ); ?>" target="_blank"
+								style="color: white; text-decoration: underline; margin-left: 10px;">
 								<?php esc_html_e( 'Upgrade', 'paysentinel' ); ?>
 							</a>
 						</div>
@@ -248,52 +256,62 @@ class PaySentinel_Admin_Page_Renderer {
 											<table class="form-table" style="margin-top: 0; margin-bottom: 0;">
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Transaction ID', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Transaction ID', 'paysentinel' ); ?>
+													</th>
 													<td><?php echo esc_html( $t->transaction_id ? $t->transaction_id : '-' ); ?></td>
 												</tr>
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Order ID', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Order ID', 'paysentinel' ); ?>
+													</th>
 													<td>#<?php echo esc_html( $t->order_id ); ?></td>
 												</tr>
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Gateway', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Gateway', 'paysentinel' ); ?>
+													</th>
 													<td><?php echo esc_html( $t->gateway_id ); ?></td>
 												</tr>
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Status', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Status', 'paysentinel' ); ?>
+													</th>
 													<td><?php echo esc_html( ucfirst( $t->status ) ); ?></td>
 												</tr>
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Failure Reason', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Failure Reason', 'paysentinel' ); ?>
+													</th>
 													<td><?php echo esc_html( $t->failure_reason ? $t->failure_reason : '-' ); ?></td>
 												</tr>
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Failure Code', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Failure Code', 'paysentinel' ); ?>
+													</th>
 													<td><?php echo esc_html( $t->failure_code ? $t->failure_code : '-' ); ?></td>
 												</tr>
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Retry Count', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Retry Count', 'paysentinel' ); ?>
+													</th>
 													<td><?php echo esc_html( $t->retry_count ); ?></td>
 												</tr>
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Customer Email', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Customer Email', 'paysentinel' ); ?>
+													</th>
 													<td><?php echo esc_html( $t->customer_email ); ?></td>
 												</tr>
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Customer IP', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Customer IP', 'paysentinel' ); ?>
+													</th>
 													<td><?php echo esc_html( $t->customer_ip ); ?></td>
 												</tr>
 												<tr>
 													<th style="width: 130px; vertical-align: top; font-weight: 600;">
-														<?php esc_html_e( 'Created At', 'paysentinel' ); ?></th>
+														<?php esc_html_e( 'Created At', 'paysentinel' ); ?>
+													</th>
 													<td><?php echo esc_html( $t->created_at ); ?></td>
 												</tr>
 											</table>
@@ -356,19 +374,20 @@ class PaySentinel_Admin_Page_Renderer {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Payment Monitor Settings', 'paysentinel' ); ?></h1>
-			
+
 			<?php if ( isset( $_GET['message'] ) ) : ?>
-				<div class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( $_GET['type'] ) : 'info' ); ?> is-dismissible">
+				<div
+					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( $_GET['type'] ) : 'info' ); ?> is-dismissible">
 					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
 				</div>
 			<?php endif; ?>
 
 			<?php settings_errors( 'paysentinel_options' ); ?>
 			<?php settings_errors( 'paysentinel_license' ); ?>
-			
+
 			<nav class="nav-tab-wrapper woo-nav-tab-wrapper" style="margin-bottom: 20px;">
 				<?php foreach ( $tabs as $id => $label ) : ?>
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=paysentinel-settings&tab=' . $id ) ); ?>" 
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=paysentinel-settings&tab=' . $id ) ); ?>"
 						class="nav-tab <?php echo $active_tab === $id ? 'nav-tab-active' : ''; ?>">
 						<?php echo esc_html( $label ); ?>
 					</a>
@@ -378,7 +397,7 @@ class PaySentinel_Admin_Page_Renderer {
 			<div class="tab-content">
 				<?php if ( 'license' === $active_tab ) : ?>
 					<?php $this->settings_handler->render_license_section(); ?>
-					
+
 					<div style="margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #ccd0d4; border-radius: 4px;">
 						<h3 style="margin-top: 0;"><?php esc_html_e( 'Subscription Benefits', 'paysentinel' ); ?></h3>
 						<ul style="list-style: disc; margin-left: 20px;">
@@ -393,7 +412,8 @@ class PaySentinel_Admin_Page_Renderer {
 						<?php
 						settings_fields( 'paysentinel_settings' );
 						?>
-						<input type="hidden" name="paysentinel_options[current_tab]" value="<?php echo esc_attr( $active_tab ); ?>" />
+						<input type="hidden" name="paysentinel_options[current_tab]"
+							value="<?php echo esc_attr( $active_tab ); ?>" />
 						<?php
 						// Only render the active section
 						$section_id = 'paysentinel_' . $active_tab;
@@ -431,27 +451,28 @@ class PaySentinel_Admin_Page_Renderer {
 					</form>
 				<?php endif; ?>
 			</div>
-			
+
 			<?php if ( 'general' === $active_tab ) : ?>
-			<div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border: 1px solid #e1e1e1; border-radius: 4px;">
-				<h3 style="margin-top: 0; color: #23282d;"><?php esc_html_e( 'How Payment Monitor Works', 'paysentinel' ); ?></h3>
-				<p style="margin-bottom: 10px;">
-					<strong><?php esc_html_e( 'Monitoring:', 'paysentinel' ); ?></strong> 
-					<?php esc_html_e( 'Tracks payment gateway success rates and triggers alerts when performance drops below thresholds.', 'paysentinel' ); ?>
-				</p>
-				<p style="margin-bottom: 10px;">
-					<strong><?php esc_html_e( 'Alerts:', 'paysentinel' ); ?></strong> 
-					<?php esc_html_e( 'Sends notifications via email, SMS, or Slack when payment issues are detected.', 'paysentinel' ); ?>
-				</p>
-				<p style="margin-bottom: 10px;">
-					<strong><?php esc_html_e( 'Auto-Retry:', 'paysentinel' ); ?></strong> 
-					<?php esc_html_e( 'Automatically retries failed payments using stored payment methods (excludes fraud/expired cards).', 'paysentinel' ); ?>
-				</p>
-				<p style="margin-bottom: 0;">
-					<strong><?php esc_html_e( 'License:', 'paysentinel' ); ?></strong> 
-					<?php esc_html_e( 'Required for premium features like SMS alerts, Slack integration, and advanced analytics.', 'paysentinel' ); ?>
-				</p>
-			</div>
+				<div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border: 1px solid #e1e1e1; border-radius: 4px;">
+					<h3 style="margin-top: 0; color: #23282d;"><?php esc_html_e( 'How Payment Monitor Works', 'paysentinel' ); ?>
+					</h3>
+					<p style="margin-bottom: 10px;">
+						<strong><?php esc_html_e( 'Monitoring:', 'paysentinel' ); ?></strong>
+						<?php esc_html_e( 'Tracks payment gateway success rates and triggers alerts when performance drops below thresholds.', 'paysentinel' ); ?>
+					</p>
+					<p style="margin-bottom: 10px;">
+						<strong><?php esc_html_e( 'Alerts:', 'paysentinel' ); ?></strong>
+						<?php esc_html_e( 'Sends notifications via email, SMS, or Slack when payment issues are detected.', 'paysentinel' ); ?>
+					</p>
+					<p style="margin-bottom: 10px;">
+						<strong><?php esc_html_e( 'Auto-Retry:', 'paysentinel' ); ?></strong>
+						<?php esc_html_e( 'Automatically retries failed payments using stored payment methods (excludes fraud/expired cards).', 'paysentinel' ); ?>
+					</p>
+					<p style="margin-bottom: 0;">
+						<strong><?php esc_html_e( 'License:', 'paysentinel' ); ?></strong>
+						<?php esc_html_e( 'Required for premium features like SMS alerts, Slack integration, and advanced analytics.', 'paysentinel' ); ?>
+					</p>
+				</div>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -514,7 +535,8 @@ class PaySentinel_Admin_Page_Renderer {
 						<select id="failure-scenario">
 							<option value="card_declined"><?php esc_html_e( 'Card Declined', 'paysentinel' ); ?></option>
 							<option value="insufficient_funds">
-								<?php esc_html_e( 'Insufficient Funds', 'paysentinel' ); ?></option>
+								<?php esc_html_e( 'Insufficient Funds', 'paysentinel' ); ?>
+							</option>
 							<option value="gateway_timeout"><?php esc_html_e( 'Gateway Timeout', 'paysentinel' ); ?>
 							</option>
 							<option value="network_error"><?php esc_html_e( 'Network Error', 'paysentinel' ); ?></option>
@@ -553,7 +575,8 @@ class PaySentinel_Admin_Page_Renderer {
 						<div>
 							<h2><?php esc_html_e( 'Maintenance Tools', 'paysentinel' ); ?></h2>
 							<p class="section-subtitle">
-								<?php esc_html_e( 'Clean up and maintain transaction data', 'paysentinel' ); ?></p>
+								<?php esc_html_e( 'Clean up and maintain transaction data', 'paysentinel' ); ?>
+							</p>
 						</div>
 					</div>
 					<div class="section-content">
@@ -577,10 +600,10 @@ class PaySentinel_Admin_Page_Renderer {
 					function formatGatewayResults(data) {
 						var html = '<div class="card" style="max-width: 100%; margin-top: 10px; padding: 0;">';
 						html += '<h3 style="padding: 10px 15px; margin: 0; background: #f8f9fa; border-bottom: 1px solid #ddd;"><?php esc_html_e( 'Gateway Status Report', 'paysentinel' ); ?></h3>';
-						
+
 						if (data.issues && data.issues.length > 0) {
 							html += '<div class="notice notice-warning inline" style="margin: 10px 15px;"><p><strong><?php esc_html_e( 'Issues Found:', 'paysentinel' ); ?></strong></p><ul style="list-style: disc; margin-left: 20px;">';
-							data.issues.forEach(function(issue) {
+							data.issues.forEach(function (issue) {
 								html += '<li>' + issue + '</li>';
 							});
 							html += '</ul></div>';
@@ -596,11 +619,11 @@ class PaySentinel_Admin_Page_Renderer {
 						html += '</tr></thead><tbody>';
 
 						if (data.gateways) {
-							Object.keys(data.gateways).forEach(function(key) {
+							Object.keys(data.gateways).forEach(function (key) {
 								var gateway = data.gateways[key];
 								var statusIcon = gateway.status === 'online' ? '✅' : (gateway.status === 'offline' ? '❌' : '⚠️');
 								var statusColor = gateway.status === 'online' ? 'green' : (gateway.status === 'offline' ? 'red' : 'orange');
-								
+
 								var successRate = '-';
 								if (gateway.health_24h && gateway.health_24h.success_rate !== null) {
 									successRate = gateway.health_24h.success_rate + '%';
@@ -632,7 +655,7 @@ class PaySentinel_Admin_Page_Renderer {
 							html += '<div class="card" style="margin-bottom: 20px; padding: 15px;">';
 							html += '<h4 style="margin-top: 0;"><?php esc_html_e( 'System Information', 'paysentinel' ); ?></h4>';
 							html += '<table class="widefat fixed striped" style="width: 100%; border: 1px solid #eee;"><tbody>';
-							Object.entries(data.system_info).forEach(function([key, value]) {
+							Object.entries(data.system_info).forEach(function ([key, value]) {
 								var label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 								html += '<tr><td style="width: 200px; font-weight: 600;">' + label + '</td><td>' + value + '</td></tr>';
 							});
@@ -644,19 +667,19 @@ class PaySentinel_Admin_Page_Renderer {
 							var dbStatus = data.database.status === 'healthy' ? '✅ Healthy' : '⚠️ Issues Found';
 							html += '<div class="card" style="margin-bottom: 20px; padding: 15px;">';
 							html += '<h4 style="margin-top: 0;"><?php esc_html_e( 'Database Status', 'paysentinel' ); ?>: ' + dbStatus + '</h4>';
-							
+
 							if (data.database.issues && data.database.issues.length > 0) {
 								html += '<div class="notice notice-warning inline"><ul style="margin: 5px 0 5px 20px; list-style: disc;">';
-								data.database.issues.forEach(function(issue) {
+								data.database.issues.forEach(function (issue) {
 									html += '<li>' + issue + '</li>';
 								});
 								html += '</ul></div>';
 							}
-							
+
 							if (data.database.tables) {
 								html += '<p><strong>Table Status:</strong></p>';
 								html += '<ul style="margin-left: 20px; list-style: circle;">';
-								Object.entries(data.database.tables).forEach(function([table, info]) {
+								Object.entries(data.database.tables).forEach(function ([table, info]) {
 									html += '<li><strong>' + table + ':</strong> ' + (info.exists ? 'Exists' : 'Missing') + ' (' + info.count + ' records)</li>';
 								});
 								html += '</ul>';
@@ -668,7 +691,7 @@ class PaySentinel_Admin_Page_Renderer {
 						if (data.gateways) {
 							html += formatGatewayResults(data.gateways);
 						}
-						
+
 						html += '</div>';
 						return html;
 					}
@@ -729,7 +752,8 @@ class PaySentinel_Admin_Page_Renderer {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
 							},
 							success: function (response) {
-								$('#diagnostics-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+								var msg = (response.data && response.data.message) ? response.data.message : response.message;
+								$('#diagnostics-results').html('<div class="updated"><p>' + msg + '</p></div>');
 							},
 							error: function (xhr) {
 								$('#diagnostics-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
@@ -790,7 +814,8 @@ class PaySentinel_Admin_Page_Renderer {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
 							},
 							success: function (response) {
-								$('#simulator-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+								var msg = (response.data && response.data.message) ? response.data.message : response.message;
+								$('#simulator-results').html('<div class="updated"><p>' + msg + '</p></div>');
 							},
 							error: function (xhr) {
 								$('#simulator-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
@@ -816,7 +841,8 @@ class PaySentinel_Admin_Page_Renderer {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
 							},
 							success: function (response) {
-								$('#maintenance-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+								var msg = (response.data && response.data.message) ? response.data.message : response.message;
+								$('#maintenance-results').html('<div class="updated"><p>' + msg + '</p></div>');
 							},
 							error: function (xhr) {
 								$('#maintenance-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
@@ -842,7 +868,8 @@ class PaySentinel_Admin_Page_Renderer {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
 							},
 							success: function (response) {
-								$('#maintenance-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+								var msg = (response.data && response.data.message) ? response.data.message : response.message;
+								$('#maintenance-results').html('<div class="updated"><p>' + msg + '</p></div>');
 							},
 							error: function (xhr) {
 								$('#maintenance-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
@@ -868,7 +895,8 @@ class PaySentinel_Admin_Page_Renderer {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
 							},
 							success: function (response) {
-								$('#maintenance-results').html('<div class="updated"><p>' + response.message + '</p></div>');
+								var msg = (response.data && response.data.message) ? response.data.message : response.message;
+								$('#maintenance-results').html('<div class="updated"><p>' + msg + '</p></div>');
 							},
 							error: function (xhr) {
 								$('#maintenance-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
