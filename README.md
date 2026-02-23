@@ -25,7 +25,7 @@
 
 ### Basic Setup
 
-1. Download the latest release from the [Releases](https://github.com/your-username/paysentinel/releases) page.
+1. Download the latest release from the [Releases](https://github.com/caplaz/paysentinel-woocommerce/releases) page.
 2. Log in to your WordPress admin dashboard.
 3. Navigate to **Plugins > Add New** and upload the downloaded ZIP file.
 4. Click **Install Now** and then **Activate**.
@@ -35,8 +35,8 @@
 If you are a developer looking to contribute or customize the plugin, you can install the dependencies via Composer:
 
 ```bash
-git clone https://github.com/your-username/paysentinel.git wp-content/plugins/paysentinel
-cd wp-content/plugins/paysentinel
+git clone https://github.com/caplaz/paysentinel-woocommerce.git wp-content/plugins/paysentinel-woocommerce
+cd wp-content/plugins/paysentinel-woocommerce
 composer install
 ```
 
