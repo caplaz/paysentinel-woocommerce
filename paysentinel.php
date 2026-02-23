@@ -303,12 +303,12 @@ class PaySentinel
 		// Friendly name mapping for common payment gateways
 		$friendly_names = array(
 			// WooCommerce Payments sub-gateways
-			'woocommerce_payments_affirm' => 'WooCommerce Payments - Affirm',
-			'woocommerce_payments_klarna' => 'WooCommerce Payments - Klarna',
-			'woocommerce_payments_afterpay' => 'WooCommerce Payments - Afterpay',
-			'woocommerce_payments_clearpay' => 'WooCommerce Payments - Clearpay',
-			'woocommerce_payments_woocommerce_payments' => 'WooCommerce Payments - Card',
-			'woocommerce_payments' => 'WooCommerce Payments',
+			'woocommerce_payments_affirm' => 'WC Payments - Affirm',
+			'woocommerce_payments_klarna' => 'WC Payments - Klarna',
+			'woocommerce_payments_afterpay' => 'WC Payments - Afterpay',
+			'woocommerce_payments_clearpay' => 'WC Payments - Clearpay',
+			'woocommerce_payments_woocommerce_payments' => 'WC Payments - Card',
+			'woocommerce_payments' => 'WC Payments',
 
 			// Stripe sub-gateways
 			'stripe' => 'Stripe',
