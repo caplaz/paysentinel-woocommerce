@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PaySentinel_Admin_Page_Renderer {
 
 
+
 	/**
 	 * Database instance
 	 *
@@ -730,7 +731,8 @@ class PaySentinel_Admin_Page_Renderer {
 								'X-WP-Nonce': wcPaymentMonitor.restNonce
 							},
 							success: function (response) {
-								$('#diagnostics-results').html(formatFullDiagnostics(response));
+								var data = response.data || response;
+								$('#diagnostics-results').html(formatFullDiagnostics(data));
 							},
 							error: function (xhr) {
 								$('#diagnostics-results').html('<div class="error"><p>' + (xhr.responseJSON ? xhr.responseJSON.message : 'Error occurred') + '</p></div>');
