@@ -7,7 +7,7 @@
  * - Property 25: Dashboard API Response Consistency for Auto-Refresh
  * - Property 26: Dashboard Auto-Refresh Data Integrity
  */
-class DashboardAutoRefreshPropertyTest extends WC_Payment_Monitor_Test_Case {
+class DashboardAutoRefreshPropertyTest extends PaySentinel_Test_Case {
 
 	/**
 	 * API Health endpoint instance
@@ -33,7 +33,7 @@ class DashboardAutoRefreshPropertyTest extends WC_Payment_Monitor_Test_Case {
 			}
 		}
 
-		$this->api_health = new WC_Payment_Monitor_API_Health();
+		$this->api_health = new PaySentinel_API_Health();
 	}
 
 	/**
@@ -109,7 +109,7 @@ class DashboardAutoRefreshPropertyTest extends WC_Payment_Monitor_Test_Case {
 	public function test_property_26_dashboard_auto_refresh_data_integrity() {
 		for ( $i = 0; $i < 100; $i++ ) {
 			// Test 1: Admin settings should be retrievable consistently
-			$settings = WC_Payment_Monitor_Admin::get_settings();
+			$settings = PaySentinel_Admin::get_settings();
 
 			$this->assertIsArray( $settings, 'Settings should be array' );
 			$this->assertArrayHasKey( 'enable_monitoring', $settings, 'Settings should have enable_monitoring' );
@@ -123,9 +123,9 @@ class DashboardAutoRefreshPropertyTest extends WC_Payment_Monitor_Test_Case {
 			$this->assertLessThanOrEqual( 1440, $refresh_interval, 'Refresh interval should be <= 1440 minutes' );
 
 			// Test 3: Database instance should support efficient queries
-			$database = new WC_Payment_Monitor_Database();
+			$database = new PaySentinel_Database();
 			$this->assertInstanceOf(
-				'WC_Payment_Monitor_Database',
+				'PaySentinel_Database',
 				$database,
 				'Database should be instantiable for auto-refresh queries'
 			);
@@ -143,9 +143,9 @@ class DashboardAutoRefreshPropertyTest extends WC_Payment_Monitor_Test_Case {
 			);
 
 			// Test 6: API should provide endpoint methods for dashboard
-			$api_health = new WC_Payment_Monitor_API_Health();
+			$api_health = new PaySentinel_API_Health();
 			$this->assertInstanceOf(
-				'WC_Payment_Monitor_API_Health',
+				'PaySentinel_API_Health',
 				$api_health,
 				'API should be instantiable for dashboard'
 			);
@@ -178,9 +178,9 @@ class DashboardAutoRefreshPropertyTest extends WC_Payment_Monitor_Test_Case {
 			);
 
 			// Test 9: Transaction API should also be available
-			$api_transactions = new WC_Payment_Monitor_API_Transactions();
+			$api_transactions = new PaySentinel_API_Transactions();
 			$this->assertInstanceOf(
-				'WC_Payment_Monitor_API_Transactions',
+				'PaySentinel_API_Transactions',
 				$api_transactions,
 				'Transaction API should be available for dashboard'
 			);
@@ -192,9 +192,9 @@ class DashboardAutoRefreshPropertyTest extends WC_Payment_Monitor_Test_Case {
 			);
 
 			// Test 9: Security instance should be available for data filtering
-			$security = new WC_Payment_Monitor_Security();
+			$security = new PaySentinel_Security();
 			$this->assertInstanceOf(
-				'WC_Payment_Monitor_Security',
+				'PaySentinel_Security',
 				$security,
 				'Security should be available for data filtering'
 			);

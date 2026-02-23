@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Unit tests for WC_Payment_Monitor_Database class
+ * Unit tests for PaySentinel_Database class
  * Tests database schema and operations
  */
 class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
@@ -135,7 +135,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_database_storage_structure() {
 		// Create mock database class for testing
-		$database = $this->getMockBuilder( 'WC_Payment_Monitor_Database' )
+		$database = $this->getMockBuilder( 'PaySentinel_Database' )
 			->disableOriginalConstructor()
 			->getMock();
 

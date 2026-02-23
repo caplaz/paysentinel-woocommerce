@@ -19,7 +19,7 @@ class TransactionLoggerTest extends WP_UnitTestCase {
 			}
 		}
 
-		$this->logger = new WC_Payment_Monitor_Logger();
+		$this->logger = new PaySentinel_Logger();
 
 		// Create a dummy order
 		$order = wc_create_order();
@@ -40,7 +40,7 @@ class TransactionLoggerTest extends WP_UnitTestCase {
 	public function test_log_failure_fires_action() {
 		$fired = 0;
 		add_action(
-			'wc_payment_monitor_payment_failed',
+			'paysentinel_payment_failed',
 			function ( $order_id ) use ( &$fired ) {
 				$fired++;
 			}
@@ -49,7 +49,7 @@ class TransactionLoggerTest extends WP_UnitTestCase {
 		// Simulate failure
 		$this->logger->log_failure( $this->order_id );
 
-		$this->assertEquals( 1, $fired, 'The wc_payment_monitor_payment_failed action should fire exactly once.' );
+		$this->assertEquals( 1, $fired, 'The paysentinel_payment_failed action should fire exactly once.' );
 	}
 
 	/**
@@ -57,7 +57,7 @@ class TransactionLoggerTest extends WP_UnitTestCase {
 	 */
 	public function test_log_failure_saves_db() {
 		global $wpdb;
-		$table_name = ( new WC_Payment_Monitor_Database() )->get_transactions_table();
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
 
 		$this->logger->log_failure( $this->order_id );
 

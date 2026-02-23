@@ -15,18 +15,18 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	 */
 	public function test_30day_analytics_requires_pro_tier() {
 		// Setup: Create a Free tier license
-		update_option( 'wc_payment_monitor_license_status', 'invalid' );
-		delete_option( 'wc_payment_monitor_license_data' );
+		update_option( 'paysentinel_license_status', 'invalid' );
+		delete_option( 'paysentinel_license_data' );
 
-		$license = new WC_Payment_Monitor_License();
+		$license = new PaySentinel_License();
 		$this->assertEquals( 'free', $license->get_license_tier() );
 
 		// Create health engine
-		$health = new WC_Payment_Monitor_Health();
+		$health = new PaySentinel_Health();
 
 		// Verify that calculate_health skips 30day period for free tier
 		$gateway_id = 'test_gateway';
-		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
+		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
 
 		$health_data = $health->calculate_health( $gateway_id );
 
@@ -45,18 +45,18 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	 */
 	public function test_90day_analytics_requires_pro_tier() {
 		// Setup: Create a PRO tier license
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
-		$license = new WC_Payment_Monitor_License();
+		$license = new PaySentinel_License();
 		$this->assertEquals( 'pro', $license->get_license_tier() );
 
 		// Create health engine
-		$health = new WC_Payment_Monitor_Health();
+		$health = new PaySentinel_Health();
 
 		// Verify that calculate_health includes 90day period for PRO tier
 		$gateway_id = 'test_gateway';
-		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
+		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
 
 		$health_data = $health->calculate_health( $gateway_id );
 
@@ -75,18 +75,18 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	 */
 	public function test_agency_tier_gets_extended_periods() {
 		// Setup: Create an Agency tier license
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'agency' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'agency' ) );
 
-		$license = new WC_Payment_Monitor_License();
+		$license = new PaySentinel_License();
 		$this->assertEquals( 'agency', $license->get_license_tier() );
 
 		// Create health engine
-		$health = new WC_Payment_Monitor_Health();
+		$health = new PaySentinel_Health();
 
 		// Verify that calculate_health includes extended periods for Agency tier
 		$gateway_id = 'test_gateway';
-		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
+		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
 
 		$health_data = $health->calculate_health( $gateway_id );
 
@@ -100,18 +100,18 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	 */
 	public function test_starter_tier_no_extended_periods() {
 		// Setup: Create a Starter tier license
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'starter' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'starter' ) );
 
-		$license = new WC_Payment_Monitor_License();
+		$license = new PaySentinel_License();
 		$this->assertEquals( 'starter', $license->get_license_tier() );
 
 		// Create health engine
-		$health = new WC_Payment_Monitor_Health();
+		$health = new PaySentinel_Health();
 
 		// Verify that calculate_health skips extended periods for Starter tier
 		$gateway_id = 'test_gateway';
-		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
+		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
 
 		$health_data = $health->calculate_health( $gateway_id );
 
@@ -130,13 +130,13 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 			$many_gateways[] = "gateway_$i";
 		}
 
-		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => $many_gateways ) );
+		update_option( 'paysentinel_settings', array( 'enabled_gateways' => $many_gateways ) );
 
 		// Test PRO tier (999 gateway limit - effectively unlimited)
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
-		$health = new WC_Payment_Monitor_Health();
+		$health = new PaySentinel_Health();
 
 		// Use Reflection to access private method
 		$reflection = new ReflectionClass( $health );
@@ -155,13 +155,13 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	public function test_free_tier_one_gateway_limit() {
 		// Setup: Create many gateways
 		$many_gateways = array( 'gw1', 'gw2', 'gw3', 'gw4', 'gw5' );
-		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => $many_gateways ) );
+		update_option( 'paysentinel_settings', array( 'enabled_gateways' => $many_gateways ) );
 
 		// Test Free tier (1 gateway limit)
-		update_option( 'wc_payment_monitor_license_status', 'invalid' );
-		delete_option( 'wc_payment_monitor_license_data' );
+		update_option( 'paysentinel_license_status', 'invalid' );
+		delete_option( 'paysentinel_license_data' );
 
-		$health = new WC_Payment_Monitor_Health();
+		$health = new PaySentinel_Health();
 
 		// Use Reflection to access private method
 		$reflection = new ReflectionClass( $health );
@@ -181,13 +181,13 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	public function test_starter_tier_three_gateway_limit() {
 		// Setup: Create many gateways
 		$many_gateways = array( 'gw1', 'gw2', 'gw3', 'gw4', 'gw5' );
-		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => $many_gateways ) );
+		update_option( 'paysentinel_settings', array( 'enabled_gateways' => $many_gateways ) );
 
 		// Test Starter tier (3 gateway limit)
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'starter' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'starter' ) );
 
-		$health = new WC_Payment_Monitor_Health();
+		$health = new PaySentinel_Health();
 
 		// Use Reflection to access private method
 		$reflection = new ReflectionClass( $health );
@@ -206,16 +206,16 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	 */
 	public function test_data_retention_limits() {
 		// Free tier - 7 days
-		$this->assertEquals( 7, WC_Payment_Monitor_License::RETENTION_LIMITS['free'] );
+		$this->assertEquals( 7, PaySentinel_License::RETENTION_LIMITS['free'] );
 
 		// Starter tier - 30 days
-		$this->assertEquals( 30, WC_Payment_Monitor_License::RETENTION_LIMITS['starter'] );
+		$this->assertEquals( 30, PaySentinel_License::RETENTION_LIMITS['starter'] );
 
 		// PRO tier - 90 days
-		$this->assertEquals( 90, WC_Payment_Monitor_License::RETENTION_LIMITS['pro'] );
+		$this->assertEquals( 90, PaySentinel_License::RETENTION_LIMITS['pro'] );
 
 		// Agency tier - 90 days
-		$this->assertEquals( 90, WC_Payment_Monitor_License::RETENTION_LIMITS['agency'] );
+		$this->assertEquals( 90, PaySentinel_License::RETENTION_LIMITS['agency'] );
 	}
 
 	/**
@@ -223,12 +223,12 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	 */
 	public function test_health_data_structure_for_extended_periods() {
 		// Setup PRO tier
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
-		$health     = new WC_Payment_Monitor_Health();
+		$health     = new PaySentinel_Health();
 		$gateway_id = 'test_gateway';
-		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
+		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
 
 		$health_data = $health->calculate_health( $gateway_id );
 
@@ -258,7 +258,7 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	public function test_database_supports_extended_periods() {
 		global $wpdb;
 
-		$database = new WC_Payment_Monitor_Database();
+		$database = new PaySentinel_Database();
 		$table    = $wpdb->prefix . 'payment_monitor_gateway_health';
 
 		// Get the ENUM values for the period column
@@ -274,15 +274,15 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	 */
 	public function test_license_tier_constants() {
 		// Gateway limits
-		$this->assertEquals( 1, WC_Payment_Monitor_License::GATEWAY_LIMITS['free'] );
-		$this->assertEquals( 3, WC_Payment_Monitor_License::GATEWAY_LIMITS['starter'] );
-		$this->assertEquals( 999, WC_Payment_Monitor_License::GATEWAY_LIMITS['pro'] );
-		$this->assertEquals( 999, WC_Payment_Monitor_License::GATEWAY_LIMITS['agency'] );
+		$this->assertEquals( 1, PaySentinel_License::GATEWAY_LIMITS['free'] );
+		$this->assertEquals( 3, PaySentinel_License::GATEWAY_LIMITS['starter'] );
+		$this->assertEquals( 999, PaySentinel_License::GATEWAY_LIMITS['pro'] );
+		$this->assertEquals( 999, PaySentinel_License::GATEWAY_LIMITS['agency'] );
 
 		// Retention limits
-		$this->assertEquals( 7, WC_Payment_Monitor_License::RETENTION_LIMITS['free'] );
-		$this->assertEquals( 30, WC_Payment_Monitor_License::RETENTION_LIMITS['starter'] );
-		$this->assertEquals( 90, WC_Payment_Monitor_License::RETENTION_LIMITS['pro'] );
-		$this->assertEquals( 90, WC_Payment_Monitor_License::RETENTION_LIMITS['agency'] );
+		$this->assertEquals( 7, PaySentinel_License::RETENTION_LIMITS['free'] );
+		$this->assertEquals( 30, PaySentinel_License::RETENTION_LIMITS['starter'] );
+		$this->assertEquals( 90, PaySentinel_License::RETENTION_LIMITS['pro'] );
+		$this->assertEquals( 90, PaySentinel_License::RETENTION_LIMITS['agency'] );
 	}
 }

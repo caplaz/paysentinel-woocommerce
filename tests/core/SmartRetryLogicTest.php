@@ -24,11 +24,11 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		}
 
 		// Initialize required components
-		$this->retry_instance = new WC_Payment_Monitor_Retry();
+		$this->retry_instance = new PaySentinel_Retry();
 
 		// Mock options
 		update_option(
-			'wc_payment_monitor_options',
+			'paysentinel_options',
 			array(
 				'retry_enabled'      => true,
 				'max_retry_attempts' => 3,
@@ -84,7 +84,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 
 		// Create a transaction record manually in DB
 		global $wpdb;
-		$table_name = ( new WC_Payment_Monitor_Database() )->get_transactions_table();
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
 
 		$wpdb->insert(
 			$table_name,
@@ -105,7 +105,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 	public function tearDown(): void {
 		parent::tearDown();
 		wp_delete_post( $this->order_id, true );
-		delete_option( 'wc_payment_monitor_options' );
+		delete_option( 'paysentinel_options' );
 	}
 
 	/**
@@ -114,7 +114,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 	 */
 	public function test_hard_decline_behavior() {
 		global $wpdb;
-		$table_name = ( new WC_Payment_Monitor_Database() )->get_transactions_table();
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
 
 		// Add a stored payment method so we don't exit early on "No Stored Method" check
 		$user_id = $this->factory->user->create();
@@ -154,7 +154,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		$scheduled_actions = array_filter(
 			$GLOBALS['test_as_scheduled_actions'],
 			function ( $a ) {
-				return $a['hook'] === 'wc_payment_monitor_retry_payment';
+				return $a['hook'] === 'paysentinel_retry_payment';
 			}
 		);
 		$this->assertEmpty( $scheduled_actions, 'Hard decline should not schedule AS action.' );
@@ -180,7 +180,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 	 */
 	public function test_soft_decline_schedules_retry() {
 		global $wpdb;
-		$table_name = ( new WC_Payment_Monitor_Database() )->get_transactions_table();
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
 
 		// Update transaction with soft decline reason
 		$wpdb->update(
@@ -222,7 +222,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		// Verify Action Scheduler event
 		$this->assertNotEmpty( $GLOBALS['test_as_scheduled_actions'], 'Soft decline should schedule AS action.' );
 		$scheduled = end( $GLOBALS['test_as_scheduled_actions'] );
-		$this->assertEquals( 'wc_payment_monitor_retry_payment', $scheduled['hook'] );
+		$this->assertEquals( 'paysentinel_retry_payment', $scheduled['hook'] );
 		$this->assertEquals( $this->transaction_id, $scheduled['args'][0] );
 	}
 
@@ -232,7 +232,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 	 */
 	public function test_max_retries_reached() {
 		global $wpdb;
-		$table_name = ( new WC_Payment_Monitor_Database() )->get_transactions_table();
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
 
 		// Update transaction to max retries
 		$wpdb->update(
@@ -289,8 +289,8 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		// Instead, let's verify if the Retry class has the logic to delegate to the gateway
 		// Using Reflection to test 'process_gateway_payment' directly with a mock
 
-		$retry  = new WC_Payment_Monitor_Retry();
-		$method = new ReflectionMethod( 'WC_Payment_Monitor_Retry', 'process_gateway_payment' );
+		$retry  = new PaySentinel_Retry();
+		$method = new ReflectionMethod( 'PaySentinel_Retry', 'process_gateway_payment' );
 		$method->setAccessible( true );
 
 		$order          = wc_get_order( $this->order_id );

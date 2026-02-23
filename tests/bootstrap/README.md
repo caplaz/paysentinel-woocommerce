@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains comprehensive tests for the WooCommerce Payment Monitor plugin, including unit tests, integration tests, and property-based tests.
+This directory contains comprehensive tests for the PaySentinel - Payment Monitor for WooCommerce plugin, including unit tests, integration tests, and property-based tests.
 
 ## Test Files
 

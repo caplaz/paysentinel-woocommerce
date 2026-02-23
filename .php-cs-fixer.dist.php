@@ -8,7 +8,7 @@ $finder = PhpCsFixer\Finder::create()
     ->files()
     ->name('*.php')
     ->append([
-        __DIR__ . '/wc-payment-monitor.php',
+        __DIR__ . '/paysentinel.php',
     ])
     ->exclude('vendor')
     ->ignoreDotFiles(true)

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Unit tests for WC_Payment_Monitor_Alerts class
+ * Unit tests for PaySentinel_Alerts class
  * Tests alert triggering and notification logic
  */
 class PaymentAlertTest extends PHPUnit\Framework\TestCase {
@@ -15,7 +15,7 @@ class PaymentAlertTest extends PHPUnit\Framework\TestCase {
 		// < 75% is High (25%+ failure rate)
 		// < 90% is Warning (10-25% failure rate)
 		// < 95% is Info (5-10% failure rate)
-		$thresholds = WC_Payment_Monitor_Alerts::SEVERITY_THRESHOLDS;
+		$thresholds = PaySentinel_Alerts::SEVERITY_THRESHOLDS;
 
 		$this->assertArrayHasKey( 'high', $thresholds );
 		$this->assertArrayHasKey( 'warning', $thresholds );

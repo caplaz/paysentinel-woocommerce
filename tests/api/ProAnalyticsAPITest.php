@@ -13,8 +13,8 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 */
 	public function setUp(): void {
 		parent::setUp();
-		$this->api     = new WC_Payment_Monitor_API_Analytics_Pro();
-		$this->license = new WC_Payment_Monitor_License();
+		$this->api     = new PaySentinel_API_Analytics_Pro();
+		$this->license = new PaySentinel_License();
 
 		// Create admin user for API access
 		$this->admin_user = $this->factory->user->create( array( 'role' => 'administrator' ) );
@@ -25,9 +25,9 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 * Test comparative analytics endpoint with free tier
 	 */
 	public function test_comparative_analytics_endpoint_free_tier() {
-		update_option( 'wc_payment_monitor_license_status', 'invalid' );
+		update_option( 'paysentinel_license_status', 'invalid' );
 
-		$request  = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/comparative/stripe' );
+		$request  = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/comparative/stripe' );
 		$response = $this->api->get_comparative_analytics( $request );
 
 		$this->assertInstanceOf( 'WP_REST_Response', $response );
@@ -41,10 +41,10 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 * Test comparative analytics endpoint with PRO tier
 	 */
 	public function test_comparative_analytics_endpoint_pro_tier() {
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/comparative/stripe' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/comparative/stripe' );
 		$request->set_param( 'gateway_id', 'stripe' );
 		$response = $this->api->get_comparative_analytics( $request );
 
@@ -61,9 +61,9 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 */
 	public function test_failure_patterns_endpoint_gating() {
 		// Free tier - should fail
-		update_option( 'wc_payment_monitor_license_status', 'invalid' );
+		update_option( 'paysentinel_license_status', 'invalid' );
 
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/failure-patterns/stripe' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/failure-patterns/stripe' );
 		$request->set_param( 'gateway_id', 'stripe' );
 		$request->set_param( 'days', 30 );
 		$response = $this->api->get_failure_patterns( $request );
@@ -72,8 +72,8 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		$this->assertFalse( $data['success'] );
 
 		// PRO tier - should succeed
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
 		$response = $this->api->get_failure_patterns( $request );
 		$data     = $response->get_data();
@@ -86,18 +86,18 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 */
 	public function test_metrics_summary_endpoint() {
 		// Free tier - should fail
-		update_option( 'wc_payment_monitor_license_status', 'invalid' );
+		update_option( 'paysentinel_license_status', 'invalid' );
 
-		$request  = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/metrics-summary' );
+		$request  = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/metrics-summary' );
 		$response = $this->api->get_metrics_summary( $request );
 
 		$data = $response->get_data();
 		$this->assertFalse( $data['success'] );
 
 		// PRO tier - should succeed
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
-		update_option( 'wc_payment_monitor_settings', array( 'enabled_gateways' => array( 'stripe' ) ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
+		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( 'stripe' ) ) );
 
 		$response = $this->api->get_metrics_summary( $request );
 		$data     = $response->get_data();
@@ -110,9 +110,9 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 */
 	public function test_extended_history_endpoint() {
 		// Free tier - should fail
-		update_option( 'wc_payment_monitor_license_status', 'invalid' );
+		update_option( 'paysentinel_license_status', 'invalid' );
 
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/extended-history/stripe' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/extended-history/stripe' );
 		$request->set_param( 'gateway_id', 'stripe' );
 		$request->set_param( 'days', 90 );
 		$response = $this->api->get_extended_history( $request );
@@ -121,8 +121,8 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		$this->assertFalse( $data['success'] );
 
 		// PRO tier - should succeed
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
 		$response = $this->api->get_extended_history( $request );
 		$data     = $response->get_data();
@@ -134,17 +134,17 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 */
 	public function test_gateway_comparison_endpoint() {
 		// Free tier - should fail
-		update_option( 'wc_payment_monitor_license_status', 'invalid' );
+		update_option( 'paysentinel_license_status', 'invalid' );
 
-		$request  = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/gateway-comparison' );
+		$request  = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/gateway-comparison' );
 		$response = $this->api->get_gateway_comparison( $request );
 
 		$data = $response->get_data();
 		$this->assertFalse( $data['success'] );
 
 		// PRO tier - should succeed
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
 		$response = $this->api->get_gateway_comparison( $request );
 		$data     = $response->get_data();
@@ -157,10 +157,10 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 * Test missing gateway_id parameter handling
 	 */
 	public function test_missing_gateway_id_parameter() {
-		update_option( 'wc_payment_monitor_license_status', 'valid' );
-		update_option( 'wc_payment_monitor_license_data', array( 'plan' => 'pro' ) );
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/analytics/comparative/stripe' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/comparative/stripe' );
 		// Don't set gateway_id parameter
 		$response = $this->api->get_comparative_analytics( $request );
 

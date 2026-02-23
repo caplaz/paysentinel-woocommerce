@@ -1,7 +1,7 @@
 <?php
 
 /**
- * PHPUnit bootstrap file for WC Payment Monitor tests
+ * PHPUnit bootstrap file for PaySentinel tests
  */
 
 // Composer autoloader
@@ -10,11 +10,11 @@ if ( file_exists( dirname( __DIR__ ) . '/vendor/autoload.php' ) ) {
 }
 
 // Define test environment constants
-define( 'WC_PAYMENT_MONITOR_PLUGIN_FILE', dirname( dirname( __DIR__ ) ) . '/wc-payment-monitor.php' );
-define( 'WC_PAYMENT_MONITOR_PLUGIN_DIR', dirname( dirname( __DIR__ ) ) . '/' );
-define( 'WC_PAYMENT_MONITOR_PLUGIN_URL', 'http://example.org/wp-content/plugins/wc-payment-monitor/' );
-define( 'WC_PAYMENT_MONITOR_PLUGIN_BASENAME', 'wc-payment-monitor/wc-payment-monitor.php' );
-define( 'WC_PAYMENT_MONITOR_VERSION', '1.0.0' );
+define( 'PAYSENTINEL_PLUGIN_FILE', dirname( dirname( __DIR__ ) ) . '/paysentinel.php' );
+define( 'PAYSENTINEL_PLUGIN_DIR', dirname( dirname( __DIR__ ) ) . '/' );
+define( 'PAYSENTINEL_PLUGIN_URL', 'http://example.org/wp-content/plugins/paysentinel/' );
+define( 'PAYSENTINEL_PLUGIN_BASENAME', 'paysentinel/paysentinel.php' );
+define( 'PAYSENTINEL_VERSION', '1.0.0' );
 
 // WordPress test environment setup
 $_tests_dir = getenv( 'WP_TESTS_DIR' );
@@ -43,7 +43,7 @@ function _manually_load_plugin() {
 	}
 
 	// Load the plugin being tested
-	require_once WC_PAYMENT_MONITOR_PLUGIN_FILE;
+	require_once PAYSENTINEL_PLUGIN_FILE;
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
@@ -62,8 +62,8 @@ tests_add_filter( 'setup_theme', '_install_woocommerce_for_tests' );
 
 // Create plugin tables after classes are loaded
 function _create_plugin_tables() {
-	if ( class_exists( 'WC_Payment_Monitor_Database' ) ) {
-		( new WC_Payment_Monitor_Database() )->create_tables();
+	if ( class_exists( 'PaySentinel_Database' ) ) {
+		( new PaySentinel_Database() )->create_tables();
 	}
 }
 tests_add_filter( 'init', '_create_plugin_tables' );
@@ -73,17 +73,17 @@ tests_add_filter( 'init', '_create_plugin_tables' );
 require $_tests_dir . '/includes/bootstrap.php';
 
 // Load test base classes
-require_once __DIR__ . '/../includes/class-wc-payment-monitor-test-case.php';
+require_once __DIR__ . '/../includes/class-paysentinel-test-case.php';
 
 // Load plugin classes for testing
-require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-wc-payment-monitor-database.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-wc-payment-monitor-logger.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-wc-payment-monitor-health.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/alerts/class-wc-payment-monitor-alerts.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-wc-payment-monitor-retry.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-wc-payment-monitor-security.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-wc-payment-monitor-license.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/api/class-wc-payment-monitor-api-base.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/api/class-wc-payment-monitor-api-health.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/api/class-wc-payment-monitor-api-transactions.php';
-require_once dirname( dirname( __DIR__ ) ) . '/includes/admin/class-wc-payment-monitor-admin.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-paysentinel-database.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-paysentinel-logger.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-paysentinel-health.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/alerts/class-paysentinel-alerts.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-paysentinel-retry.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-paysentinel-security.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/core/class-paysentinel-license.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/api/class-paysentinel-api-base.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/api/class-paysentinel-api-health.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/api/class-paysentinel-api-transactions.php';
+require_once dirname( dirname( __DIR__ ) ) . '/includes/admin/class-paysentinel-admin.php';

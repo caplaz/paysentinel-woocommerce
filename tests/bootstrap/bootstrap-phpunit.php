@@ -36,11 +36,11 @@ if ( ! defined( 'DB_NAME' ) ) {
 }
 
 // Define plugin constants
-define( 'WC_PAYMENT_MONITOR_PLUGIN_FILE', dirname( __DIR__ ) . '/wc-payment-monitor.php' );
-define( 'WC_PAYMENT_MONITOR_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
-define( 'WC_PAYMENT_MONITOR_PLUGIN_URL', 'http://example.org/wp-content/plugins/wc-payment-monitor/' );
-define( 'WC_PAYMENT_MONITOR_PLUGIN_BASENAME', 'wc-payment-monitor/wc-payment-monitor.php' );
-define( 'WC_PAYMENT_MONITOR_VERSION', '1.0.0' );
+define( 'PAYSENTINEL_PLUGIN_FILE', dirname( __DIR__ ) . '/paysentinel.php' );
+define( 'PAYSENTINEL_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
+define( 'PAYSENTINEL_PLUGIN_URL', 'http://example.org/wp-content/plugins/paysentinel/' );
+define( 'PAYSENTINEL_PLUGIN_BASENAME', 'paysentinel/paysentinel.php' );
+define( 'PAYSENTINEL_VERSION', '1.0.0' );
 
 // Mock global $wpdb
 global $wpdb;
@@ -191,25 +191,25 @@ if ( ! function_exists( 'register_rest_route' ) ) {
 }
 
 // Load test base class and all plugin classes
-require_once __DIR__ . '/includes/class-wc-payment-monitor-test-case.php';
-require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-security.php';
-require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-license.php';
-require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-config.php';
-require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-database.php';
-require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-logger.php';
-require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-health.php';
-require_once dirname( __DIR__ ) . '/includes/alerts/class-wc-payment-monitor-alerts.php';
-require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-retry.php';
-require_once dirname( __DIR__ ) . '/includes/api/class-wc-payment-monitor-api-base.php';
-require_once dirname( __DIR__ ) . '/includes/api/class-wc-payment-monitor-api-health.php';
-require_once dirname( __DIR__ ) . '/includes/api/class-wc-payment-monitor-api-transactions.php';
-require_once dirname( __DIR__ ) . '/includes/api/class-wc-payment-monitor-api-diagnostics.php';
-require_once dirname( __DIR__ ) . '/includes/utils/class-wc-payment-monitor-gateway-connectivity.php';
-require_once dirname( __DIR__ ) . '/includes/utils/class-wc-payment-monitor-failure-simulator.php';
-require_once dirname( __DIR__ ) . '/includes/core/class-wc-payment-monitor-diagnostics.php';
-require_once dirname( __DIR__ ) . '/includes/admin/class-wc-payment-monitor-admin.php';
-require_once dirname( __DIR__ ) . '/includes/admin/class-wc-payment-monitor-admin-ajax-handler.php';
-require_once dirname( __DIR__ ) . '/includes/admin/class-wc-payment-monitor-admin-settings-handler.php';
+require_once __DIR__ . '/includes/class-paysentinel-test-case.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-paysentinel-security.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-paysentinel-license.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-paysentinel-config.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-paysentinel-database.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-paysentinel-logger.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-paysentinel-health.php';
+require_once dirname( __DIR__ ) . '/includes/alerts/class-paysentinel-alerts.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-paysentinel-retry.php';
+require_once dirname( __DIR__ ) . '/includes/api/class-paysentinel-api-base.php';
+require_once dirname( __DIR__ ) . '/includes/api/class-paysentinel-api-health.php';
+require_once dirname( __DIR__ ) . '/includes/api/class-paysentinel-api-transactions.php';
+require_once dirname( __DIR__ ) . '/includes/api/class-paysentinel-api-diagnostics.php';
+require_once dirname( __DIR__ ) . '/includes/utils/class-paysentinel-gateway-connectivity.php';
+require_once dirname( __DIR__ ) . '/includes/utils/class-paysentinel-failure-simulator.php';
+require_once dirname( __DIR__ ) . '/includes/core/class-paysentinel-diagnostics.php';
+require_once dirname( __DIR__ ) . '/includes/admin/class-paysentinel-admin.php';
+require_once dirname( __DIR__ ) . '/includes/admin/class-paysentinel-admin-ajax-handler.php';
+require_once dirname( __DIR__ ) . '/includes/admin/class-paysentinel-admin-settings-handler.php';
 
 // Minimal WooCommerce stubs for tests when WooCommerce isn't loaded
 if ( ! function_exists( 'WC' ) ) {

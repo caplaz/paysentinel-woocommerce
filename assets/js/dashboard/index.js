@@ -2,7 +2,7 @@
  * Payment Monitor Dashboard - WordPress React Integration
  *
  * This file provides a WordPress-compatible React dashboard
- * that integrates with the WooCommerce Payment Monitor plugin
+ * that integrates with the PaySentinel - Payment Monitor for WooCommerce plugin
  */
 
 (function (wp, React, ReactDOM) {
@@ -382,7 +382,7 @@
     if (loading) {
       return React.createElement(
         "div",
-        { className: "wc-payment-monitor-loading" },
+        { className: "paysentinel-loading" },
         React.createElement("p", null, "Loading dashboard data..."),
       );
     }
@@ -390,14 +390,14 @@
     if (error) {
       return React.createElement(
         "div",
-        { className: "wc-payment-monitor-error" },
+        { className: "paysentinel-error" },
         React.createElement("p", { style: { color: "red" } }, error),
       );
     }
 
     return React.createElement(
       "div",
-      { className: "wc-payment-monitor-dashboard" },
+      { className: "paysentinel-dashboard" },
       // Header
       React.createElement(
         "div",
@@ -701,7 +701,7 @@
 
   // Mount the dashboard when DOM is ready
   document.addEventListener("DOMContentLoaded", function () {
-    const container = document.getElementById("wc-payment-monitor-root");
+    const container = document.getElementById("paysentinel-root");
     if (container && React && ReactDOM) {
       const root = ReactDOM.createRoot(container);
       root.render(React.createElement(Dashboard));
@@ -709,7 +709,7 @@
 
     // Mount GatewayHealth component if on health page
     const healthContainer = document.getElementById(
-      "wc-payment-monitor-health-container",
+      "paysentinel-health-container",
     );
     if (healthContainer && React && ReactDOM) {
       const root = ReactDOM.createRoot(healthContainer);
@@ -718,7 +718,7 @@
 
     // Mount Transactions component if on transactions page
     const transactionsContainer = document.getElementById(
-      "wc-payment-monitor-transactions-container",
+      "paysentinel-transactions-container",
     );
     if (transactionsContainer && React && ReactDOM) {
       const root = ReactDOM.createRoot(transactionsContainer);
@@ -727,7 +727,7 @@
 
     // Mount Alerts component if on alerts page
     const alertsContainer = document.getElementById(
-      "wc-payment-monitor-alerts-container",
+      "paysentinel-alerts-container",
     );
     if (alertsContainer && React && ReactDOM) {
       const root = ReactDOM.createRoot(alertsContainer);

@@ -2,7 +2,7 @@ parameters:
     level: 2
     paths:
         - includes/
-        - wc-payment-monitor.php
+        - paysentinel.php
     excludePaths:
         - tests/
     reportUnmatchedIgnoredErrors: false
@@ -12,11 +12,11 @@ parameters:
         # Keep only project-specific ignores
         - '#Call to an undefined method wpdb::.*#' # Still needed for dynamic wpdb methods
         # Plugin constants (defined in main plugin file)
-        - '#Constant WC_PAYMENT_MONITOR_PLUGIN_DIR not found#'
-        - '#Constant WC_PAYMENT_MONITOR_PLUGIN_URL not found#'
-        - '#Constant WC_PAYMENT_MONITOR_VERSION not found#'
-        - '#Constant WC_PAYMENT_MONITOR_PLUGIN_FILE not found#'
-        - '#Constant WC_PAYMENT_MONITOR_PLUGIN_BASENAME not found#'
+        - '#Constant PAYSENTINEL_PLUGIN_DIR not found#'
+        - '#Constant PAYSENTINEL_PLUGIN_URL not found#'
+        - '#Constant PAYSENTINEL_VERSION not found#'
+        - '#Constant PAYSENTINEL_PLUGIN_FILE not found#'
+        - '#Constant PAYSENTINEL_PLUGIN_BASENAME not found#'
         # WordPress core constants
         - '#Constant DB_NAME not found#'
         - '#Constant WP_MEMORY_LIMIT not found#'

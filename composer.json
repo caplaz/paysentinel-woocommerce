@@ -1,6 +1,6 @@
 {
-  "name": "wc-payment-monitor/plugin",
-  "description": "WooCommerce Payment Monitor Plugin",
+  "name": "paysentinel/plugin",
+  "description": "PaySentinel - Payment Monitor for WooCommerce Plugin",
   "type": "wordpress-plugin",
   "require": {
     "php": ">=7.4"
@@ -22,12 +22,12 @@
   },
   "autoload": {
     "psr-4": {
-      "WC_Payment_Monitor\\": "includes/"
+      "PaySentinel\\": "includes/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "WC_Payment_Monitor\\Tests\\": "tests/"
+      "PaySentinel\\Tests\\": "tests/"
     }
   },
   "scripts": {
@@ -35,7 +35,7 @@
     "test-coverage": "phpunit --coverage-html coverage",
     "lint": "phpcs",
     "lint-fix": "phpcbf",
-    "mess-detector": "phpmd includes/,wc-payment-monitor.php text phpmd.xml",
+    "mess-detector": "phpmd includes/,paysentinel.php text phpmd.xml",
     "static-analysis": "phpstan analyse --memory-limit=1G",
     "quality": [
       "@lint",

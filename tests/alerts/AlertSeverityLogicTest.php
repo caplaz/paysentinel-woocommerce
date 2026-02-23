@@ -12,16 +12,16 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		$this->alerts_instance   = new WC_Payment_Monitor_Alerts();
-		$this->logger_instance   = new WC_Payment_Monitor_Logger();
-		$this->database_instance = new WC_Payment_Monitor_Database();
+		$this->alerts_instance   = new PaySentinel_Alerts();
+		$this->logger_instance   = new PaySentinel_Logger();
+		$this->database_instance = new PaySentinel_Database();
 
 		// Ensure tables exist
 		$this->database_instance->create_tables();
 
 		// Enable alerts for testing
 		update_option(
-			'wc_payment_monitor_options',
+			'paysentinel_options',
 			array(
 				'alerts_enabled'               => true,
 				'immediate_transaction_alerts' => true,
@@ -30,7 +30,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		);
 
 		// Clear config cache to pick up new settings
-		WC_Payment_Monitor_Config::instance()->clear_cache();
+		PaySentinel_Config::instance()->clear_cache();
 	}
 
 	/**
@@ -127,7 +127,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 	 */
 	public function test_statistical_severity_levels() {
 		// Access the private method via reflection if needed, or check constants
-		$thresholds = WC_Payment_Monitor_Alerts::SEVERITY_THRESHOLDS;
+		$thresholds = PaySentinel_Alerts::SEVERITY_THRESHOLDS;
 
 		// Confirm mapping
 		$this->assertArrayHasKey( 'high', $thresholds );

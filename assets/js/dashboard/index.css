@@ -1,16 +1,16 @@
 /* Payment Monitor Dashboard Styles */
 
-#wc-payment-monitor-root {
+#paysentinel-root {
   width: 100%;
   min-height: 400px;
 }
 
-.wc-payment-monitor-dashboard {
+.paysentinel-dashboard {
   margin: 20px 0;
 }
 
-.wc-payment-monitor-loading,
-.wc-payment-monitor-error {
+.paysentinel-loading,
+.paysentinel-error {
   text-align: center;
   padding: 40px;
   background: #fff;
@@ -19,7 +19,7 @@
   margin: 20px 0;
 }
 
-.wc-payment-monitor-error p {
+.paysentinel-error p {
   color: #d63638;
   margin: 0;
 }

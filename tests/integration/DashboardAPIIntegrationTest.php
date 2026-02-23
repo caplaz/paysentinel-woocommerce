@@ -28,8 +28,8 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->api_health = new WC_Payment_Monitor_API_Health();
-		$this->database   = new WC_Payment_Monitor_Database();
+		$this->api_health = new PaySentinel_API_Health();
+		$this->database   = new PaySentinel_Database();
 
 		// Ensure tables exist
 		$this->database->create_tables();
@@ -50,7 +50,7 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 		$this->create_test_transaction_data();
 
 		// Test the API response format
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/health/gateways' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 		$request->set_param( 'period', '24h' );
 		$request->set_param( 'scope', 'enabled' );
 
@@ -99,7 +99,7 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 		// Create test data that should result in health data being available
 		$this->create_test_transaction_data();
 
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/health/gateways' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 		$request->set_param( 'period', '24h' );
 		$request->set_param( 'scope', 'enabled' );
 
@@ -134,7 +134,7 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 	public function test_property_32_empty_state_response_format() {
 		// Don't create any test data - test empty state
 
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/health/gateways' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 		$request->set_param( 'period', '24h' );
 		$request->set_param( 'scope', 'enabled' );
 
@@ -254,7 +254,7 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 			// and document that the frontend should handle them gracefully
 
 			// For now, just assert that our normal API doesn't return these formats
-			$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/health/gateways' );
+			$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 			$request->set_param( 'period', '24h' );
 			$request->set_param( 'scope', 'enabled' );
 

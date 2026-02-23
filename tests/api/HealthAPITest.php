@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Unit tests for WC_Payment_Monitor_API_Health class
+ * Unit tests for PaySentinel_API_Health class
  * Tests the health API endpoints and real-time transaction statistics
  */
 class HealthAPITest extends WP_UnitTestCase {
@@ -16,9 +16,9 @@ class HealthAPITest extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		$this->api      = new WC_Payment_Monitor_API_Health();
-		$this->database = new WC_Payment_Monitor_Database();
-		$this->logger   = new WC_Payment_Monitor_Logger();
+		$this->api      = new PaySentinel_API_Health();
+		$this->database = new PaySentinel_Database();
+		$this->logger   = new PaySentinel_Logger();
 
 		// Create admin user for API access
 		$this->admin_user = $this->factory->user->create( array( 'role' => 'administrator' ) );
@@ -32,7 +32,7 @@ class HealthAPITest extends WP_UnitTestCase {
 	 * Test that the health API can be instantiated
 	 */
 	public function test_health_api_can_be_instantiated() {
-		$this->assertInstanceOf( 'WC_Payment_Monitor_API_Health', $this->api );
+		$this->assertInstanceOf( 'PaySentinel_API_Health', $this->api );
 		$this->assertTrue( method_exists( $this->api, 'register_routes' ) );
 		$this->assertTrue( method_exists( $this->api, 'get_all_gateway_health' ) );
 	}
@@ -163,7 +163,7 @@ class HealthAPITest extends WP_UnitTestCase {
 		);
 
 		// Create a request
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/health/gateways' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 
 		// Test that the method can be called without errors
 		$response = $this->api->get_all_gateway_health( $request );
@@ -188,7 +188,7 @@ class HealthAPITest extends WP_UnitTestCase {
 	 */
 	public function test_get_all_gateway_health_handles_missing_health_data() {
 		// Create a request
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/health/gateways' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 
 		$response = $this->api->get_all_gateway_health( $request );
 		$this->assertInstanceOf( 'WP_REST_Response', $response );

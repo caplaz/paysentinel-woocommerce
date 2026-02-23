@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="WC Payment Monitor">
-    <description>PHP CodeSniffer configuration for WC Payment Monitor WordPress plugin</description>
+<ruleset name="PaySentinel">
+    <description>PHP CodeSniffer configuration for PaySentinel WordPress plugin</description>
 
     <!-- Use WordPress coding standards -->
     <rule ref="WordPress">
@@ -33,7 +33,7 @@
     <config name="testVersion" value="7.4-"/>
 
     <!-- Files to check -->
-    <file>wc-payment-monitor.php</file>
+    <file>paysentinel.php</file>
     <file>includes/</file>
     <file>tests/</file>
 </ruleset>

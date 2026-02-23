@@ -9,7 +9,7 @@
  * - Property 29: API returns consistent structure for zero-transaction gateways
  */
 
-class DashboardNeutralStylingTest extends WC_Payment_Monitor_Test_Case {
+class DashboardNeutralStylingTest extends PaySentinel_Test_Case {
 
 	/**
 	 * API Health endpoint instance
@@ -27,8 +27,8 @@ class DashboardNeutralStylingTest extends WC_Payment_Monitor_Test_Case {
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->api_health = new WC_Payment_Monitor_API_Health();
-		$this->database   = new WC_Payment_Monitor_Database();
+		$this->api_health = new PaySentinel_API_Health();
+		$this->database   = new PaySentinel_Database();
 	}
 
 	/**
@@ -41,7 +41,7 @@ class DashboardNeutralStylingTest extends WC_Payment_Monitor_Test_Case {
 	 */
 	public function test_property_27_dashboard_neutral_styling_for_zero_transactions() {
 		// Test 1: API should return transaction_count = 0 for new gateways
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/health/gateways' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 		$request->set_param( 'period', '24h' );
 		$request->set_param( 'scope', 'all' );
 
@@ -151,7 +151,7 @@ class DashboardNeutralStylingTest extends WC_Payment_Monitor_Test_Case {
 	 */
 	public function test_property_29_api_consistent_structure_for_zero_transaction_gateways() {
 		// Test 1: API response should have consistent structure
-		$request = new WP_REST_Request( 'GET', '/wc-payment-monitor/v1/health/gateways' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 		$request->set_param( 'period', '24h' );
 		$request->set_param( 'scope', 'all' );
 

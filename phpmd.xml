@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<ruleset name="WC Payment Monitor PHP Mess Detector"
+<ruleset name="PaySentinel PHP Mess Detector"
          xmlns="http://pmd.sf.net/ruleset/1.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0 http://pmd.sf.net/ruleset_xml_schema.xsd"
          xsi:noNamespaceSchemaLocation="http://pmd.sf.net/ruleset_xml_schema.xsd">
-    <description>PHP Mess Detector configuration for WC Payment Monitor</description>
+    <description>PHP Mess Detector configuration for PaySentinel</description>
 
     <rule ref="rulesets/codesize.xml">
         <exclude name="TooManyPublicMethods"/>

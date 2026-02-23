@@ -14,7 +14,7 @@
  * - Property 28: Health-Alert Integration
  * - Property 29: Retry-Recovery Integration
  */
-class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
+class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 
 	/**
 	 * Transaction logger instance
@@ -48,11 +48,11 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 		parent::setUp();
 
 		// Initialize all components
-		$this->database = new WC_Payment_Monitor_Database();
-		$this->logger   = new WC_Payment_Monitor_Logger();
-		$this->health   = new WC_Payment_Monitor_Health();
-		$this->alerts   = new WC_Payment_Monitor_Alerts();
-		$this->retry    = new WC_Payment_Monitor_Retry();
+		$this->database = new PaySentinel_Database();
+		$this->logger   = new PaySentinel_Logger();
+		$this->health   = new PaySentinel_Health();
+		$this->alerts   = new PaySentinel_Alerts();
+		$this->retry    = new PaySentinel_Retry();
 	}
 
 	/**
@@ -69,11 +69,11 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 	public function test_property_27_complete_payment_flow_integration() {
 		for ( $i = 0; $i < 100; $i++ ) {
 			// Test 1: All core components should be instantiable
-			$this->assertInstanceOf( 'WC_Payment_Monitor_Logger', $this->logger );
-			$this->assertInstanceOf( 'WC_Payment_Monitor_Health', $this->health );
-			$this->assertInstanceOf( 'WC_Payment_Monitor_Alerts', $this->alerts );
-			$this->assertInstanceOf( 'WC_Payment_Monitor_Retry', $this->retry );
-			$this->assertInstanceOf( 'WC_Payment_Monitor_Database', $this->database );
+			$this->assertInstanceOf( 'PaySentinel_Logger', $this->logger );
+			$this->assertInstanceOf( 'PaySentinel_Health', $this->health );
+			$this->assertInstanceOf( 'PaySentinel_Alerts', $this->alerts );
+			$this->assertInstanceOf( 'PaySentinel_Retry', $this->retry );
+			$this->assertInstanceOf( 'PaySentinel_Database', $this->database );
 
 			// Test 2: Database should be properly initialized
 			$this->assertTrue(
@@ -103,23 +103,23 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 			);
 
 			// Test 4: REST API should be available for all data sources
-			$api_health       = new WC_Payment_Monitor_API_Health();
-			$api_transactions = new WC_Payment_Monitor_API_Transactions();
+			$api_health       = new PaySentinel_API_Health();
+			$api_transactions = new PaySentinel_API_Transactions();
 
-			$this->assertInstanceOf( 'WC_Payment_Monitor_API_Health', $api_health );
-			$this->assertInstanceOf( 'WC_Payment_Monitor_API_Transactions', $api_transactions );
+			$this->assertInstanceOf( 'PaySentinel_API_Health', $api_health );
+			$this->assertInstanceOf( 'PaySentinel_API_Transactions', $api_transactions );
 
 			// Test 5: Admin pages should be available for data display
-			$admin = new WC_Payment_Monitor_Admin();
-			$this->assertInstanceOf( 'WC_Payment_Monitor_Admin', $admin );
+			$admin = new PaySentinel_Admin();
+			$this->assertInstanceOf( 'PaySentinel_Admin', $admin );
 
 			// Test 6: Settings should be retrievable for configuration
-			$settings = WC_Payment_Monitor_Admin::get_settings();
+			$settings = PaySentinel_Admin::get_settings();
 			$this->assertIsArray( $settings );
 			$this->assertArrayHasKey( 'enable_monitoring', $settings );
 
 			// Test 7: Security should be applied throughout the system
-			$security = new WC_Payment_Monitor_Security();
+			$security = new PaySentinel_Security();
 			$this->assertTrue(
 				method_exists( $security, 'exclude_sensitive_data' ),
 				'Security should filter sensitive data from responses'
@@ -167,8 +167,8 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 	public function test_property_28_health_alert_integration() {
 		for ( $i = 0; $i < 100; $i++ ) {
 			// Test 3: All components should be linked
-			$health = new WC_Payment_Monitor_Health();
-			$alerts = new WC_Payment_Monitor_Alerts();
+			$health = new PaySentinel_Health();
+			$alerts = new PaySentinel_Alerts();
 
 			$this->assertTrue(
 				method_exists( $health, 'calculate_all_gateway_health' ),
@@ -181,7 +181,7 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 			);
 
 			// Test 2: Settings should define alert thresholds
-			$settings = WC_Payment_Monitor_Admin::get_settings();
+			$settings = PaySentinel_Admin::get_settings();
 			$this->assertArrayHasKey( 'alert_threshold', $settings, 'Settings should have alert threshold' );
 
 			$threshold = $settings['alert_threshold'];
@@ -213,7 +213,7 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 			);
 
 			// Test 7: Database should store alert history
-			$database = new WC_Payment_Monitor_Database();
+			$database = new PaySentinel_Database();
 			$this->assertTrue(
 				method_exists( $database, 'get_alerts_table' ),
 				'Database should have alerts table'
@@ -221,19 +221,19 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 
 			// Test 8: API should expose alert data
 			$this->assertTrue(
-				method_exists( 'WC_Payment_Monitor_API_Health', 'register_routes' ),
+				method_exists( 'PaySentinel_API_Health', 'register_routes' ),
 				'API should register routes for alert access'
 			);
 
 			// Test 9: Admin should display alerts
-			$admin = new WC_Payment_Monitor_Admin();
+			$admin = new PaySentinel_Admin();
 			$this->assertTrue(
 				method_exists( $admin, 'render_alerts_page' ),
 				'Admin should render alerts page'
 			);
 
 			// Test 10: Security should filter sensitive data from alerts
-			$security = new WC_Payment_Monitor_Security();
+			$security = new PaySentinel_Security();
 			$this->assertTrue(
 				method_exists( $security, 'mask_sensitive_data' ),
 				'Security should mask sensitive alert data'
@@ -255,7 +255,7 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 	public function test_property_29_retry_recovery_integration() {
 		for ( $i = 0; $i < 100; $i++ ) {
 			// Test 1: Retry engine should be integrated
-			$retry = new WC_Payment_Monitor_Retry();
+			$retry = new PaySentinel_Retry();
 
 			$this->assertTrue(
 				method_exists( $retry, 'schedule_retry' ),
@@ -263,7 +263,7 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 			);
 
 			// Test 2: Retry configuration should be available in settings
-			$settings = WC_Payment_Monitor_Admin::get_settings();
+			$settings = PaySentinel_Admin::get_settings();
 			$this->assertArrayHasKey( 'retry_enabled', $settings, 'Settings should have retry enabled flag' );
 			$this->assertArrayHasKey( 'max_retry_attempts', $settings, 'Settings should have max retry attempts' );
 
@@ -272,32 +272,32 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 			$this->assertLessThanOrEqual( 10, $max_attempts, 'Max attempts should be reasonable' );
 
 			// Test 3: Retry history should be tracked in database
-			$database = new WC_Payment_Monitor_Database();
+			$database = new PaySentinel_Database();
 			$this->assertTrue(
 				method_exists( $retry, 'get_retry_stats' ),
 				'Retry should track retry history'
 			);
 
 			// Test 4: Retry logic should integrate with transaction logger
-			$logger = new WC_Payment_Monitor_Logger();
+			$logger = new PaySentinel_Logger();
 			$this->assertTrue(
 				method_exists( $logger, 'log_failure' ),
 				'Logger should record transaction failures for retry'
 			);
 
 			// Test 5: Recovery should update health metrics
-			$health = new WC_Payment_Monitor_Health();
+			$health = new PaySentinel_Health();
 			$this->assertTrue(
 				method_exists( $health, 'calculate_all_gateway_health' ),
 				'Health should reflect recovered transactions'
 			);
 
 			// Test 6: Retry configuration should be accessible via API
-			$api_health = new WC_Payment_Monitor_API_Health();
-			$this->assertInstanceOf( 'WC_Payment_Monitor_API_Health', $api_health );
+			$api_health = new PaySentinel_API_Health();
+			$this->assertInstanceOf( 'PaySentinel_API_Health', $api_health );
 
 			// Test 7: Admin should show retry configuration
-			$admin = new WC_Payment_Monitor_Admin();
+			$admin = new PaySentinel_Admin();
 			$this->assertTrue(
 				method_exists( $admin, 'render_settings_page' ),
 				'Admin should allow retry configuration'
@@ -328,40 +328,40 @@ class PaymentSystemIntegrationTest extends WC_Payment_Monitor_Test_Case {
 	 */
 	public function test_complete_system_integration() {
 		// Test 1: Default settings should exist
-		$settings = WC_Payment_Monitor_Admin::get_settings();
+		$settings = PaySentinel_Admin::get_settings();
 		$this->assertIsArray( $settings );
 		$this->assertArrayHasKey( 'enable_monitoring', $settings );
 
 		// Test 2: All database tables should exist
-		$database = new WC_Payment_Monitor_Database();
+		$database = new PaySentinel_Database();
 		$this->assertNotEmpty( $database->get_transactions_table() );
 		$this->assertNotEmpty( $database->get_gateway_health_table() );
 		$this->assertNotEmpty( $database->get_alerts_table() );
 
 		// Test 3: Components should be properly initialized
-		$logger = new WC_Payment_Monitor_Logger();
-		$health = new WC_Payment_Monitor_Health();
-		$alerts = new WC_Payment_Monitor_Alerts();
-		$retry  = new WC_Payment_Monitor_Retry();
+		$logger = new PaySentinel_Logger();
+		$health = new PaySentinel_Health();
+		$alerts = new PaySentinel_Alerts();
+		$retry  = new PaySentinel_Retry();
 
-		$this->assertInstanceOf( 'WC_Payment_Monitor_Logger', $logger );
-		$this->assertInstanceOf( 'WC_Payment_Monitor_Health', $health );
-		$this->assertInstanceOf( 'WC_Payment_Monitor_Alerts', $alerts );
-		$this->assertInstanceOf( 'WC_Payment_Monitor_Retry', $retry );
+		$this->assertInstanceOf( 'PaySentinel_Logger', $logger );
+		$this->assertInstanceOf( 'PaySentinel_Health', $health );
+		$this->assertInstanceOf( 'PaySentinel_Alerts', $alerts );
+		$this->assertInstanceOf( 'PaySentinel_Retry', $retry );
 
 		// Test 4: REST API endpoints should be available
-		$api_health       = new WC_Payment_Monitor_API_Health();
-		$api_transactions = new WC_Payment_Monitor_API_Transactions();
+		$api_health       = new PaySentinel_API_Health();
+		$api_transactions = new PaySentinel_API_Transactions();
 
-		$this->assertInstanceOf( 'WC_Payment_Monitor_API_Health', $api_health );
-		$this->assertInstanceOf( 'WC_Payment_Monitor_API_Transactions', $api_transactions );
+		$this->assertInstanceOf( 'PaySentinel_API_Health', $api_health );
+		$this->assertInstanceOf( 'PaySentinel_API_Transactions', $api_transactions );
 
 		// Test 5: Admin interface should be available
-		$admin = new WC_Payment_Monitor_Admin();
-		$this->assertInstanceOf( 'WC_Payment_Monitor_Admin', $admin );
+		$admin = new PaySentinel_Admin();
+		$this->assertInstanceOf( 'PaySentinel_Admin', $admin );
 
 		// Test 6: Security should be in place
-		$security = new WC_Payment_Monitor_Security();
-		$this->assertInstanceOf( 'WC_Payment_Monitor_Security', $security );
+		$security = new PaySentinel_Security();
+		$this->assertInstanceOf( 'PaySentinel_Security', $security );
 	}
 }

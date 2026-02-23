@@ -8,7 +8,7 @@
  * - Property 23: Settings form validation
  * - Property 24: Admin settings retrieval
  */
-class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
+class AdminPagePropertyTest extends PaySentinel_Test_Case {
 
 	/**
 	 * Menu handler instance
@@ -149,7 +149,7 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 		}
 
 		// Create admin instance and get handlers
-		$this->admin = new WC_Payment_Monitor_Admin();
+		$this->admin = new PaySentinel_Admin();
 
 		// Access the handlers through reflection since they're private
 		$admin_reflection      = new ReflectionClass( $this->admin );
@@ -184,13 +184,13 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 		for ( $i = 0; $i < 100; $i++ ) {
 			// Test 1: Admin class should exist and be instantiable
 			$this->assertTrue(
-				class_exists( 'WC_Payment_Monitor_Admin' ),
+				class_exists( 'PaySentinel_Admin' ),
 				'Admin class should exist'
 			);
 
-			$admin = new WC_Payment_Monitor_Admin();
+			$admin = new PaySentinel_Admin();
 			$this->assertInstanceOf(
-				'WC_Payment_Monitor_Admin',
+				'PaySentinel_Admin',
 				$admin,
 				'Admin class should be instantiable'
 			);
@@ -231,17 +231,17 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 
 			// Test 5: Admin class should have settings helper methods
 			$this->assertTrue(
-				method_exists( 'WC_Payment_Monitor_Admin', 'get_settings' ),
+				method_exists( 'PaySentinel_Admin', 'get_settings' ),
 				'Admin should have get_settings static method'
 			);
 
 			$this->assertTrue(
-				method_exists( 'WC_Payment_Monitor_Admin', 'get_setting' ),
+				method_exists( 'PaySentinel_Admin', 'get_setting' ),
 				'Admin should have get_setting static method'
 			);
 
 			$this->assertTrue(
-				method_exists( 'WC_Payment_Monitor_Admin', 'update_settings' ),
+				method_exists( 'PaySentinel_Admin', 'update_settings' ),
 				'Admin should have update_settings static method'
 			);
 		}
@@ -310,10 +310,10 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 	public function test_property_24_admin_settings_retrieval_and_update() {
 		for ( $i = 0; $i < 100; $i++ ) {
 			// Clear existing settings
-			delete_option( 'wc_payment_monitor_options' );
+			delete_option( 'paysentinel_options' );
 
 			// Test 1: Default settings should return correct defaults
-			$settings = WC_Payment_Monitor_Admin::get_settings();
+			$settings = PaySentinel_Admin::get_settings();
 
 			$this->assertIsArray( $settings, 'Settings should be array' );
 			$this->assertArrayHasKey( 'enable_monitoring', $settings, 'Should have enable_monitoring setting' );
@@ -333,14 +333,14 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			$this->assertGreaterThanOrEqual( 1, $settings['max_retry_attempts'], 'Max attempts should be >= 1' );
 
 			// Test 4: get_setting should return correct values
-			$enable = WC_Payment_Monitor_Admin::get_setting( 'enable_monitoring' );
+			$enable = PaySentinel_Admin::get_setting( 'enable_monitoring' );
 			$this->assertEquals( 1, $enable, 'get_setting should return correct enable_monitoring' );
 
-			$interval = WC_Payment_Monitor_Admin::get_setting( 'health_check_interval' );
+			$interval = PaySentinel_Admin::get_setting( 'health_check_interval' );
 			$this->assertIsInt( $interval, 'get_setting should return int for interval' );
 
 			// Test 5: get_setting with default should work
-			$nonexistent = WC_Payment_Monitor_Admin::get_setting( 'nonexistent_field', 'default_value' );
+			$nonexistent = PaySentinel_Admin::get_setting( 'nonexistent_field', 'default_value' );
 			$this->assertEquals( 'default_value', $nonexistent, 'get_setting should return default for nonexistent field' );
 
 			// Test 6: update_settings should persist values
@@ -352,11 +352,11 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 				'max_retry_attempts'    => 5,
 			);
 
-			$result = WC_Payment_Monitor_Admin::update_settings( $new_settings );
+			$result = PaySentinel_Admin::update_settings( $new_settings );
 			$this->assertTrue( $result, 'update_settings should return true' );
 
 			// Test 7: Updated settings should be retrievable
-			$updated = WC_Payment_Monitor_Admin::get_settings();
+			$updated = PaySentinel_Admin::get_settings();
 
 			$this->assertEquals( 0, $updated['enable_monitoring'], 'Updated enable_monitoring should be 0' );
 			$this->assertEquals( 15, $updated['health_check_interval'], 'Updated interval should be 15' );
@@ -364,9 +364,9 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			$this->assertEquals( 5, $updated['max_retry_attempts'], 'Updated attempts should be 5' );
 
 			// Test 8: Partial updates should preserve other settings
-			WC_Payment_Monitor_Admin::update_settings( array( 'health_check_interval' => 20 ) );
+			PaySentinel_Admin::update_settings( array( 'health_check_interval' => 20 ) );
 
-			$partial = WC_Payment_Monitor_Admin::get_settings();
+			$partial = PaySentinel_Admin::get_settings();
 			$this->assertEquals( 20, $partial['health_check_interval'], 'health_check_interval should be updated' );
 			$this->assertEquals( 0, $partial['enable_monitoring'], 'enable_monitoring should be preserved' );
 		}
@@ -382,35 +382,35 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 		// Test 1: Health check interval validation
 		for ( $i = 0; $i < 50; $i++ ) {
 			$interval = mt_rand( 1, 1440 );
-			$result   = WC_Payment_Monitor_Admin::validate_health_check_interval( $interval );
+			$result   = PaySentinel_Admin::validate_health_check_interval( $interval );
 			$this->assertTrue( $result['valid'], "Interval $interval should be valid" );
 			$this->assertEquals( $interval, $result['value'], 'Validated interval should match input' );
 		}
 
 		// Test 2: Health check interval lower bound validation
-		$result = WC_Payment_Monitor_Admin::validate_health_check_interval( 0 );
+		$result = PaySentinel_Admin::validate_health_check_interval( 0 );
 		$this->assertFalse( $result['valid'], 'Interval 0 should be invalid' );
 		$this->assertNotEmpty( $result['message'], 'Should have error message' );
 
 		// Test 3: Health check interval upper bound validation
-		$result = WC_Payment_Monitor_Admin::validate_health_check_interval( 1441 );
+		$result = PaySentinel_Admin::validate_health_check_interval( 1441 );
 		$this->assertFalse( $result['valid'], 'Interval > 1440 should be invalid' );
 
 		// Test 4: Alert threshold validation
 		for ( $i = 0; $i < 50; $i++ ) {
 			$threshold = ( mt_rand( 1, 10000 ) / 100 );
 			if ( $threshold >= 0.1 && $threshold <= 100 ) {
-				$result = WC_Payment_Monitor_Admin::validate_alert_threshold( $threshold );
+				$result = PaySentinel_Admin::validate_alert_threshold( $threshold );
 				$this->assertTrue( $result['valid'], "Threshold $threshold should be valid" );
 				$this->assertEquals( $threshold, $result['value'], 'Validated threshold should match input' );
 			}
 		}
 
 		// Test 5: Alert threshold boundary validation
-		$result = WC_Payment_Monitor_Admin::validate_alert_threshold( 0.05 );
+		$result = PaySentinel_Admin::validate_alert_threshold( 0.05 );
 		$this->assertFalse( $result['valid'], 'Threshold < 0.1 should be invalid' );
 
-		$result = WC_Payment_Monitor_Admin::validate_alert_threshold( 100.5 );
+		$result = PaySentinel_Admin::validate_alert_threshold( 100.5 );
 		$this->assertFalse( $result['valid'], 'Threshold > 100 should be invalid' );
 
 		// Test 6: Validate all settings together
@@ -422,7 +422,7 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			'max_retry_attempts'    => 3,
 		);
 
-		$result = WC_Payment_Monitor_Admin::validate_all_settings( $test_settings );
+		$result = PaySentinel_Admin::validate_all_settings( $test_settings );
 		$this->assertTrue( $result['valid'], 'Valid settings should pass validation' );
 		$this->assertEmpty( $result['errors'], 'Valid settings should have no errors' );
 
@@ -433,7 +433,7 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			'max_retry_attempts'    => 20,
 		);
 
-		$result = WC_Payment_Monitor_Admin::validate_all_settings( $invalid_settings );
+		$result = PaySentinel_Admin::validate_all_settings( $invalid_settings );
 		$this->assertFalse( $result['valid'], 'Invalid settings should fail validation' );
 		$this->assertNotEmpty( $result['errors'], 'Should have error messages' );
 		$this->assertGreaterThan( 0, count( $result['errors'] ), 'Should have multiple errors' );
@@ -445,7 +445,7 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 			'alert_threshold'       => 200,        // Invalid
 		);
 
-		$result = WC_Payment_Monitor_Admin::validate_all_settings( $mixed_settings );
+		$result = PaySentinel_Admin::validate_all_settings( $mixed_settings );
 		$this->assertFalse( $result['valid'], 'Mixed settings with errors should fail' );
 		$this->assertArrayHasKey( 'health_check_interval', $result['validated_settings'], 'Valid settings should be included' );
 	}
@@ -460,61 +460,61 @@ class AdminPagePropertyTest extends WC_Payment_Monitor_Test_Case {
 		// Test 1: Valid retry configurations
 		for ( $i = 1; $i <= 10; $i++ ) {
 			$config = array( 'max_retry_attempts' => $i );
-			$result = WC_Payment_Monitor_Admin::validate_retry_configuration( $config );
+			$result = PaySentinel_Admin::validate_retry_configuration( $config );
 			$this->assertTrue( $result['valid'], "Config with $i attempts should be valid" );
 			$this->assertEquals( $i, $result['value']['max_retry_attempts'], 'Should return same config' );
 		}
 
 		// Test 2: Retry attempts lower bound validation
 		$config = array( 'max_retry_attempts' => 0 );
-		$result = WC_Payment_Monitor_Admin::validate_retry_configuration( $config );
+		$result = PaySentinel_Admin::validate_retry_configuration( $config );
 		$this->assertFalse( $result['valid'], 'Zero retry attempts should be invalid' );
 		$this->assertNotEmpty( $result['message'], 'Should have error message' );
 
 		// Test 3: Retry attempts upper bound validation
 		$config = array( 'max_retry_attempts' => 11 );
-		$result = WC_Payment_Monitor_Admin::validate_retry_configuration( $config );
+		$result = PaySentinel_Admin::validate_retry_configuration( $config );
 		$this->assertFalse( $result['valid'], 'More than 10 retry attempts should be invalid' );
 
 		// Test 4: Negative retry attempts validation
 		$config = array( 'max_retry_attempts' => -5 );
-		$result = WC_Payment_Monitor_Admin::validate_retry_configuration( $config );
+		$result = PaySentinel_Admin::validate_retry_configuration( $config );
 		$this->assertFalse( $result['valid'], 'Negative retry attempts should be invalid' );
 
 		// Test 5: Non-array configuration should fail
-		$result = WC_Payment_Monitor_Admin::validate_retry_configuration( 'invalid' );
+		$result = PaySentinel_Admin::validate_retry_configuration( 'invalid' );
 		$this->assertFalse( $result['valid'], 'Non-array config should be invalid' );
 
 		// Test 6: Empty configuration should fail
-		$result = WC_Payment_Monitor_Admin::validate_retry_configuration( array() );
+		$result = PaySentinel_Admin::validate_retry_configuration( array() );
 		$this->assertFalse( $result['valid'], 'Empty config should be invalid' );
 
 		// Test 7: Large number validation
 		$config = array( 'max_retry_attempts' => 999 );
-		$result = WC_Payment_Monitor_Admin::validate_retry_configuration( $config );
+		$result = PaySentinel_Admin::validate_retry_configuration( $config );
 		$this->assertFalse( $result['valid'], 'Very large retry attempts should be invalid' );
 
 		// Test 8: Type coercion test - numeric string should work
 		$config = array( 'max_retry_attempts' => '5' );
-		$result = WC_Payment_Monitor_Admin::validate_retry_configuration( $config );
+		$result = PaySentinel_Admin::validate_retry_configuration( $config );
 		$this->assertTrue( $result['valid'], 'Numeric string should be accepted and coerced' );
 		$this->assertEquals( 5, $result['value']['max_retry_attempts'], 'Should coerce string to int' );
 
 		// Test 9: Error arrays in invalid configs
 		$invalid_config = array( 'max_retry_attempts' => 15 );
-		$result         = WC_Payment_Monitor_Admin::validate_retry_configuration( $invalid_config );
+		$result         = PaySentinel_Admin::validate_retry_configuration( $invalid_config );
 		$this->assertFalse( $result['valid'], 'Invalid config should have errors' );
 		$this->assertIsArray( $result['errors'], 'Should return errors array' );
 		$this->assertGreaterThan( 0, count( $result['errors'] ), 'Should have error messages' );
 
 		// Test 10: License tier check after validation
-		WC_Payment_Monitor_Admin::update_settings(
+		PaySentinel_Admin::update_settings(
 			array(
 				'max_retry_attempts' => 5,
 			)
 		);
 
-		$admin = new WC_Payment_Monitor_Admin();
+		$admin = new PaySentinel_Admin();
 		$tier  = $admin->get_license_tier();
 		$this->assertEquals( 'free', $tier, 'Empty license key should be free tier' );
 	}

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Unit tests for WC_Payment_Monitor_Diagnostics class
+ * Unit tests for PaySentinel_Diagnostics class
  * Tests diagnostic functionality and bug fixes
  */
 class DiagnosticsTest extends PHPUnit\Framework\TestCase {
@@ -10,15 +10,15 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	 * Test that diagnostics class can be instantiated
 	 */
 	public function test_diagnostics_class_can_be_instantiated() {
-		$diagnostics = new WC_Payment_Monitor_Diagnostics();
-		$this->assertInstanceOf( WC_Payment_Monitor_Diagnostics::class, $diagnostics );
+		$diagnostics = new PaySentinel_Diagnostics();
+		$this->assertInstanceOf( PaySentinel_Diagnostics::class, $diagnostics );
 	}
 
 	/**
 	 * Test that check_database_health method exists and returns array
 	 */
 	public function test_check_database_health_method_exists() {
-		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$diagnostics = new PaySentinel_Diagnostics();
 		$result      = $diagnostics->check_database_health();
 
 		$this->assertIsArray( $result );
@@ -30,7 +30,7 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	 * Test that check_all_gateways method exists and returns array
 	 */
 	public function test_check_all_gateways_method_exists() {
-		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$diagnostics = new PaySentinel_Diagnostics();
 		$result      = $diagnostics->check_all_gateways();
 
 		$this->assertIsArray( $result );
@@ -42,7 +42,7 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	 * Test run_full_diagnostics returns expected structure
 	 */
 	public function test_run_full_diagnostics_structure() {
-		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$diagnostics = new PaySentinel_Diagnostics();
 		$result      = $diagnostics->run_full_diagnostics();
 
 		$this->assertIsArray( $result );
@@ -56,7 +56,7 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	 * Test system info collection
 	 */
 	public function test_get_system_info() {
-		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$diagnostics = new PaySentinel_Diagnostics();
 		$result      = $diagnostics->get_system_info();
 
 		$this->assertIsArray( $result );
@@ -70,15 +70,15 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	 * Test API diagnostics class can be instantiated
 	 */
 	public function test_api_diagnostics_class_can_be_instantiated() {
-		$api = new WC_Payment_Monitor_API_Diagnostics();
-		$this->assertInstanceOf( WC_Payment_Monitor_API_Diagnostics::class, $api );
+		$api = new PaySentinel_API_Diagnostics();
+		$this->assertInstanceOf( PaySentinel_API_Diagnostics::class, $api );
 	}
 
 	/**
 	 * Test that clean_orphaned method exists and can be called
 	 */
 	public function test_clean_orphaned_method_exists() {
-		$api = new WC_Payment_Monitor_API_Diagnostics();
+		$api = new PaySentinel_API_Diagnostics();
 		$this->assertTrue( method_exists( $api, 'clean_orphaned' ) );
 	}
 
@@ -86,7 +86,7 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	 * Test that archive_transactions method exists and can be called
 	 */
 	public function test_archive_transactions_method_exists() {
-		$api = new WC_Payment_Monitor_API_Diagnostics();
+		$api = new PaySentinel_API_Diagnostics();
 		$this->assertTrue( method_exists( $api, 'archive_transactions' ) );
 	}
 
@@ -94,7 +94,7 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	 * Test that maintenance endpoints are registered
 	 */
 	public function test_maintenance_endpoints_are_registered() {
-		$api = new WC_Payment_Monitor_API_Diagnostics();
+		$api = new PaySentinel_API_Diagnostics();
 		$this->assertTrue( method_exists( $api, 'register_routes' ) );
 
 		// Test that the register_routes method exists and is callable
@@ -106,7 +106,7 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	 * Test clean_orphaned_records method exists and returns expected structure
 	 */
 	public function test_clean_orphaned_records_method_exists() {
-		$diagnostics = new WC_Payment_Monitor_Diagnostics();
+		$diagnostics = new PaySentinel_Diagnostics();
 		$result      = $diagnostics->clean_orphaned_records();
 
 		$this->assertIsArray( $result );
@@ -124,8 +124,8 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	public function test_clean_orphaned_records_cleans_transactions() {
 		global $wpdb;
 
-		$diagnostics = new WC_Payment_Monitor_Diagnostics();
-		$database    = new WC_Payment_Monitor_Database();
+		$diagnostics = new PaySentinel_Diagnostics();
+		$database    = new PaySentinel_Database();
 		$table_name  = $database->get_transactions_table();
 
 		// Create a mock transaction with non-existent order ID
@@ -169,8 +169,8 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	public function test_clean_orphaned_records_cleans_alerts() {
 		global $wpdb;
 
-		$diagnostics  = new WC_Payment_Monitor_Diagnostics();
-		$database     = new WC_Payment_Monitor_Database();
+		$diagnostics  = new PaySentinel_Diagnostics();
+		$database     = new PaySentinel_Database();
 		$alerts_table = $database->get_alerts_table();
 
 		// Create a mock alert with non-existent order ID in metadata
@@ -222,8 +222,8 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	public function test_clean_orphaned_records_preserves_alerts_without_order_id() {
 		global $wpdb;
 
-		$diagnostics  = new WC_Payment_Monitor_Diagnostics();
-		$database     = new WC_Payment_Monitor_Database();
+		$diagnostics  = new PaySentinel_Diagnostics();
+		$database     = new PaySentinel_Database();
 		$alerts_table = $database->get_alerts_table();
 
 		// Create a mock alert without order_id in metadata (performance-based alert)
@@ -271,8 +271,8 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 	public function test_clean_orphaned_records_preserves_valid_alerts() {
 		global $wpdb;
 
-		$diagnostics  = new WC_Payment_Monitor_Diagnostics();
-		$database     = new WC_Payment_Monitor_Database();
+		$diagnostics  = new PaySentinel_Diagnostics();
+		$database     = new PaySentinel_Database();
 		$alerts_table = $database->get_alerts_table();
 
 		// Create a valid order first

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Unit tests for WC_Payment_Monitor_Health class
+ * Unit tests for PaySentinel_Health class
  * Tests health calculation and success rate computation
  */
 class HealthCalculationTest extends PHPUnit\Framework\TestCase {
@@ -11,7 +11,7 @@ class HealthCalculationTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_health_constants_defined() {
 		// Verify health class can be loaded
-		$this->assertTrue( class_exists( 'WC_Payment_Monitor_Health' ) || file_exists( __DIR__ . '/../includes/core/class-wc-payment-monitor-health.php' ) );
+		$this->assertTrue( class_exists( 'PaySentinel_Health' ) || file_exists( __DIR__ . '/../includes/core/class-paysentinel-health.php' ) );
 	}
 
 	/**

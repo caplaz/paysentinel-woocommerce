@@ -90,14 +90,14 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	public function test_property_credential_encryption() {
 		// Test basic structure - encryption requires AUTH_KEY which may not be available
 		// Verify the methods exist and are callable
-		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'encrypt_credential' ) );
-		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'decrypt_credential' ) );
+		$this->assertTrue( method_exists( 'PaySentinel_Security', 'encrypt_credential' ) );
+		$this->assertTrue( method_exists( 'PaySentinel_Security', 'decrypt_credential' ) );
 
 		// Test that empty input returns false
-		$result = WC_Payment_Monitor_Security::encrypt_credential( '' );
+		$result = PaySentinel_Security::encrypt_credential( '' );
 		$this->assertFalse( $result );
 
-		$result = WC_Payment_Monitor_Security::decrypt_credential( '' );
+		$result = PaySentinel_Security::decrypt_credential( '' );
 		$this->assertFalse( $result );
 	}
 
@@ -113,14 +113,14 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 		);
 
 		// Sort keys manually to know expected result
-		$signature1 = WC_Payment_Monitor_Security::generate_hmac_signature( $payload, $timestamp, $site_secret );
+		$signature1 = PaySentinel_Security::generate_hmac_signature( $payload, $timestamp, $site_secret );
 
 		// Different order of keys should yield same signature due to internal ksort
 		$payload2   = array(
 			'foo' => 'bar',
 			'abc' => 123,
 		);
-		$signature2 = WC_Payment_Monitor_Security::generate_hmac_signature( $payload2, $timestamp, $site_secret );
+		$signature2 = PaySentinel_Security::generate_hmac_signature( $payload2, $timestamp, $site_secret );
 
 		$this->assertEquals( $signature1, $signature2 );
 		$this->assertNotEmpty( $signature1 );
@@ -130,11 +130,11 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 			'foo' => 'baz',
 			'abc' => 123,
 		);
-		$signature3 = WC_Payment_Monitor_Security::generate_hmac_signature( $payload3, $timestamp, $site_secret );
+		$signature3 = PaySentinel_Security::generate_hmac_signature( $payload3, $timestamp, $site_secret );
 		$this->assertNotEquals( $signature1, $signature3 );
 
 		// Different timestamp should yield different signature
-		$signature4 = WC_Payment_Monitor_Security::generate_hmac_signature( $payload, $timestamp + 1, $site_secret );
+		$signature4 = PaySentinel_Security::generate_hmac_signature( $payload, $timestamp + 1, $site_secret );
 		$this->assertNotEquals( $signature1, $signature4 );
 	}
 
@@ -146,12 +146,12 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_credential_encryption_edge_cases() {
 		// Empty string should return false
-		$empty_encrypted = WC_Payment_Monitor_Security::encrypt_credential( '' );
+		$empty_encrypted = PaySentinel_Security::encrypt_credential( '' );
 		$this->assertFalse( $empty_encrypted );
 
 		// Verify encryption methods exist and have proper signatures
-		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'encrypt_credential' ) );
-		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'validate_encryption' ) );
+		$this->assertTrue( method_exists( 'PaySentinel_Security', 'encrypt_credential' ) );
+		$this->assertTrue( method_exists( 'PaySentinel_Security', 'validate_encryption' ) );
 	}
 
 	/**
@@ -183,7 +183,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 			}
 
 			// Exclude sensitive data
-			$filtered = WC_Payment_Monitor_Security::exclude_sensitive_data( $data );
+			$filtered = PaySentinel_Security::exclude_sensitive_data( $data );
 
 			// Non-sensitive fields should still be present
 			$this->assertArrayHasKey( 'user_id', $filtered );
@@ -218,7 +218,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 			);
 
 			// Mask sensitive data
-			$masked = WC_Payment_Monitor_Security::mask_sensitive_data( $data );
+			$masked = PaySentinel_Security::mask_sensitive_data( $data );
 
 			// Structure should be preserved
 			$this->assertArrayHasKey( 'id', $masked );
@@ -262,7 +262,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 				$params = array( intval( $pattern ), $pattern );
 
 				// Prepare query
-				$prepared = WC_Payment_Monitor_Security::prepare_sql_query( $query, $params );
+				$prepared = PaySentinel_Security::prepare_sql_query( $query, $params );
 
 				// Should return string (prepared query) or array (if error)
 				$this->assertTrue( is_string( $prepared ) || is_array( $prepared ) || is_wp_error( $prepared ) );
@@ -293,7 +293,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 
 		for ( $i = 0; $i < 50; $i++ ) {
 			// Validate safe settings
-			$validated = WC_Payment_Monitor_Security::validate_admin_settings( $safe_settings );
+			$validated = PaySentinel_Security::validate_admin_settings( $safe_settings );
 
 			// Should have same keys after validation
 			$this->assertArrayHasKey( 'enable_logging', $validated );
@@ -322,7 +322,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 			foreach ( $capabilities as $cap ) {
 				// Capability check should return boolean
 				// (true or false, not error)
-				$result = WC_Payment_Monitor_Security::check_user_capability( $cap, 0 );
+				$result = PaySentinel_Security::check_user_capability( $cap, 0 );
 				$this->assertIsBool( $result );
 			}
 		}
@@ -347,7 +347,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 			);
 
 			// Validate settings
-			$validated = WC_Payment_Monitor_Security::validate_admin_settings( $settings );
+			$validated = PaySentinel_Security::validate_admin_settings( $settings );
 
 			// Result should be array
 			$this->assertIsArray( $validated );
@@ -370,12 +370,12 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_encryption_consistency() {
 		// Verify encryption methods exist and return expected types
-		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'encrypt_credential' ) );
-		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'decrypt_credential' ) );
-		$this->assertTrue( method_exists( 'WC_Payment_Monitor_Security', 'validate_encryption' ) );
+		$this->assertTrue( method_exists( 'PaySentinel_Security', 'encrypt_credential' ) );
+		$this->assertTrue( method_exists( 'PaySentinel_Security', 'decrypt_credential' ) );
+		$this->assertTrue( method_exists( 'PaySentinel_Security', 'validate_encryption' ) );
 
 		// Test that validation method exists and returns boolean
-		$validation_result = WC_Payment_Monitor_Security::validate_encryption();
+		$validation_result = PaySentinel_Security::validate_encryption();
 		$this->assertIsBool( $validation_result );
 	}
 
@@ -395,7 +395,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 				'negative_value' => -rand( 1, 100 ),
 			);
 
-			$validated = WC_Payment_Monitor_Security::validate_admin_settings( $settings );
+			$validated = PaySentinel_Security::validate_admin_settings( $settings );
 
 			// String values should remain strings
 			$this->assertIsString( $validated['string_value'] );
@@ -437,7 +437,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 				),
 			);
 
-			$filtered = WC_Payment_Monitor_Security::exclude_sensitive_data( $data );
+			$filtered = PaySentinel_Security::exclude_sensitive_data( $data );
 
 			// Safe fields should exist at all levels
 			$this->assertEquals( 'visible', $filtered['level1']['level2']['level3']['safe_field'] );

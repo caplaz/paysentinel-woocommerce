@@ -1,6 +1,6 @@
 # Developer Guide
 
-Welcome to the technical documentation for **PaySentinel (WooCommerce Payment Monitor)**! This guide is designed for developers who want to extend or maintain the plugin.
+Welcome to the technical documentation for **PaySentinel (PaySentinel - Payment Monitor for WooCommerce)**! This guide is designed for developers who want to extend or maintain the plugin.
 
 ## Table of Contents
 
@@ -30,7 +30,7 @@ Here's an overview of the key folders within the `includes` directory:
 
 - **/admin/**: Contains classes responsible for rendering the admin dashboard, settings pages, and registering options.
 - **/api/**: Defines and registers custom REST API endpoints logic (e.g. analytics, health, and transactions syncing).
-- **/core/**: Contains the core operational classes (like `WC_Payment_Monitor_Health`, `WC_Payment_Monitor_Transactions`), responsible for calculations, scheduling, and database operations.
+- **/core/**: Contains the core operational classes (like `PaySentinel_Health`, `PaySentinel_Transactions`), responsible for calculations, scheduling, and database operations.
 - **/gateways/**: Adapters for specific WooCommerce payment gateways.
 
 ---
@@ -46,12 +46,12 @@ If you're integrating an unlisted payment gateway or a custom notification servi
 For an up-to-date and complete list of hooks, please search the source code for `do_action` and `apply_filters`. Standard hooks include:
 
 ### Actions
-- `wc_payment_monitor_after_health_check` — Triggered when a health check calculates and commits gateway status to database.
-- `wc_payment_monitor_transaction_logged` — Triggered whenever a transaction is logged successfully into the custom table.
+- `paysentinel_after_health_check` — Triggered when a health check calculates and commits gateway status to database.
+- `paysentinel_transaction_logged` — Triggered whenever a transaction is logged successfully into the custom table.
 
 ### Filters
-- `wc_payment_monitor_alert_threshold` — Allows modifying the dynamic success rate threshold necessary to trigger an alert.
-- `wc_payment_monitor_is_retriable_error` — Modify the boolean response matching failed transactions that are eligible for retry.
+- `paysentinel_alert_threshold` — Allows modifying the dynamic success rate threshold necessary to trigger an alert.
+- `paysentinel_is_retriable_error` — Modify the boolean response matching failed transactions that are eligible for retry.
 
 ---
 

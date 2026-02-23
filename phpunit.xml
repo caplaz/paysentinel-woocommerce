@@ -10,7 +10,7 @@
     verbose="true"
 >
     <testsuites>
-        <testsuite name="WC Payment Monitor Test Suite">
+        <testsuite name="PaySentinel Test Suite">
             <directory>./tests/</directory>
         </testsuite>
     </testsuites>
