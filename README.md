@@ -1,123 +1,56 @@
-# WooCommerce Payment Monitor
+# WooCommerce Payment Monitor (PaySentinel)
 
-A WordPress plugin that monitors WooCommerce payment gateway health in real-time, alerts store owners when payments fail, and provides actionable diagnostics to recover lost revenue.
+![License](https://img.shields.io/badge/license-GPLv2%20or%20later-blue.svg)
+![WordPress](https://img.shields.io/badge/WordPress-6.0+-blue.svg)
+![WooCommerce](https://img.shields.io/badge/WooCommerce-7.0+-blue.svg)
+![PHP](https://img.shields.io/badge/PHP-7.4+-blue.svg)
+
+**PaySentinel** is an advanced WooCommerce plugin that provides real-time monitoring and alerting for your payment gateways. Never lose a sale due to an unnoticed payment gateway failure again.
 
 ## Features
 
-### Free Tier
-- ✅ Monitor 1 payment gateway
-- ✅ Basic analytics (1-hour, 24-hour, 7-day periods)
-- ✅ 7-day data retention
-- ✅ Email alerts
-- ✅ Real-time health monitoring
-
-### PRO Tier ($99/year)
-- ✅ **Unlimited gateways** - Monitor all your payment methods
-- ✅ **Extended analytics** - 30-day and 90-day success rate tracking
-- ✅ **90-day data retention** - Keep historical data for 3 months
-- ✅ SMS alerts (500/month)
-- ✅ Slack integration
-- ✅ Per-gateway configuration
-
-See [PRO Features Documentation](docs/PRO_FEATURES.md) for complete details on all license tiers.
-
-## Plugin Structure
-
-```
-wc-payment-monitor/
-├── wc-payment-monitor.php          # Main plugin file
-├── includes/                       # Core plugin classes
-│   ├── class-wc-payment-monitor-database.php
-│   ├── class-wc-payment-monitor-logger.php
-│   ├── class-wc-payment-monitor-health.php
-│   ├── class-wc-payment-monitor-alerts.php
-│   └── class-wc-payment-monitor-retry.php
-├── admin/                          # Admin interface (future)
-├── assets/                         # CSS/JS assets (future)
-├── languages/                      # Translation files (future)
-└── tests/                          # Unit and property tests (future)
-```
+- **Real-Time Monitoring:** Continuously tracks gateway health and success rates.
+- **Instant Alerts:** Get notified via Email, SMS, or Slack when success rates drop below your threshold.
+- **Smart Retries:** Automatically retries failed payments for recoverable errors (e.g., temporary gateway downtime).
+- **Proactive Protection:** Analyzes recent transactions to provide real-time status indicators in your dashboard.
+- **Developer Friendly:** Built with extensibility in mind, featuring clear APIs and hooks.
 
 ## Installation
 
-1. Upload the plugin files to `/wp-content/plugins/wc-payment-monitor/`
-2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Ensure WooCommerce is installed and active
+### Prerequisites
 
-## Requirements
+- WordPress 6.0 or higher
+- WooCommerce 7.0 or higher
+- PHP 7.4 or higher
 
-- WordPress 5.0+
-- WooCommerce 5.0+
-- PHP 7.4+
+### Basic Setup
 
-## Database Tables
+1. Download the latest release from the [Releases](https://github.com/your-username/wc-payment-monitor/releases) page.
+2. Log in to your WordPress admin dashboard.
+3. Navigate to **Plugins > Add New** and upload the downloaded ZIP file.
+4. Click **Install Now** and then **Activate**.
 
-The plugin creates three custom database tables:
+### Development Setup (Composer)
 
-1. `wp_payment_monitor_transactions` - Stores all payment transaction data
-2. `wp_payment_monitor_gateway_health` - Stores gateway performance metrics
-3. `wp_payment_monitor_alerts` - Stores alert history and status
-
-## Performance Monitoring & Alerts
-
-The plugin monitors gateway health using a hybrid approach:
-
-- **Immediate Alerts**: Critical system errors trigger alerts instantly.
-- **Statistical Alerts**: Success rates are analyzed over 1h, 24h, and 7d periods.
-- **Volume Awareness**: Severity is automatically adjusted for low-volume stores to reduce noise.
-
-See [Alert Severity Logic](docs/ALERT_LOGIC.md) for more technical details.
-
-## Pre-Launch Checklist
-
-Before deploying to production, review the [Pre-Launch Testing Checklist](docs/PRE_LAUNCH_CHECKLIST.md) to ensure all features work correctly across different license tiers.
-
-## Development
-
-This plugin follows WordPress coding standards and uses an autoloader for class management.
-
-### Documentation
-
-- [PRO Features Guide](docs/PRO_FEATURES.md) - Details on PRO plan features and implementation
-- [Alert Logic Documentation](docs/ALERT_LOGIC.md) - How alerts are triggered and managed
-- [Pre-Launch Checklist](docs/PRE_LAUNCH_CHECKLIST.md) - Testing checklist for production deployment
-- [Test Suite Documentation](tests/README.md) - Guide to running and writing tests
-
-### Class Naming Convention
-
-All classes follow the pattern: `WC_Payment_Monitor_{Component}`
-
-### File Naming Convention
-
-All class files follow the pattern: `class-wc-payment-monitor-{component}.php`
-
-### Run Tests in Docker
-
-This repo includes a minimal Docker setup to run the PHPUnit suite against a fresh WordPress test install.
-
-Requirements:
-
-- Docker Desktop (or compatible runtime)
-
-Commands:
+If you are a developer looking to contribute or customize the plugin, you can install the dependencies via Composer:
 
 ```bash
-# Build test image (first time or after Dockerfile changes)
-make build
-
-# Run the test suite (downloads WP + test suite on first run)
-make test
-
-# Rebuild image and run tests
-make test-rebuild
-
-# Optionally, tear down the DB container if it was started
-make down
+git clone https://github.com/your-username/wc-payment-monitor.git wp-content/plugins/wc-payment-monitor
+cd wp-content/plugins/wc-payment-monitor
+composer install
 ```
 
-Notes:
+## Quick Start
 
-- The test runner installs the WordPress test suite into a temporary directory inside the container and uses the database provided by the `db` service.
-- Database credentials are defined in `docker-compose.yml` and passed to `install-wp-tests.sh`. Database creation is handled by the MySQL container; the installer is invoked with `skip-database-creation=true`.
-- To pin a specific WordPress version, set `WP_VERSION` in `docker-compose.yml` (e.g. `6.6`).
-- **Note**: The WordPress test suite may have compatibility issues with certain versions. If tests fail with syntax errors, try a different `WP_VERSION` or consider running tests locally without Docker.
+1. Go to **WooCommerce > PaySentinel** in your WordPress dashboard.
+2. In the **General Settings**, configure your `Health Check Interval` and `Alert Threshold`.
+3. In the **Notification Settings**, configure where you would like to receive alerts (Email, SMS, Slack).
+4. Save your changes and you are good to go!
+
+## Documentation
+
+For technical details, APIs, and guidelines on how to extend the plugin, please check the [Developer Guide](docs/DEVELOPER_GUIDE.md) in the `docs` folder.
+
+## License
+
+This project is licensed under the GPL-2.0 or later License - see the [LICENSE](LICENSE) file for details.

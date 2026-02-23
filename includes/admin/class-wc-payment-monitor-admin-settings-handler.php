@@ -20,6 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Payment_Monitor_Admin_Settings_Handler {
 
+
 	/**
 	 * Security instance
 	 *
@@ -249,7 +250,12 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		$enabled = isset( $options['enable_monitoring'] ) ? intval( $options['enable_monitoring'] ) : 1;
 		?>
 		<input type="checkbox" name="wc_payment_monitor_options[enable_monitoring]" value="1" <?php checked( $enabled, 1 ); ?> />
-		<label><?php esc_html_e( 'Monitor payment gateway transactions', 'wc-payment-monitor' ); ?></label>
+		<label>
+			<?php esc_html_e( 'Monitor payment gateway transactions', 'wc-payment-monitor' ); ?>
+			<?php if ( function_exists( 'wc_help_tip' ) ) : ?>
+				<?php echo wc_help_tip( __( 'When enabled, the plugin tracks all WooCommerce payment gateway transactions and logs them for health analysis.', 'wc-payment-monitor' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php endif; ?>
+		</label>
 		<?php
 	}
 
@@ -263,7 +269,8 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		<input type="number" name="wc_payment_monitor_options[health_check_interval]"
 			value="<?php echo esc_attr( $interval ); ?>" min="1" max="1440" />
 		<p class="description">
-			<?php esc_html_e( 'How often to recalculate gateway health (in minutes).', 'wc-payment-monitor' ); ?></p>
+			<?php esc_html_e( 'How often to recalculate gateway health (in minutes).', 'wc-payment-monitor' ); ?>
+		</p>
 		<?php
 	}
 
@@ -281,23 +288,26 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				border: 1px solid #ccd0d4;
 				padding: 20px;
 				border-radius: 4px;
-				box-shadow: 0 1px 1px rgba(0,0,0,.04);
+				box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
 				margin-bottom: 20px;
 			}
+
 			.threshold-slider-container {
 				position: relative;
 				padding: 20px 0 10px;
 			}
+
 			.threshold-bar-background {
 				height: 12px;
 				width: 100%;
 				border-radius: 6px;
-				background: linear-gradient(to right, 
-					#d63638 0%, #d63638 50%, 
-					#dba617 50%, #dba617 80%, 
-					#ffba00 80%, #ffba00 90%, 
-					#46b450 90%, #46b450 100%);
+				background: linear-gradient(to right,
+						#d63638 0%, #d63638 50%,
+						#dba617 50%, #dba617 80%,
+						#ffba00 80%, #ffba00 90%,
+						#46b450 90%, #46b450 100%);
 			}
+
 			#alert-threshold-slider {
 				-webkit-appearance: none;
 				width: 100%;
@@ -308,9 +318,11 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				cursor: pointer;
 				display: block;
 			}
+
 			#alert-threshold-slider:focus {
 				outline: none;
 			}
+
 			#alert-threshold-slider::-webkit-slider-thumb {
 				-webkit-appearance: none;
 				border: 2px solid #fff;
@@ -320,8 +332,9 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				background: #2271b1;
 				cursor: pointer;
 				margin-top: -2px;
-				box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+				box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 			}
+
 			#alert-threshold-slider::-moz-range-thumb {
 				border: 2px solid #fff;
 				height: 18px;
@@ -329,28 +342,28 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				border-radius: 50%;
 				background: #2271b1;
 				cursor: pointer;
-				box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+				box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 			}
 		</style>
 
 		<div class="wc-payment-monitor-threshold-ui">
 			<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-				<label for="alert-threshold-slider" style="margin: 0; font-weight: 600; font-size: 14px;"><?php esc_html_e( 'Alert Sensitivity', 'wc-payment-monitor' ); ?></label>
-				<span style="background: #2271b1; color: #fff; padding: 2px 10px; border-radius: 12px; font-weight: 600; font-size: 14px; min-width: 40px; text-align: center;">
+				<label for="alert-threshold-slider"
+					style="margin: 0; font-weight: 600; font-size: 14px;"><?php esc_html_e( 'Alert Sensitivity', 'wc-payment-monitor' ); ?></label>
+				<span
+					style="background: #2271b1; color: #fff; padding: 2px 10px; border-radius: 12px; font-weight: 600; font-size: 14px; min-width: 40px; text-align: center;">
 					<span id="threshold-val"><?php echo esc_attr( $threshold ); ?></span>%
 				</span>
 			</div>
 
 			<div class="threshold-slider-container">
 				<div class="threshold-bar-background"></div>
-				<input type="range" 
-					name="wc_payment_monitor_options[alert_threshold]" 
-					id="alert-threshold-slider"
-					value="<?php echo esc_attr( $threshold ); ?>" 
-					min="50" max="100" step="1" />
+				<input type="range" name="wc_payment_monitor_options[alert_threshold]" id="alert-threshold-slider"
+					value="<?php echo esc_attr( $threshold ); ?>" min="50" max="100" step="1" />
 			</div>
 
-			<div style="display: flex; justify-content: space-between; font-size: 11px; color: #8c8f94; margin-bottom: 25px; padding: 0 2px;">
+			<div
+				style="display: flex; justify-content: space-between; font-size: 11px; color: #8c8f94; margin-bottom: 25px; padding: 0 2px;">
 				<span>50%</span>
 				<span>75%</span>
 				<span>90%</span>
@@ -358,32 +371,37 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				<span>100%</span>
 			</div>
 
-			<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; border-top: 1px solid #f0f0f1; padding-top: 15px;">
+			<div
+				style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; border-top: 1px solid #f0f0f1; padding-top: 15px;">
 				<div style="display: flex; align-items: center;">
-					<span style="width: 12px; height: 12px; background: #d63638; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
+					<span
+						style="width: 12px; height: 12px; background: #d63638; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
 					<span><?php esc_html_e( 'High Severity (< 75%)', 'wc-payment-monitor' ); ?></span>
 				</div>
 				<div style="display: flex; align-items: center;">
-					<span style="width: 12px; height: 12px; background: #dba617; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
+					<span
+						style="width: 12px; height: 12px; background: #dba617; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
 					<span><?php esc_html_e( 'Warning (75-89%)', 'wc-payment-monitor' ); ?></span>
 				</div>
 				<div style="display: flex; align-items: center;">
-					<span style="width: 12px; height: 12px; background: #ffba00; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
+					<span
+						style="width: 12px; height: 12px; background: #ffba00; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
 					<span><?php esc_html_e( 'Info (90-94%)', 'wc-payment-monitor' ); ?></span>
 				</div>
 				<div style="display: flex; align-items: center;">
-					<span style="width: 12px; height: 12px; background: #46b450; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
+					<span
+						style="width: 12px; height: 12px; background: #46b450; border-radius: 2px; margin-right: 8px; display: inline-block;"></span>
 					<span><?php esc_html_e( 'Healthy (≥ 95%)', 'wc-payment-monitor' ); ?></span>
 				</div>
 			</div>
 		</div>
 
 		<script>
-			document.addEventListener('DOMContentLoaded', function() {
+			document.addEventListener('DOMContentLoaded', function () {
 				const slider = document.getElementById('alert-threshold-slider');
 				const display = document.getElementById('threshold-val');
 				if (slider && display) {
-					slider.addEventListener('input', function() {
+					slider.addEventListener('input', function () {
 						display.textContent = this.value;
 					});
 				}
@@ -404,7 +422,12 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		$enabled = isset( $options['retry_enabled'] ) ? intval( $options['retry_enabled'] ) : 1;
 		?>
 		<input type="checkbox" name="wc_payment_monitor_options[retry_enabled]" value="1" <?php checked( $enabled, 1 ); ?> />
-		<label><?php esc_html_e( 'Automatically retry failed payments', 'wc-payment-monitor' ); ?></label>
+		<label>
+			<?php esc_html_e( 'Automatically retry failed payments', 'wc-payment-monitor' ); ?>
+			<?php if ( function_exists( 'wc_help_tip' ) ) : ?>
+				<?php echo wc_help_tip( __( 'Attempt to automatically retry processing payments that failed due to temporary network or gateway issues.', 'wc-payment-monitor' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php endif; ?>
+		</label>
 		<p class="description">
 			<?php esc_html_e( 'When enabled, failed payments are automatically retried using stored payment methods. Retries are scheduled at 1 hour, 6 hours, and 24 hours. Only retriable failures are attempted (excludes fraud, expired cards, etc.).', 'wc-payment-monitor' ); ?>
 		</p>
@@ -450,8 +473,9 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				border: 1px solid #ccd0d4;
 				border-radius: 4px;
 				overflow: hidden;
-				box-shadow: 0 1px 1px rgba(0,0,0,.04);
+				box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
 			}
+
 			.license-header {
 				padding: 15px 20px;
 				background: #f8f9fa;
@@ -460,6 +484,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				justify-content: space-between;
 				align-items: center;
 			}
+
 			.license-status-badge {
 				padding: 4px 12px;
 				border-radius: 12px;
@@ -469,14 +494,17 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				letter-spacing: 0.5px;
 				color: #fff;
 			}
+
 			.license-body {
 				padding: 20px;
 			}
+
 			.license-input-group {
 				display: flex;
 				gap: 10px;
 				margin-bottom: 15px;
 			}
+
 			.license-footer {
 				padding: 12px 20px;
 				background: #fdfdfd;
@@ -486,6 +514,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				align-items: center;
 				font-size: 12px;
 			}
+
 			.upgrade-button {
 				background-color: #46b450;
 				border-color: #46b450;
@@ -498,10 +527,12 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				align-items: center;
 				transition: all 0.2s;
 			}
+
 			.upgrade-button:hover {
 				background-color: #389140;
 				color: white;
 			}
+
 			.upgrade-button .dashicons {
 				margin-right: 5px;
 				font-size: 18px;
@@ -513,8 +544,10 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		<div class="license-field-wrapper">
 			<div class="license-header">
 				<div style="display: flex; align-items: center; gap: 10px;">
-					<span class="dashicons dashicons-admin-network" style="color: <?php echo esc_attr( $badge_color ); ?>;"></span>
-					<span style="font-weight: 600; color: #23282d;"><?php esc_html_e( 'Subscription Plan', 'wc-payment-monitor' ); ?></span>
+					<span class="dashicons dashicons-admin-network"
+						style="color: <?php echo esc_attr( $badge_color ); ?>;"></span>
+					<span
+						style="font-weight: 600; color: #23282d;"><?php esc_html_e( 'Subscription Plan', 'wc-payment-monitor' ); ?></span>
 				</div>
 				<span class="license-status-badge" style="background: <?php echo esc_attr( $badge_color ); ?>;">
 					<?php echo esc_html( ucwords( $tier ) ); ?>
@@ -523,8 +556,9 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 
 			<div class="license-body">
 				<div class="license-input-group">
-					<input type="password" id="wc_payment_monitor_license_key"
-						value="<?php echo esc_attr( $license_key ); ?>" style="flex-grow: 1; padding: 8px;" placeholder="<?php esc_html_e( 'PA-XXXX-XXXX-XXXX', 'wc-payment-monitor' ); ?>" />
+					<input type="password" id="wc_payment_monitor_license_key" value="<?php echo esc_attr( $license_key ); ?>"
+						style="flex-grow: 1; padding: 8px;"
+						placeholder="<?php esc_html_e( 'PA-XXXX-XXXX-XXXX', 'wc-payment-monitor' ); ?>" />
 					<button type="button" class="button"
 						onclick="var field = document.getElementById('wc_payment_monitor_license_key'); var type = field.type === 'password' ? 'text' : 'password'; field.type = type; this.textContent = type === 'password' ? 'Show' : 'Hide';"
 						style="min-width: 60px;">
@@ -536,7 +570,8 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 					<div style="display: flex; justify-content: space-between; align-items: flex-end;">
 						<div>
 							<p style="margin: 0; color: #46b450; font-size: 13px; font-weight: 500;">
-								<span class="dashicons dashicons-yes-alt" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
+								<span class="dashicons dashicons-yes-alt"
+									style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
 								<?php esc_html_e( 'Active protection enabled', 'wc-payment-monitor' ); ?>
 							</p>
 							<?php if ( isset( $license_data['expiration_ts'] ) ) : ?>
@@ -545,14 +580,15 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 								</p>
 							<?php endif; ?>
 							<p style="margin: 10px 0 0;">
-								<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=wc_payment_monitor_deactivate_license' ), 'wc_payment_monitor_deactivate_license' ) ); ?>" 
-									class="submitdelete deletion" 
+								<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=wc_payment_monitor_deactivate_license' ), 'wc_payment_monitor_deactivate_license' ) ); ?>"
+									class="submitdelete deletion"
 									onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to deactivate your license? This will stop all payment monitoring.', 'wc-payment-monitor' ) ); ?>');"
 									style="text-decoration: none; font-size: 12px;">
 									<?php esc_html_e( 'Deactivate License', 'wc-payment-monitor' ); ?>
 								</a>
 								<span style="color: #ccd0d4; margin: 0 5px;">|</span>
-								<a href="#" onclick="document.getElementById('wc_payment_monitor_license_key').value=''; document.getElementById('wc_payment_monitor_license_key').focus(); return false;" 
+								<a href="#"
+									onclick="document.getElementById('wc_payment_monitor_license_key').value=''; document.getElementById('wc_payment_monitor_license_key').focus(); return false;"
 									style="text-decoration: none; font-size: 12px; color: #2271b1;">
 									<?php esc_html_e( 'Change Key', 'wc-payment-monitor' ); ?>
 								</a>
@@ -561,9 +597,10 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 
 						<?php if ( $tier !== 'agency' ) : ?>
 							<?php
-								$next_tier = ( $tier === 'free' ) ? 'Starter' : ( ( $tier === 'starter' ) ? 'Pro' : 'Agency' );
+							$next_tier = ( $tier === 'free' ) ? 'Starter' : ( ( $tier === 'starter' ) ? 'Pro' : 'Agency' );
 							?>
-							<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank" class="upgrade-button">
+							<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank"
+								class="upgrade-button">
 								<span class="dashicons dashicons-star-filled"></span>
 								<?php echo esc_html( sprintf( __( 'Upgrade to %s', 'wc-payment-monitor' ), $next_tier ) ); ?>
 							</a>
@@ -571,11 +608,13 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 					</div>
 				<?php else : ?>
 					<p style="margin: 0; color: #d63638; font-size: 13px;">
-						<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
+						<span class="dashicons dashicons-warning"
+							style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
 						<?php esc_html_e( 'Enter a valid license key to unlock real-time monitoring and SMS/Slack alerts.', 'wc-payment-monitor' ); ?>
 					</p>
 					<div style="margin-top: 15px;">
-						<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank" class="button button-primary">
+						<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank"
+							class="button button-primary">
 							<?php esc_html_e( 'Get a License Key', 'wc-payment-monitor' ); ?>
 						</a>
 					</div>
@@ -585,7 +624,8 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 			<?php if ( 'valid' === $license_status && $this->license->is_site_registered() ) : ?>
 				<div class="license-footer">
 					<span style="color: #646970;">
-						<span class="dashicons dashicons-admin-site" style="font-size: 14px; width: 14px; height: 14px; vertical-align: text-bottom;"></span>
+						<span class="dashicons dashicons-admin-site"
+							style="font-size: 14px; width: 14px; height: 14px; vertical-align: text-bottom;"></span>
 						<?php echo esc_html( parse_url( get_site_url(), PHP_URL_HOST ) ); ?>
 					</span>
 					<span style="color: #46b450; font-weight: 500;"><?php esc_html_e( 'Verified', 'wc-payment-monitor' ); ?></span>
@@ -603,7 +643,12 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		$enabled = isset( $options['enable_test_mode'] ) ? intval( $options['enable_test_mode'] ) : 0;
 		?>
 		<input type="checkbox" name="wc_payment_monitor_options[enable_test_mode]" value="1" <?php checked( $enabled, 1 ); ?> />
-		<label><?php esc_html_e( 'Enable payment failure simulation for testing', 'wc-payment-monitor' ); ?></label>
+		<label>
+			<?php esc_html_e( 'Enable payment failure simulation for testing', 'wc-payment-monitor' ); ?>
+			<?php if ( function_exists( 'wc_help_tip' ) ) : ?>
+				<?php echo wc_help_tip( __( 'Simulates payment failures directly in the checkout to test the alerting mechanism. Ensure this is only enabled on test sites.', 'wc-payment-monitor' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php endif; ?>
+		</label>
 		<p class="description" style="color: #d63638;">
 			<strong><?php esc_html_e( 'Warning:', 'wc-payment-monitor' ); ?></strong>
 			<?php esc_html_e( 'This will simulate random payment failures during checkout. Only enable on test/development sites!', 'wc-payment-monitor' ); ?>
@@ -618,8 +663,8 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		$settings = get_option( 'wc_payment_monitor_settings', array() );
 		$email    = isset( $settings['alert_email'] ) ? sanitize_email( $settings['alert_email'] ) : get_option( 'admin_email' );
 		?>
-		<input type="email" name="wc_payment_monitor_options[alert_email]"
-			value="<?php echo esc_attr( $email ); ?>" class="regular-text" />
+		<input type="email" name="wc_payment_monitor_options[alert_email]" value="<?php echo esc_attr( $email ); ?>"
+			class="regular-text" />
 		<p class="description">
 			<?php esc_html_e( 'Email address to receive payment failure alerts (Free tier - local delivery).', 'wc-payment-monitor' ); ?>
 		</p>
@@ -636,14 +681,14 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		$is_locked = ! in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
 		?>
 		<div style="position: relative;">
-			<input type="tel" name="wc_payment_monitor_options[alert_phone_number]"
-				value="<?php echo esc_attr( $phone ); ?>" class="regular-text"
-				placeholder="+1234567890"
-				<?php echo $is_locked ? 'disabled' : ''; ?> />
+			<input type="tel" name="wc_payment_monitor_options[alert_phone_number]" value="<?php echo esc_attr( $phone ); ?>"
+				class="regular-text" placeholder="+1234567890" <?php echo $is_locked ? 'disabled' : ''; ?> />
 			<?php if ( $is_locked ) : ?>
-				<span class="dashicons dashicons-lock" style="color: #d63638; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e( 'Starter plan or higher required', 'wc-payment-monitor' ); ?>"></span>
+				<span class="dashicons dashicons-lock" style="color: #d63638; position: absolute; right: -30px; top: 5px;"
+					title="<?php esc_attr_e( 'Starter plan or higher required', 'wc-payment-monitor' ); ?>"></span>
 			<?php else : ?>
-				<span class="dashicons dashicons-yes-alt" style="color: #46b450; position: absolute; right: -30px; top: 5px;" title="<?php esc_attr_e( 'Feature available in your plan', 'wc-payment-monitor' ); ?>"></span>
+				<span class="dashicons dashicons-yes-alt" style="color: #46b450; position: absolute; right: -30px; top: 5px;"
+					title="<?php esc_attr_e( 'Feature available in your plan', 'wc-payment-monitor' ); ?>"></span>
 			<?php endif; ?>
 		</div>
 		<p class="description">
@@ -733,39 +778,47 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		$disconnect_url = admin_url( 'admin.php?page=wc-payment-monitor-settings&tab=notifications&slack_disconnect=1&_wpnonce=' . wp_create_nonce( 'slack_disconnect_nonce' ) );
 		?>
 		<div class="slack-integration-container">
-			<input type="hidden" name="wc_payment_monitor_options[alert_slack_workspace]" value="<?php echo esc_attr( $slack ); ?>" />
+			<input type="hidden" name="wc_payment_monitor_options[alert_slack_workspace]"
+				value="<?php echo esc_attr( $slack ); ?>" />
 			<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
 				<?php if ( $is_locked ) : ?>
-					<div style="display: flex; align-items: center; color: #d63638; background: #fbeaea; padding: 5px 10px; border-radius: 4px;">
+					<div
+						style="display: flex; align-items: center; color: #d63638; background: #fbeaea; padding: 5px 10px; border-radius: 4px;">
 						<span class="dashicons dashicons-lock" style="margin-right: 5px;"></span>
 						<strong><?php esc_html_e( 'Locked', 'wc-payment-monitor' ); ?></strong>
 					</div>
 				<?php elseif ( $is_actually_connected ) : ?>
-					<div style="display: flex; align-items: center; color: #46b450; background: #ecf7ed; padding: 5px 10px; border-radius: 4px;">
+					<div
+						style="display: flex; align-items: center; color: #46b450; background: #ecf7ed; padding: 5px 10px; border-radius: 4px;">
 						<span class="dashicons dashicons-yes-alt" style="margin-right: 5px;"></span>
 						<strong><?php esc_html_e( 'Connected', 'wc-payment-monitor' ); ?></strong>
 						<?php echo $status_info; ?>
 					</div>
 				<?php elseif ( ! empty( $slack ) && ! empty( $connection_error ) ) : ?>
-					<div style="display: flex; align-items: center; color: #d63638; background: #fbeaea; padding: 5px 10px; border-radius: 4px;">
+					<div
+						style="display: flex; align-items: center; color: #d63638; background: #fbeaea; padding: 5px 10px; border-radius: 4px;">
 						<span class="dashicons dashicons-warning" style="margin-right: 5px;"></span>
 						<strong><?php esc_html_e( 'Connection Issue', 'wc-payment-monitor' ); ?></strong>
-						<span style="color: #666; font-weight: normal; margin-left: 5px;">(<?php echo esc_html( $connection_error ); ?>)</span>
+						<span
+							style="color: #666; font-weight: normal; margin-left: 5px;">(<?php echo esc_html( $connection_error ); ?>)</span>
 					</div>
 				<?php elseif ( ! empty( $slack ) ) : ?>
-					<div style="display: flex; align-items: center; color: #d6a800; background: #fff8e5; padding: 5px 10px; border-radius: 4px;">
+					<div
+						style="display: flex; align-items: center; color: #d6a800; background: #fff8e5; padding: 5px 10px; border-radius: 4px;">
 						<span class="dashicons dashicons-info" style="margin-right: 5px;"></span>
 						<strong><?php esc_html_e( 'Status Unknown', 'wc-payment-monitor' ); ?></strong>
 					</div>
 				<?php else : ?>
-					<div style="display: flex; align-items: center; color: #666; background: #f0f0f1; padding: 5px 10px; border-radius: 4px;">
+					<div
+						style="display: flex; align-items: center; color: #666; background: #f0f0f1; padding: 5px 10px; border-radius: 4px;">
 						<span class="dashicons dashicons-marker" style="margin-right: 5px;"></span>
 						<strong><?php esc_html_e( 'Not Connected', 'wc-payment-monitor' ); ?></strong>
 					</div>
 				<?php endif; ?>
 
 				<?php if ( ! $is_locked ) : ?>
-					<a href="<?php echo esc_url( $connect_url ); ?>" class="button <?php echo ( ! empty( $slack ) && $is_actually_connected ) ? 'button-secondary' : 'button-primary'; ?>">
+					<a href="<?php echo esc_url( $connect_url ); ?>"
+						class="button <?php echo ( ! empty( $slack ) && $is_actually_connected ) ? 'button-secondary' : 'button-primary'; ?>">
 						<?php
 						if ( ! empty( $slack ) && ! empty( $connection_error ) ) {
 							esc_html_e( 'Reconnect', 'wc-payment-monitor' );
@@ -810,13 +863,15 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 						<span class="dashicons dashicons-paper-plane" style="font-size: 16px; margin-top: 5px;"></span>
 						<?php esc_html_e( 'Send Test Alert', 'wc-payment-monitor' ); ?>
 					</button>
-					<a href="<?php echo esc_url( $disconnect_url ); ?>" class="submitdelete deletion" style="text-decoration: none; margin-left: auto;">
+					<a href="<?php echo esc_url( $disconnect_url ); ?>" class="submitdelete deletion"
+						style="text-decoration: none; margin-left: auto;">
 						<?php esc_html_e( 'Disconnect Integration', 'wc-payment-monitor' ); ?>
 					</a>
 				</div>
 			<?php elseif ( ! $is_locked && ! empty( $slack ) ) : ?>
 				<div style="display: flex; align-items: center; gap: 10px;">
-					<a href="<?php echo esc_url( $disconnect_url ); ?>" class="submitdelete deletion" style="text-decoration: none;">
+					<a href="<?php echo esc_url( $disconnect_url ); ?>" class="submitdelete deletion"
+						style="text-decoration: none;">
 						<?php esc_html_e( 'Disconnect Integration', 'wc-payment-monitor' ); ?>
 					</a>
 				</div>
@@ -824,47 +879,47 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 
 			<?php if ( ! $is_locked ) : ?>
 				<script>
-				jQuery(document).ready(function($) {
-					// Test Alert Handler
-					$('#wc-payment-monitor-slack-test').on('click', function(e) {
-						e.preventDefault();
-						var $btn = $(this);
-						$btn.prop('disabled', true).text('<?php esc_attr_e( 'Sending...', 'wc-payment-monitor' ); ?>');
-						
-						$.post(ajaxurl, {
-							action: 'wc_payment_monitor_slack_test',
-							nonce: '<?php echo wp_create_nonce( 'wc_payment_monitor_admin_nonce' ); ?>'
-						}, function(response) {
-							if (response.success) {
-								alert(response.data.message);
-							} else {
-								alert('Error: ' + response.data.message);
-							}
-							$btn.prop('disabled', false).html('<span class="dashicons dashicons-paper-plane" style="font-size: 16px; margin-top: 5px;"></span> <?php esc_attr_e( 'Send Test Alert', 'wc-payment-monitor' ); ?>');
-						});
-					});
+					jQuery(document).ready(function ($) {
+						// Test Alert Handler
+						$('#wc-payment-monitor-slack-test').on('click', function (e) {
+							e.preventDefault();
+							var $btn = $(this);
+							$btn.prop('disabled', true).text('<?php esc_attr_e( 'Sending...', 'wc-payment-monitor' ); ?>');
 
-					// Sync Handler
-					$('#wc-payment-monitor-slack-sync').on('click', function(e) {
-						e.preventDefault();
-						var $btn = $(this);
-						var originalHtml = $btn.html();
-						$btn.prop('disabled', true).text('<?php esc_attr_e( 'Syncing...', 'wc-payment-monitor' ); ?>');
-						
-						$.post(ajaxurl, {
-							action: 'wc_payment_monitor_sync_integrations',
-							nonce: '<?php echo wp_create_nonce( 'wc_payment_monitor_admin_nonce' ); ?>'
-						}, function(response) {
-							if (response.success) {
-								alert(response.data.message);
-								location.reload();
-							} else {
-								alert('Error: ' + response.data.message);
-								$btn.prop('disabled', false).html(originalHtml);
-							}
+							$.post(ajaxurl, {
+								action: 'wc_payment_monitor_slack_test',
+								nonce: '<?php echo wp_create_nonce( 'wc_payment_monitor_admin_nonce' ); ?>'
+							}, function (response) {
+								if (response.success) {
+									alert(response.data.message);
+								} else {
+									alert('Error: ' + response.data.message);
+								}
+								$btn.prop('disabled', false).html('<span class="dashicons dashicons-paper-plane" style="font-size: 16px; margin-top: 5px;"></span> <?php esc_attr_e( 'Send Test Alert', 'wc-payment-monitor' ); ?>');
+							});
+						});
+
+						// Sync Handler
+						$('#wc-payment-monitor-slack-sync').on('click', function (e) {
+							e.preventDefault();
+							var $btn = $(this);
+							var originalHtml = $btn.html();
+							$btn.prop('disabled', true).text('<?php esc_attr_e( 'Syncing...', 'wc-payment-monitor' ); ?>');
+
+							$.post(ajaxurl, {
+								action: 'wc_payment_monitor_sync_integrations',
+								nonce: '<?php echo wp_create_nonce( 'wc_payment_monitor_admin_nonce' ); ?>'
+							}, function (response) {
+								if (response.success) {
+									alert(response.data.message);
+									location.reload();
+								} else {
+									alert('Error: ' + response.data.message);
+									$btn.prop('disabled', false).html(originalHtml);
+								}
+							});
 						});
 					});
-				});
 				</script>
 			<?php endif; ?>
 		</div>
@@ -905,8 +960,10 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		?>
 		<div style="position: relative;">
 			<?php if ( $is_locked ) : ?>
-				<div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
-					<span class="dashicons dashicons-lock" style="color: #856404; float: left; margin-right: 10px; font-size: 24px;"></span>
+				<div
+					style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+					<span class="dashicons dashicons-lock"
+						style="color: #856404; float: left; margin-right: 10px; font-size: 24px;"></span>
 					<p style="margin: 0; color: #856404;">
 						<strong><?php esc_html_e( 'Pro Feature', 'wc-payment-monitor' ); ?></strong><br>
 						<?php
@@ -922,7 +979,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 					<?php esc_html_e( 'Configure custom alert thresholds and channels for each payment gateway. Leave empty to use global settings.', 'wc-payment-monitor' ); ?>
 				</p>
 			<?php endif; ?>
-			
+
 			<table class="widefat" style="<?php echo $is_locked ? 'opacity: 0.5; pointer-events: none;' : ''; ?>">
 				<thead>
 					<tr>
@@ -943,46 +1000,34 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 						<tr>
 							<td><strong><?php echo esc_html( $gateway_name ); ?></strong></td>
 							<td>
-								<input type="checkbox" 
-									name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][enabled]" 
-									value="1" 
-									<?php checked( $enabled, true ); ?>
-									<?php echo $is_locked ? 'disabled' : ''; ?> />
+								<input type="checkbox"
+									name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][enabled]"
+									value="1" <?php checked( $enabled, true ); ?> 			<?php echo $is_locked ? 'disabled' : ''; ?> />
 							</td>
 							<td>
-								<input type="number" 
-									name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][threshold]" 
-									value="<?php echo esc_attr( $threshold ); ?>" 
-									placeholder="<?php echo esc_attr( $settings['alert_threshold'] ?? 85 ); ?>"
-									min="1" 
-									max="100" 
-									step="0.1" 
-									style="width: 80px;"
-									<?php echo $is_locked ? 'disabled' : ''; ?> />
+								<input type="number"
+									name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][threshold]"
+									value="<?php echo esc_attr( $threshold ); ?>"
+									placeholder="<?php echo esc_attr( $settings['alert_threshold'] ?? 85 ); ?>" min="1" max="100"
+									step="0.1" style="width: 80px;" <?php echo $is_locked ? 'disabled' : ''; ?> />
 							</td>
 							<td>
 								<label style="margin-right: 10px;">
-									<input type="checkbox" 
-										name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]" 
-										value="email" 
-										<?php checked( in_array( 'email', $channels ), true ); ?>
-										<?php echo $is_locked ? 'disabled' : ''; ?> />
+									<input type="checkbox"
+										name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
+										value="email" <?php checked( in_array( 'email', $channels ), true ); ?> 			<?php echo $is_locked ? 'disabled' : ''; ?> />
 									<?php esc_html_e( 'Email', 'wc-payment-monitor' ); ?>
 								</label>
 								<label style="margin-right: 10px;">
-									<input type="checkbox" 
-										name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]" 
-										value="sms" 
-										<?php checked( in_array( 'sms', $channels ), true ); ?>
-										<?php echo $is_locked ? 'disabled' : ''; ?> />
+									<input type="checkbox"
+										name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
+										value="sms" <?php checked( in_array( 'sms', $channels ), true ); ?> 			<?php echo $is_locked ? 'disabled' : ''; ?> />
 									<?php esc_html_e( 'SMS', 'wc-payment-monitor' ); ?>
 								</label>
 								<label>
-									<input type="checkbox" 
-										name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]" 
-										value="slack" 
-										<?php checked( in_array( 'slack', $channels ), true ); ?>
-										<?php echo $is_locked ? 'disabled' : ''; ?> />
+									<input type="checkbox"
+										name="wc_payment_monitor_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
+										value="slack" <?php checked( in_array( 'slack', $channels ), true ); ?> 			<?php echo $is_locked ? 'disabled' : ''; ?> />
 									<?php esc_html_e( 'Slack', 'wc-payment-monitor' ); ?>
 								</label>
 							</td>
@@ -1036,9 +1081,10 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				border: 1px solid #ccd0d4;
 				border-radius: 4px;
 				overflow: hidden;
-				box-shadow: 0 1px 1px rgba(0,0,0,.04);
+				box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
 				margin-bottom: 30px;
 			}
+
 			.license-header {
 				padding: 15px 20px;
 				background: #f8f9fa;
@@ -1047,6 +1093,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				justify-content: space-between;
 				align-items: center;
 			}
+
 			.license-status-badge {
 				padding: 4px 12px;
 				border-radius: 12px;
@@ -1056,15 +1103,18 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				letter-spacing: 0.5px;
 				color: #fff;
 			}
+
 			.license-body {
 				padding: 20px;
 			}
+
 			.license-input-group {
 				display: flex;
 				gap: 10px;
 				margin-bottom: 15px;
 				max-width: 500px;
 			}
+
 			.license-footer {
 				padding: 12px 20px;
 				background: #fdfdfd;
@@ -1074,6 +1124,7 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				align-items: center;
 				font-size: 12px;
 			}
+
 			.upgrade-button {
 				background-color: #46b450;
 				border-color: #46b450;
@@ -1086,16 +1137,19 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				align-items: center;
 				transition: all 0.2s;
 			}
+
 			.upgrade-button:hover {
 				background-color: #389140;
 				color: white;
 			}
+
 			.upgrade-button .dashicons {
 				margin-right: 5px;
 				font-size: 18px;
 				width: 18px;
 				height: 18px;
 			}
+
 			.license-loading {
 				display: none;
 				vertical-align: middle;
@@ -1106,8 +1160,10 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 		<div class="license-section-wrapper">
 			<div class="license-header">
 				<div style="display: flex; align-items: center; gap: 10px;">
-					<span class="dashicons dashicons-admin-network" style="color: <?php echo esc_attr( $badge_color ); ?>;"></span>
-					<span style="font-weight: 600; color: #23282d;"><?php esc_html_e( 'License Management', 'wc-payment-monitor' ); ?></span>
+					<span class="dashicons dashicons-admin-network"
+						style="color: <?php echo esc_attr( $badge_color ); ?>;"></span>
+					<span
+						style="font-weight: 600; color: #23282d;"><?php esc_html_e( 'License Management', 'wc-payment-monitor' ); ?></span>
 				</div>
 				<div style="display: flex; align-items: center; gap: 10px;">
 					<span style="font-size: 12px; color: #646970;"><?php esc_html_e( 'Plan:', 'wc-payment-monitor' ); ?></span>
@@ -1121,22 +1177,23 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 				<form method="post" action="<?php echo admin_url( 'admin-post.php' ); ?>" id="wc-payment-monitor-license-form">
 					<input type="hidden" name="action" value="wc_payment_monitor_save_license">
 					<?php wp_nonce_field( 'wc_payment_monitor_save_license' ); ?>
-					
-					<label for="wc_payment_monitor_license_key_input" style="display: block; margin-bottom: 8px; font-weight: 600;">
+
+					<label for="wc_payment_monitor_license_key_input"
+						style="display: block; margin-bottom: 8px; font-weight: 600;">
 						<?php esc_html_e( 'License Key', 'wc-payment-monitor' ); ?>
 					</label>
-					
+
 					<div class="license-input-group">
 						<input type="password" id="wc_payment_monitor_license_key_input" name="license_key"
-							value="<?php echo esc_attr( $license_key ); ?>" style="flex-grow: 1; padding: 8px;" 
+							value="<?php echo esc_attr( $license_key ); ?>" style="flex-grow: 1; padding: 8px;"
 							placeholder="<?php esc_html_e( 'PA-XXXX-XXXX-XXXX', 'wc-payment-monitor' ); ?>" />
-						
+
 						<button type="button" class="button"
 							onclick="var field = document.getElementById('wc_payment_monitor_license_key_input'); var type = field.type === 'password' ? 'text' : 'password'; field.type = type; this.textContent = type === 'password' ? 'Show' : 'Hide';"
 							style="min-width: 60px;">
 							<?php esc_html_e( 'Show', 'wc-payment-monitor' ); ?>
 						</button>
-						
+
 						<button type="submit" class="button button-primary" id="validate-license-btn">
 							<?php esc_html_e( 'Validate License', 'wc-payment-monitor' ); ?>
 						</button>
@@ -1149,7 +1206,8 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 						<div style="display: flex; justify-content: space-between; align-items: flex-end;">
 							<div>
 								<p style="margin: 0; color: #46b450; font-size: 13px; font-weight: 500;">
-									<span class="dashicons dashicons-yes-alt" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
+									<span class="dashicons dashicons-yes-alt"
+										style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
 									<?php esc_html_e( 'Active protection enabled', 'wc-payment-monitor' ); ?>
 								</p>
 								<?php if ( isset( $license_data['expiration_ts'] ) ) : ?>
@@ -1158,8 +1216,8 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 									</p>
 								<?php endif; ?>
 								<p style="margin: 10px 0 0;">
-									<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=wc_payment_monitor_deactivate_license' ), 'wc_payment_monitor_deactivate_license' ) ); ?>" 
-										class="submitdelete deletion" 
+									<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=wc_payment_monitor_deactivate_license' ), 'wc_payment_monitor_deactivate_license' ) ); ?>"
+										class="submitdelete deletion"
 										onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to deactivate your license? This will stop all payment monitoring.', 'wc-payment-monitor' ) ); ?>');"
 										style="text-decoration: none; font-size: 12px;">
 										<?php esc_html_e( 'Deactivate License', 'wc-payment-monitor' ); ?>
@@ -1170,9 +1228,10 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 							<div style="display: flex; gap: 10px; align-items: flex-end;">
 								<?php if ( $tier !== 'agency' ) : ?>
 									<?php
-										$next_tier = ( $tier === 'free' ) ? 'Starter' : ( ( $tier === 'starter' ) ? 'Pro' : 'Agency' );
+									$next_tier = ( $tier === 'free' ) ? 'Starter' : ( ( $tier === 'starter' ) ? 'Pro' : 'Agency' );
 									?>
-									<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank" class="upgrade-button">
+									<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank"
+										class="upgrade-button">
 										<span class="dashicons dashicons-star-filled"></span>
 										<?php echo esc_html( sprintf( __( 'Upgrade to %s', 'wc-payment-monitor' ), $next_tier ) ); ?>
 									</a>
@@ -1181,11 +1240,13 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 						</div>
 					<?php else : ?>
 						<p style="margin: 0; color: #d63638; font-size: 13px;">
-							<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
+							<span class="dashicons dashicons-warning"
+								style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
 							<?php esc_html_e( 'Enter a valid license key to unlock real-time monitoring and SMS/Slack alerts.', 'wc-payment-monitor' ); ?>
 						</p>
 						<div style="margin-top: 15px;">
-							<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank" class="button button-secondary">
+							<a href="<?php echo esc_url( WC_Payment_Monitor_License::SAAS_URL . '/plans' ); ?>" target="_blank"
+								class="button button-secondary">
 								<?php esc_html_e( 'Get a License Key', 'wc-payment-monitor' ); ?>
 							</a>
 						</div>
@@ -1196,24 +1257,26 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 			<?php if ( 'valid' === $license_status && $this->license->is_site_registered() ) : ?>
 				<div class="license-footer">
 					<span style="color: #646970;">
-						<span class="dashicons dashicons-admin-site" style="font-size: 14px; width: 14px; height: 14px; vertical-align: text-bottom;"></span>
+						<span class="dashicons dashicons-admin-site"
+							style="font-size: 14px; width: 14px; height: 14px; vertical-align: text-bottom;"></span>
 						<?php echo esc_html( parse_url( get_site_url(), PHP_URL_HOST ) ); ?>
 					</span>
-					<span style="color: #46b450; font-weight: 500;"><?php esc_html_e( 'Verified & Registered', 'wc-payment-monitor' ); ?></span>
+					<span
+						style="color: #46b450; font-weight: 500;"><?php esc_html_e( 'Verified & Registered', 'wc-payment-monitor' ); ?></span>
 				</div>
 			<?php endif; ?>
 		</div>
 
 		<script>
-			jQuery(document).ready(function($) {
+			jQuery(document).ready(function ($) {
 				const $btn = $('#validate-license-btn');
 				const $spinner = $('.license-loading');
 				const $input = $('#wc_payment_monitor_license_key_input');
 				const $msgArea = $('#license-message-area');
 
-				$btn.on('click', function(e) {
+				$btn.on('click', function (e) {
 					e.preventDefault();
-					
+
 					const licenseKey = $input.val();
 					if (!licenseKey) {
 						alert('<?php echo esc_js( __( 'Please enter a license key.', 'wc-payment-monitor' ) ); ?>');
@@ -1231,17 +1294,17 @@ class WC_Payment_Monitor_Admin_Settings_Handler {
 							license_key: licenseKey,
 							nonce: '<?php echo wp_create_nonce( 'wc_payment_monitor_validate_license' ); ?>'
 						},
-						success: function(response) {
+						success: function (response) {
 							if (response.success) {
 								location.reload(); // Simplest way to update all UI parts
 							} else {
 								alert(response.data.message || '<?php echo esc_js( __( 'Validation failed.', 'wc-payment-monitor' ) ); ?>');
 							}
 						},
-						error: function() {
+						error: function () {
 							alert('<?php echo esc_js( __( 'An error occurred during validation.', 'wc-payment-monitor' ) ); ?>');
 						},
-						complete: function() {
+						complete: function () {
 							$btn.prop('disabled', false);
 							$spinner.removeClass('is-active').hide();
 						}

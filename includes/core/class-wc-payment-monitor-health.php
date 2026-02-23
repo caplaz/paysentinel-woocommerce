@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Payment_Monitor_Health {
 
+
 	/**
 	 * Database instance
 	 */
@@ -139,7 +140,9 @@ class WC_Payment_Monitor_Health {
 			$this->store_health_data( $gateway_id, $period, $period_health );
 		}
 
-		// Trigger alert checking for this gateway
+		// DEVELOPER HOOK: Trigger alert checking and extend logic for this gateway.
+		// Use this action if you want to perform custom analysis or trigger
+		// notifications outside of the built-in alerting system when health is computed.
 		do_action( 'wc_payment_monitor_gateway_health_calculated', $gateway_id, $health_data );
 
 		return $health_data;
@@ -171,7 +174,9 @@ class WC_Payment_Monitor_Health {
 			'calculated_at'           => current_time( 'mysql' ),
 		);
 
-		return $health_data;
+		// DEVELOPER FILTER: Hook into `wc_payment_monitor_period_health_data`
+		// to modify or inject extra custom metrics calculated during health stat collection.
+		return apply_filters( 'wc_payment_monitor_period_health_data', $health_data, $gateway_id, $period, $stats );
 	}
 
 	/**
@@ -335,6 +340,10 @@ class WC_Payment_Monitor_Health {
 
 		$settings  = get_option( 'wc_payment_monitor_settings', array() );
 		$threshold = isset( $settings['alert_threshold'] ) ? $settings['alert_threshold'] : 85;
+
+		// DEVELOPER FILTER: `wc_payment_monitor_alert_threshold`
+		// Permits developers to programmatically override the threshold for specific gateways.
+		$threshold = apply_filters( 'wc_payment_monitor_alert_threshold', $threshold, $gateway_id, $period );
 
 		return $health_status->success_rate < $threshold;
 	}
