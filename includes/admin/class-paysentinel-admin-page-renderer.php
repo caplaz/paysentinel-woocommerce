@@ -787,9 +787,10 @@ class PaySentinel_Admin_Page_Renderer {
 								count: count
 							}),
 							success: function (response) {
+								var data = response.data || response;
 								var msg = count > 1
-									? 'Created ' + response.success + ' test orders with simulated failures'
-									: response.message;
+									? 'Created ' + ( data.success || 0 ) + ' test orders with simulated failures'
+									: data.message;
 								$('#simulator-results').html('<div class="updated"><p>' + msg + '</p></div>');
 							},
 							error: function (xhr) {
