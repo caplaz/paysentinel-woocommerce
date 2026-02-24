@@ -434,7 +434,7 @@ class PaySentinel_Admin_Page_Renderer {
 		$active_tab = isset( $_GET['tab'] ) && array_key_exists( $_GET['tab'], $tabs ) ? sanitize_text_field( $_GET['tab'] ) : 'general';
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Settings', 'paysentinel' ); ?></h1>
+			<?php $this->render_page_header( __( 'Settings', 'paysentinel' ), 'settings' ); ?>
 
 			<?php if ( isset( $_GET['message'] ) ) : ?>
 				<div
@@ -442,8 +442,6 @@ class PaySentinel_Admin_Page_Renderer {
 					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
 				</div>
 			<?php endif; ?>
-
-			<?php $this->render_help_button( 'settings' ); ?>
 
 			<?php settings_errors( 'paysentinel_options' ); ?>
 			<?php settings_errors( 'paysentinel_license' ); ?>
