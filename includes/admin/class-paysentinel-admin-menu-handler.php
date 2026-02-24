@@ -23,6 +23,7 @@ class PaySentinel_Admin_Menu_Handler {
 
 
 
+
 	/**
 	 * Page renderer instance
 	 *
@@ -50,6 +51,13 @@ class PaySentinel_Admin_Menu_Handler {
 			return;
 		}
 
+		// Custom SVG icon matching PaySentinel logo (Shield + Pulse). Inner pulse line made bolder by separating into its own path and giving it a stroke.
+		$icon_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">'
+			. '<path fill="currentColor" fill-rule="evenodd" d="M10 1L2 4v7c0 5 3.5 9 8 10 4.5-1 8-5 8-10V4l-8-3z"/>'
+			// inner pulse line with stroke for extra weight
+			. '<path fill="none" stroke="currentColor" stroke-width="1" d="M16 10.5H11L9.5 14.5L8 6.5L6.5 10.5H4v1H6.5L8 7.5L9.5 15.5L11 11.5H16v-1z"/>'
+			. '</svg>';
+
 		// Add main menu page
 		add_menu_page(
 			__( 'PaySentinel', 'paysentinel' ),
@@ -57,7 +65,7 @@ class PaySentinel_Admin_Menu_Handler {
 			'manage_woocommerce',
 			'paysentinel',
 			array( $this->page_renderer, 'render_dashboard_page' ),
-			'dashicons-chart-line',
+			'data:image/svg+xml;base64,' . base64_encode( $icon_svg ),
 			56
 		);
 
