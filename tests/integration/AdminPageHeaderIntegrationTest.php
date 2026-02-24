@@ -9,7 +9,7 @@
  * - All expected submenu slugs are registered
  * - Submenu page_title and menu_title are consistent with each other
  * - Every render_*_page() method outputs an h1 matching its sidebar label
- * - Help & Documentation button has been removed from page headers
+ * - Every render_*_page() method includes a Help & Documentation button
  */
 class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 
@@ -191,27 +191,31 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// Help button absence
+	// Help button on every page
 	// -------------------------------------------------------------------------
 
 	/**
-	 * No render method should output a Help & Documentation button now that it is
-	 * removed from the UI. We assert the absence of the button markup.
+	 * Every render method must include a Help & Documentation button linked to HELP_URL.
 	 *
 	 * @dataProvider all_pages_provider
 	 */
-	public function test_every_page_does_not_include_help_button( string $method ) {
+	public function test_every_page_includes_help_button( string $method ) {
 		$output = $this->capture( $method );
 
-		$this->assertStringNotContainsString(
+		$this->assertStringContainsString(
+			PaySentinel_Admin_Page_Renderer::HELP_URL,
+			$output,
+			"{$method} must include a link to PaySentinel_Admin_Page_Renderer::HELP_URL"
+		);
+		$this->assertStringContainsString(
 			'Help &amp; Documentation',
 			$output,
-			"{$method} must not include the help button text"
+			"{$method} must output a 'Help &amp; Documentation' button"
 		);
-		$this->assertStringNotContainsString(
-			'button button-secondary',
+		$this->assertStringContainsString(
+			'target="_blank"',
 			$output,
-			"{$method} must not output any secondary button for help"
+			"{$method} help link must open in a new tab"
 		);
 	}
 
