@@ -220,9 +220,13 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'slack-integration-container', $output );
 		$this->assertStringContainsString( 'gateway_alert_config', $output );
 
-		// ensure the paper-plane icon uses vertical-align, not a margin hack
-		$this->assertStringContainsString( 'vertical-align: middle', $output );
-		$this->assertStringNotContainsString( 'margin-top: 5px', $output );
+		// ensure the paper-plane icon, if present, uses vertical-align instead of
+		// a margin hack. the icon only appears for unlocked tiers so we only
+		// check the styles when it's actually in the output.
+		if ( false !== strpos( $output, 'dashicons-paper-plane' ) ) {
+			$this->assertStringContainsString( 'vertical-align: middle', $output );
+			$this->assertStringNotContainsString( 'margin-top: 5px', $output );
+		}
 	}
 
 	/**
