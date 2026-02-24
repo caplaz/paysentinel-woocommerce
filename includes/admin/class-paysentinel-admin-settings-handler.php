@@ -831,7 +831,7 @@ class PaySentinel_Admin_Settings_Handler {
 					</a>
 					<?php if ( empty( $slack ) ) : ?>
 						<button type="button" class="button button-secondary" id="paysentinel-slack-sync">
-							<span class="dashicons dashicons-update" style="font-size: 16px; margin-top: 5px;"></span>
+							<span class="dashicons dashicons-update" style="font-size: 16px; vertical-align: middle;"></span>
 							<?php esc_html_e( 'Sync from PaySentinel', 'paysentinel' ); ?>
 						</button>
 					<?php endif; ?>
@@ -860,7 +860,7 @@ class PaySentinel_Admin_Settings_Handler {
 			<?php if ( ! $is_locked && $is_actually_connected ) : ?>
 				<div style="display: flex; align-items: center; gap: 10px;">
 					<button type="button" class="button button-secondary" id="paysentinel-slack-test">
-						<span class="dashicons dashicons-paper-plane" style="font-size: 16px; margin-top: 5px;"></span>
+						<span class="dashicons dashicons-paper-plane" style="font-size: 16px; vertical-align: middle;"></span>
 						<?php esc_html_e( 'Send Test Alert', 'paysentinel' ); ?>
 					</button>
 					<a href="<?php echo esc_url( $disconnect_url ); ?>" class="submitdelete deletion"
@@ -895,7 +895,7 @@ class PaySentinel_Admin_Settings_Handler {
 								} else {
 									alert('Error: ' + response.data.message);
 								}
-								$btn.prop('disabled', false).html('<span class="dashicons dashicons-paper-plane" style="font-size: 16px; margin-top: 5px;"></span> <?php esc_attr_e( 'Send Test Alert', 'paysentinel' ); ?>');
+								$btn.prop('disabled', false).html('<span class="dashicons dashicons-paper-plane" style="font-size: 16px; vertical-align: middle;"></span> <?php esc_attr_e( 'Send Test Alert', 'paysentinel' ); ?>');
 							});
 						});
 

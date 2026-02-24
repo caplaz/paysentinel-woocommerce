@@ -219,6 +219,10 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'alert_phone_number', $output );
 		$this->assertStringContainsString( 'slack-integration-container', $output );
 		$this->assertStringContainsString( 'gateway_alert_config', $output );
+		
+		// ensure the paper-plane icon uses vertical-align, not a margin hack
+		$this->assertStringContainsString( 'vertical-align: middle', $output );
+		$this->assertStringNotContainsString( 'margin-top: 5px', $output );
 	}
 
 	/**
