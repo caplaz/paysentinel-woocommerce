@@ -246,7 +246,7 @@ class PaySentinel_Admin_Page_Renderer {
 		add_thickbox();
 		?>
 		<div class="wrap">
-			<h1 class="wp-heading-inline"><?php esc_html_e( 'Transactions', 'paysentinel' ); ?></h1>
+			<?php $this->render_page_header( __( 'Transactions', 'paysentinel' ), 'transactions' ); ?>
 
 			<?php if ( isset( $_GET['message'] ) ) : ?>
 				<div
@@ -254,8 +254,6 @@ class PaySentinel_Admin_Page_Renderer {
 					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
 				</div>
 			<?php endif; ?>
-
-			<?php $this->render_help_button( 'transactions' ); ?>
 
 			<p><?php esc_html_e( 'View all monitored payment transactions.', 'paysentinel' ); ?></p>
 
