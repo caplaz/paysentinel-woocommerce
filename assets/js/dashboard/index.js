@@ -965,13 +965,6 @@
         ),
       ),
 
-      // Trend info
-      React.createElement(
-        "div",
-        { className: "trend-info" },
-        React.createElement("small", null, "Showing " + getTimePeriodLabel()),
-      ),
-
       // Error message
       error
         ? React.createElement("div", { className: "error-message" }, error)
