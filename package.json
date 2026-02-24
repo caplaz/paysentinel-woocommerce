@@ -4,7 +4,7 @@
   "description": "PaySentinel - Payment Monitor for WooCommerce Plugin",
   "main": "paysentinel.php",
   "scripts": {
-    "build": "rm -f paysentinel.zip && mkdir -p ../temp/paysentinel && cp -r . ../temp/paysentinel/ && rm -f ../temp/paysentinel/paysentinel.zip && cd ../temp && zip -r ../sentinel/paysentinel.zip paysentinel -x \"paysentinel/tests/*\" \"paysentinel/vendor/*\" \"paysentinel/.*\" \"paysentinel/Makefile\" \"paysentinel/docker-compose.yml\" \"paysentinel/Dockerfile.tests\" \"paysentinel/*.md\" \"paysentinel/phpcs.xml\" \"paysentinel/phpmd.xml\" \"paysentinel/phpstan.neon\" \"paysentinel/phpunit.xml\" \"paysentinel/codeception.yml\" \"paysentinel/run-tests.sh\" \"paysentinel/install-wp-tests.sh\" \"paysentinel/composer.*\" \"paysentinel/docs/*\" \"paysentinel/examples/*\" \"paysentinel/package.json\" \"paysentinel/*.cache\" \"paysentinel/*.zip\" && cd ../sentinel && rm -rf ../temp"
+    "build": "rm -f paysentinel.zip && zip -r paysentinel.zip . -x \"tests/*\" \"vendor/*\" \".*\" \"Makefile\" \"docker-compose.yml\" \"Dockerfile.tests\" \"*.md\" \"phpcs.xml\" \"phpmd.xml\" \"phpstan.neon\" \"phpunit.xml\" \"codeception.yml\" \"run-tests.sh\" \"install-wp-tests.sh\" \"composer.*\" \"docs/*\" \"examples/*\" \"package.json\" \"*.cache\" \"*.zip\""
   },
   "keywords": [
     "woocommerce",
