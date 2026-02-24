@@ -49,6 +49,7 @@ define( 'PAYSENTINEL_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 class PaySentinel {
 
 
+
 	/**
 	 * Plugin instance
 	 *
@@ -139,6 +140,7 @@ class PaySentinel {
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/gateways/class-paysentinel-gateway-connector.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/gateways/class-paysentinel-stripe-connector.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/gateways/class-paysentinel-paypal-connector.php';
+		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/gateways/class-paysentinel-square-connector.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/gateways/class-paysentinel-wc-payments-connector.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/gateways/class-paysentinel-gateway-connectivity.php';
 

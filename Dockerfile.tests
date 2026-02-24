@@ -14,7 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # PHP extensions needed by WP + PHPUnit
-RUN docker-php-ext-install mysqli zip dom xml
+RUN docker-php-ext-install mysqli zip dom xml \
+    && pecl install pcov \
+    && docker-php-ext-enable pcov
 
 # Install WP-CLI
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
