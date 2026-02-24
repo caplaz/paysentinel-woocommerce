@@ -11,6 +11,7 @@
 class SecurityTest extends WP_UnitTestCase {
 
 
+
 	/**
 	 * Test encryption and decryption.
 	 */
@@ -166,6 +167,8 @@ class SecurityTest extends WP_UnitTestCase {
 
 		// 3. Logged in with permissions
 		$admin_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
+		$admin    = get_userdata( $admin_id );
+		$admin->add_cap( 'manage_woocommerce' );
 		wp_set_current_user( $admin_id );
 		$result = PaySentinel_Security::validate_api_authentication();
 		$this->assertTrue( $result );
