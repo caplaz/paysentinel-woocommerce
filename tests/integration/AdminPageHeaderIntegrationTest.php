@@ -122,6 +122,17 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 				"Submenu page '{$slug}' must be registered"
 			);
 		}
+
+		// verify the label for the help entry has been updated
+		$help_entry = null;
+		foreach ( $submenu['paysentinel'] as $entry ) {
+			if ( 'paysentinel-help' === $entry[2] ) {
+				$help_entry = $entry;
+				break;
+			}
+		}
+		$this->assertNotNull( $help_entry, 'paysentinel-help submenu entry must exist' );
+		$this->assertSame( 'Remote Dashboard', $help_entry[0], 'Help submenu title should be "Remote Dashboard"' );
 	}
 
 	/**

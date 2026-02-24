@@ -25,8 +25,21 @@ class PaySentinel_Admin_Page_Renderer {
 	/**
 	 * Base URL for the plugin's user-facing help documentation.
 	 * Update this single constant to change the help URL across all admin pages.
+	 *
+	 * Notes:
+	 * - The button displayed in the page header links here (docs/user-guide).
+	 * - The sidebar menu uses a different URL (SIDEBAR_HELP_URL) which points
+	 *   at the main site homepage; this avoids having the help menu item open a
+	 *   documentation page directly.
 	 */
 	const HELP_URL = 'https://paysentinel.caplaz.com/docs/user-guide';
+
+	/**
+	 * URL that the sidebar "Help & Documentation" menu item redirects to.
+	 * This intentionally differs from HELP_URL so the link lands on the
+	 * homepage instead of a specific docs page.
+	 */
+	const SIDEBAR_HELP_URL = 'https://paysentinel.caplaz.com';
 
 	/**
 	 * Database instance

@@ -70,6 +70,12 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 			filter_var( $url, FILTER_VALIDATE_URL ),
 			'HELP_URL must be a valid URL'
 		);
+		// should still use docs path here
+		$this->assertStringContainsString(
+			'/docs/user-guide',
+			$url,
+			'HELP_URL should point to the documentation subtree'
+		);
 	}
 
 	/**
@@ -90,6 +96,20 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 		$this->assertSame(
 			'https://paysentinel.caplaz.com/docs/user-guide',
 			PaySentinel_Admin_Page_Renderer::HELP_URL
+		);
+	}
+
+	/**
+	 * SIDEBAR_HELP_URL must be defined and should point to the site root.
+	 */
+	public function test_sidebar_help_url_defined_and_site_root() {
+		$this->assertTrue(
+			defined( 'PaySentinel_Admin_Page_Renderer::SIDEBAR_HELP_URL' ),
+			'SIDEBAR_HELP_URL must be defined'
+		);
+		$this->assertSame(
+			'https://paysentinel.caplaz.com',
+			PaySentinel_Admin_Page_Renderer::SIDEBAR_HELP_URL
 		);
 	}
 
