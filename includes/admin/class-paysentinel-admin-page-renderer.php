@@ -63,44 +63,32 @@ class PaySentinel_Admin_Page_Renderer {
 	}
 
 	/**
-	 * Render a consistent page header: h1 title + Help & Documentation button.
+	 * Render a consistent page header: h1 title.
 	 *
-	 * This is the single source of truth for page headers across all admin pages,
-	 * ensuring banners from WordPress (e.g. Action Scheduler, license notices) render
-	 * naturally *between* the title and the help button, stacked vertically.
+	 * Previously this included a "Help & Documentation" button. The button was
+	 * removed in response to UX feedback, so only the title is rendered now.
 	 *
 	 * @param string $title       The page title (should match its sidebar menu label).
 	 * @param string $help_anchor Optional URL fragment (#section) for the docs link.
 	 */
 	private function render_page_header( $title, $help_anchor = '' ) {
-		$help_url = self::HELP_URL . ( $help_anchor ? '#' . ltrim( $help_anchor, '#' ) : '' );
+		// We no longer render a help button; callers may still provide an anchor
+		// but it is ignored. The constant is kept for possible future use.
 		?>
 		<h1><?php echo esc_html( $title ); ?></h1>
-		<a href="<?php echo esc_url( $help_url ); ?>" target="_blank" class="button button-secondary"
-			style="margin-bottom: 15px;">
-			<span class="dashicons dashicons-external" style="vertical-align: middle; margin-right: 5px;"></span>
-			<?php esc_html_e( 'Help & Documentation', 'paysentinel' ); ?>
-		</a>
 		<?php
 	}
 
 	/**
-	 * Render just the Help & Documentation button.
+	 * Previously used to render a Help & Documentation button, which has now been
+	 * removed from all admin pages. The method remains private to avoid breaking
+	 * callers and to document the fact that the help URL constant still exists.
 	 *
-	 * Use this on pages where notices must appear between the <h1> and the button
-	 * (so render_page_header() cannot be used as a single call).
-	 *
-	 * @param string $help_anchor Optional URL fragment (#section) for the docs link.
+	 * @param string $help_anchor Optional URL fragment (ignored).
 	 */
 	private function render_help_button( $help_anchor = '' ) {
-		$help_url = self::HELP_URL . ( $help_anchor ? '#' . ltrim( $help_anchor, '#' ) : '' );
-		?>
-		<a href="<?php echo esc_url( $help_url ); ?>" target="_blank" class="button button-secondary"
-			style="margin-bottom: 15px;">
-			<span class="dashicons dashicons-external" style="vertical-align: middle; margin-right: 5px;"></span>
-			<?php esc_html_e( 'Help & Documentation', 'paysentinel' ); ?>
-		</a>
-		<?php
+		// no-op: help button was removed globally. Keeping the method in case
+		// some legacy code still invokes it, but it intentionally emits nothing.
 	}
 
 	/**
@@ -242,7 +230,7 @@ class PaySentinel_Admin_Page_Renderer {
 				</div>
 			<?php endif; ?>
 
-			<?php $this->render_help_button( 'transactions' ); ?>
+			<!-- help button removed -->
 
 			<p><?php esc_html_e( 'View all monitored payment transactions.', 'paysentinel' ); ?></p>
 
@@ -432,7 +420,7 @@ class PaySentinel_Admin_Page_Renderer {
 				</div>
 			<?php endif; ?>
 
-			<?php $this->render_help_button( 'settings' ); ?>
+			<!-- help button removed -->
 
 			<?php settings_errors( 'paysentinel_options' ); ?>
 			<?php settings_errors( 'paysentinel_license' ); ?>
