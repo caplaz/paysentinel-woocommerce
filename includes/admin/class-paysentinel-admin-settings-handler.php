@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PaySentinel_Admin_Settings_Handler {
 
 
+
 	/**
 	 * Security instance
 	 *
@@ -239,7 +240,7 @@ class PaySentinel_Admin_Settings_Handler {
 	 * Render settings section description
 	 */
 	public function render_settings_section() {
-		echo '<p>' . esc_html__( 'Configure Payment Monitor settings below.', 'paysentinel' ) . '</p>';
+		echo '<p>' . esc_html__( 'Configure PaySentinel settings below.', 'paysentinel' ) . '</p>';
 	}
 
 	/**
@@ -266,8 +267,8 @@ class PaySentinel_Admin_Settings_Handler {
 		$options  = get_option( 'paysentinel_options', array() );
 		$interval = isset( $options['health_check_interval'] ) ? intval( $options['health_check_interval'] ) : 5;
 		?>
-		<input type="number" name="paysentinel_options[health_check_interval]"
-			value="<?php echo esc_attr( $interval ); ?>" min="1" max="1440" />
+		<input type="number" name="paysentinel_options[health_check_interval]" value="<?php echo esc_attr( $interval ); ?>"
+			min="1" max="1440" />
 		<p class="description">
 			<?php esc_html_e( 'How often to recalculate gateway health (in minutes).', 'paysentinel' ); ?>
 		</p>
@@ -441,8 +442,8 @@ class PaySentinel_Admin_Settings_Handler {
 		$options  = get_option( 'paysentinel_options', array() );
 		$attempts = isset( $options['max_retry_attempts'] ) ? intval( $options['max_retry_attempts'] ) : 3;
 		?>
-		<input type="number" name="paysentinel_options[max_retry_attempts]" value="<?php echo esc_attr( $attempts ); ?>"
-			min="1" max="10" />
+		<input type="number" name="paysentinel_options[max_retry_attempts]" value="<?php echo esc_attr( $attempts ); ?>" min="1"
+			max="10" />
 		<p class="description"><?php esc_html_e( 'Maximum number of retry attempts per transaction.', 'paysentinel' ); ?>
 		</p>
 		<?php
@@ -582,7 +583,7 @@ class PaySentinel_Admin_Settings_Handler {
 							<p style="margin: 10px 0 0;">
 								<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=paysentinel_deactivate_license' ), 'paysentinel_deactivate_license' ) ); ?>"
 									class="submitdelete deletion"
-									onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to deactivate your license? This will stop all payment monitoring.', 'paysentinel' ) ); ?>');"
+									onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to deactivate your license? This will stop all PaySentinel monitoring.', 'paysentinel' ) ); ?>');"
 									style="text-decoration: none; font-size: 12px;">
 									<?php esc_html_e( 'Deactivate License', 'paysentinel' ); ?>
 								</a>
@@ -778,8 +779,7 @@ class PaySentinel_Admin_Settings_Handler {
 		$disconnect_url = admin_url( 'admin.php?page=paysentinel-settings&tab=notifications&slack_disconnect=1&_wpnonce=' . wp_create_nonce( 'slack_disconnect_nonce' ) );
 		?>
 		<div class="slack-integration-container">
-			<input type="hidden" name="paysentinel_options[alert_slack_workspace]"
-				value="<?php echo esc_attr( $slack ); ?>" />
+			<input type="hidden" name="paysentinel_options[alert_slack_workspace]" value="<?php echo esc_attr( $slack ); ?>" />
 			<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
 				<?php if ( $is_locked ) : ?>
 					<div
@@ -1046,8 +1046,8 @@ class PaySentinel_Admin_Settings_Handler {
 		$options = get_option( 'paysentinel_settings', array() );
 		$rate    = isset( $options['test_failure_rate'] ) ? intval( $options['test_failure_rate'] ) : 10;
 		?>
-		<input type="number" name="paysentinel_options[test_failure_rate]" value="<?php echo esc_attr( $rate ); ?>"
-			min="0" max="100" />
+		<input type="number" name="paysentinel_options[test_failure_rate]" value="<?php echo esc_attr( $rate ); ?>" min="0"
+			max="100" />
 		<p class="description">
 			<?php esc_html_e( 'Percentage of payments to simulate as failures (only when test mode is enabled).', 'paysentinel' ); ?>
 		</p>
@@ -1178,8 +1178,7 @@ class PaySentinel_Admin_Settings_Handler {
 					<input type="hidden" name="action" value="paysentinel_save_license">
 					<?php wp_nonce_field( 'paysentinel_save_license' ); ?>
 
-					<label for="paysentinel_license_key_input"
-						style="display: block; margin-bottom: 8px; font-weight: 600;">
+					<label for="paysentinel_license_key_input" style="display: block; margin-bottom: 8px; font-weight: 600;">
 						<?php esc_html_e( 'License Key', 'paysentinel' ); ?>
 					</label>
 
@@ -1218,7 +1217,7 @@ class PaySentinel_Admin_Settings_Handler {
 								<p style="margin: 10px 0 0;">
 									<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=paysentinel_deactivate_license' ), 'paysentinel_deactivate_license' ) ); ?>"
 										class="submitdelete deletion"
-										onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to deactivate your license? This will stop all payment monitoring.', 'paysentinel' ) ); ?>');"
+										onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to deactivate your license? This will stop all PaySentinel monitoring.', 'paysentinel' ) ); ?>');"
 										style="text-decoration: none; font-size: 12px;">
 										<?php esc_html_e( 'Deactivate License', 'paysentinel' ); ?>
 									</a>

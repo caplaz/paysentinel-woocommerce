@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class PaySentinel_Admin_Menu_Handler {
 
+
+
+
 	/**
 	 * Page renderer instance
 	 *
@@ -49,8 +52,8 @@ class PaySentinel_Admin_Menu_Handler {
 
 		// Add main menu page
 		add_menu_page(
-			__( 'Payment Monitor', 'paysentinel' ),
-			__( 'Payment Monitor', 'paysentinel' ),
+			__( 'PaySentinel', 'paysentinel' ),
+			__( 'PaySentinel', 'paysentinel' ),
 			'manage_woocommerce',
 			'paysentinel',
 			array( $this->page_renderer, 'render_dashboard_page' ),
@@ -117,5 +120,28 @@ class PaySentinel_Admin_Menu_Handler {
 			'paysentinel-settings',
 			array( $this->page_renderer, 'render_settings_page' )
 		);
+
+		// Add help submenu (external link)
+		add_submenu_page(
+			'paysentinel',
+			__( 'Help & Documentation', 'paysentinel' ),
+			__( 'Help & Documentation', 'paysentinel' ),
+			'manage_woocommerce',
+			'paysentinel-help',
+			array( $this, 'redirect_to_help' )
+		);
+	}
+
+	/**
+	 * Redirect to the external help site
+	 */
+	public function redirect_to_help() {
+		$help_url = PaySentinel_Admin_Page_Renderer::HELP_URL;
+		echo '<script type="text/javascript">window.open("' . esc_url( $help_url ) . '", "_blank"); history.back();</script>';
+		echo '<p>' . sprintf(
+			/* translators: %s: help URL */
+			__( 'Redirecting to <a href="%s" target="_blank">Help & Documentation</a>...', 'paysentinel' ),
+			esc_url( $help_url )
+		) . '</p>';
 	}
 }

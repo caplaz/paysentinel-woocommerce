@@ -23,6 +23,12 @@ class PaySentinel_Admin_Page_Renderer {
 
 
 	/**
+	 * Base URL for the plugin's user-facing help documentation.
+	 * Update this single constant to change the help URL across all admin pages.
+	 */
+	const HELP_URL = 'https://paysentinel.caplaz.com/docs/user-guide';
+
+	/**
 	 * Database instance
 	 *
 	 * @var PaySentinel_Database
@@ -54,6 +60,47 @@ class PaySentinel_Admin_Page_Renderer {
 		$this->database         = $database;
 		$this->license          = $license;
 		$this->settings_handler = $settings_handler;
+	}
+
+	/**
+	 * Render a consistent page header: h1 title + Help & Documentation button.
+	 *
+	 * This is the single source of truth for page headers across all admin pages,
+	 * ensuring banners from WordPress (e.g. Action Scheduler, license notices) render
+	 * naturally *between* the title and the help button, stacked vertically.
+	 *
+	 * @param string $title       The page title (should match its sidebar menu label).
+	 * @param string $help_anchor Optional URL fragment (#section) for the docs link.
+	 */
+	private function render_page_header( $title, $help_anchor = '' ) {
+		$help_url = self::HELP_URL . ( $help_anchor ? '#' . ltrim( $help_anchor, '#' ) : '' );
+		?>
+		<h1><?php echo esc_html( $title ); ?></h1>
+		<a href="<?php echo esc_url( $help_url ); ?>" target="_blank" class="button button-secondary"
+			style="margin-bottom: 15px;">
+			<span class="dashicons dashicons-external" style="vertical-align: middle; margin-right: 5px;"></span>
+			<?php esc_html_e( 'Help & Documentation', 'paysentinel' ); ?>
+		</a>
+		<?php
+	}
+
+	/**
+	 * Render just the Help & Documentation button.
+	 *
+	 * Use this on pages where notices must appear between the <h1> and the button
+	 * (so render_page_header() cannot be used as a single call).
+	 *
+	 * @param string $help_anchor Optional URL fragment (#section) for the docs link.
+	 */
+	private function render_help_button( $help_anchor = '' ) {
+		$help_url = self::HELP_URL . ( $help_anchor ? '#' . ltrim( $help_anchor, '#' ) : '' );
+		?>
+		<a href="<?php echo esc_url( $help_url ); ?>" target="_blank" class="button button-secondary"
+			style="margin-bottom: 15px;">
+			<span class="dashicons dashicons-external" style="vertical-align: middle; margin-right: 5px;"></span>
+			<?php esc_html_e( 'Help & Documentation', 'paysentinel' ); ?>
+		</a>
+		<?php
 	}
 
 	/**
@@ -103,8 +150,10 @@ class PaySentinel_Admin_Page_Renderer {
 				</div>
 			<?php endif; ?>
 
-			<div class="dashboard-banner-area" style="margin-bottom: 20px;">
-				<div style="display: flex; gap: 10px; margin-bottom: 15px;">
+			<?php $this->render_page_header( __( 'Dashboard', 'paysentinel' ) ); ?>
+
+			<div class="dashboard-banner-area" style="margin-bottom: 15px;">
+				<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
 					<!-- SMS Quota Display -->
 					<?php if ( $quota && isset( $quota['sms_remaining'], $quota['sms_limit'] ) ) : ?>
 						<?php
@@ -145,8 +194,6 @@ class PaySentinel_Admin_Page_Renderer {
 						</div>
 					<?php endif; ?>
 				</div>
-
-				<h1 style="margin: 0;"><?php esc_html_e( 'Payment Monitor Dashboard', 'paysentinel' ); ?></h1>
 			</div>
 
 			<div id="paysentinel-root"></div>
@@ -164,7 +211,7 @@ class PaySentinel_Admin_Page_Renderer {
 
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Gateway Health', 'paysentinel' ); ?></h1>
+			<?php $this->render_page_header( __( 'Gateway Health', 'paysentinel' ), 'health' ); ?>
 			<p><?php esc_html_e( 'Real-time health metrics for all payment gateways.', 'paysentinel' ); ?></p>
 			<div id="paysentinel-health-container"></div>
 		</div>
@@ -186,7 +233,7 @@ class PaySentinel_Admin_Page_Renderer {
 		add_thickbox();
 		?>
 		<div class="wrap">
-			<h1 class="wp-heading-inline"><?php esc_html_e( 'Transaction Log', 'paysentinel' ); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Transactions', 'paysentinel' ); ?></h1>
 
 			<?php if ( isset( $_GET['message'] ) ) : ?>
 				<div
@@ -194,6 +241,8 @@ class PaySentinel_Admin_Page_Renderer {
 					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
 				</div>
 			<?php endif; ?>
+
+			<?php $this->render_help_button( 'transactions' ); ?>
 
 			<p><?php esc_html_e( 'View all monitored payment transactions.', 'paysentinel' ); ?></p>
 
@@ -355,8 +404,8 @@ class PaySentinel_Admin_Page_Renderer {
 
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Alerts', 'paysentinel' ); ?></h1>
-			<p><?php esc_html_e( 'View all payment monitoring alerts.', 'paysentinel' ); ?></p>
+			<?php $this->render_page_header( __( 'Alerts', 'paysentinel' ), 'alerts' ); ?>
+			<p><?php esc_html_e( 'View all PaySentinel alerts.', 'paysentinel' ); ?></p>
 			<div id="paysentinel-alerts-container"></div>
 		</div>
 		<?php
@@ -374,7 +423,7 @@ class PaySentinel_Admin_Page_Renderer {
 		$active_tab = isset( $_GET['tab'] ) && array_key_exists( $_GET['tab'], $tabs ) ? sanitize_text_field( $_GET['tab'] ) : 'general';
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Payment Monitor Settings', 'paysentinel' ); ?></h1>
+			<h1><?php esc_html_e( 'Settings', 'paysentinel' ); ?></h1>
 
 			<?php if ( isset( $_GET['message'] ) ) : ?>
 				<div
@@ -382,6 +431,8 @@ class PaySentinel_Admin_Page_Renderer {
 					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
 				</div>
 			<?php endif; ?>
+
+			<?php $this->render_help_button( 'settings' ); ?>
 
 			<?php settings_errors( 'paysentinel_options' ); ?>
 			<?php settings_errors( 'paysentinel_license' ); ?>
@@ -455,7 +506,7 @@ class PaySentinel_Admin_Page_Renderer {
 
 			<?php if ( 'general' === $active_tab ) : ?>
 				<div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border: 1px solid #e1e1e1; border-radius: 4px;">
-					<h3 style="margin-top: 0; color: #23282d;"><?php esc_html_e( 'How Payment Monitor Works', 'paysentinel' ); ?>
+					<h3 style="margin-top: 0; color: #23282d;"><?php esc_html_e( 'How PaySentinel Works', 'paysentinel' ); ?>
 					</h3>
 					<p style="margin-bottom: 10px;">
 						<strong><?php esc_html_e( 'Monitoring:', 'paysentinel' ); ?></strong>
@@ -491,9 +542,9 @@ class PaySentinel_Admin_Page_Renderer {
 		}
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Payment Monitor - Diagnostic Tools', 'paysentinel' ); ?></h1>
+			<?php $this->render_page_header( __( 'Diagnostic Tools', 'paysentinel' ), 'diagnostics' ); ?>
 
-			<div style="margin: 20px 0;">
+			<div style="margin: 15px 0;">
 				<p><?php esc_html_e( 'Use these tools to diagnose and resolve payment issues.', 'paysentinel' ); ?></p>
 			</div>
 
@@ -789,7 +840,7 @@ class PaySentinel_Admin_Page_Renderer {
 							success: function (response) {
 								var data = response.data || response;
 								var msg = count > 1
-									? 'Created ' + ( data.success || 0 ) + ' test orders with simulated failures'
+									? 'Created ' + (data.success || 0) + ' test orders with simulated failures'
 									: data.message;
 								$('#simulator-results').html('<div class="updated"><p>' + msg + '</p></div>');
 							},
