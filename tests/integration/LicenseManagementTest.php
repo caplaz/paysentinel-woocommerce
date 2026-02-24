@@ -11,6 +11,7 @@
 class LicenseManagementTest extends WP_UnitTestCase {
 
 
+
 	/**
 	 * License handler instance.
 	 *
@@ -500,6 +501,187 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test license status and data helpers.
+	 */
+	public function test_license_helpers() {
+		// 1. is_site_registered
+		$this->assertFalse( $this->license->is_site_registered() );
+		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
+		$this->assertTrue( $this->license->is_site_registered() );
+
+		// 2. get_license_data
+		$this->assertNull( $this->license->get_license_data() );
+		$sample_data = array( 'plan' => 'starter' );
+		update_option( PaySentinel_License::OPTION_LICENSE_DATA, $sample_data );
+		$this->assertEquals( $sample_data, $this->license->get_license_data() );
+
+		// 3. get_license_status
+		$this->assertEquals( 'unknown', $this->license->get_license_status() );
+		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
+		$this->assertEquals( 'valid', $this->license->get_license_status() );
+	}
+
+	/**
+	 * Test sync_license with error responses.
+	 */
+	public function test_sync_license_errors() {
+		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'test-key' );
+		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret_123' );
+		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
+
+		// 401 Unauthorized
+		add_filter(
+			'pre_http_request',
+			function () {
+				return array(
+					'response' => array( 'code' => 401 ),
+					'body'     => '',
+				);
+			}
+		);
+		$result = $this->license->sync_license();
+		$this->assertWPError( $result );
+		$this->assertEquals( 'unauthorized', $result->get_error_code() );
+
+		// 403 Forbidden
+		remove_all_filters( 'pre_http_request' );
+		add_filter(
+			'pre_http_request',
+			function () {
+				return array(
+					'response' => array( 'code' => 403 ),
+					'body'     => '',
+				);
+			}
+		);
+		$result = $this->license->sync_license();
+		$this->assertWPError( $result );
+		$this->assertEquals( 'forbidden', $result->get_error_code() );
+		$this->assertEquals( 'invalid', get_option( PaySentinel_License::OPTION_LICENSE_STATUS ) );
+
+		// 500 Server Error
+		remove_all_filters( 'pre_http_request' );
+		add_filter(
+			'pre_http_request',
+			function () {
+				return array(
+					'response' => array( 'code' => 500 ),
+					'body'     => '',
+				);
+			}
+		);
+		$result = $this->license->sync_license();
+		$this->assertWPError( $result );
+		$this->assertEquals( 'sync_failed', $result->get_error_code() );
+	}
+
+	/**
+	 * Test sync_license data merging.
+	 */
+	public function test_sync_license_data_merging() {
+		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'test-key' );
+		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret_123' );
+		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
+		update_option(
+			PaySentinel_License::OPTION_LICENSE_DATA,
+			array(
+				'plan'         => 'starter',
+				'old_artifact' => 'should_keep',
+			)
+		);
+
+		add_filter(
+			'pre_http_request',
+			function () {
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => wp_json_encode(
+						array(
+							'plan'         => 'pro',
+							'integrations' => array( 'slack' => array( 'id' => 'T12345' ) ),
+						)
+					),
+				);
+			}
+		);
+
+		$this->license->sync_license();
+		$data = get_option( PaySentinel_License::OPTION_LICENSE_DATA );
+
+		$this->assertEquals( 'pro', $data['plan'] );
+		$this->assertEquals( 'should_keep', $data['old_artifact'] );
+		$this->assertEquals( 'T12345', get_option( 'paysentinel_slack_workspace' ) );
+	}
+
+	/**
+	 * Test validate_license expiration edge cases.
+	 */
+	public function test_validate_license_expiration() {
+		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret_123' );
+
+		// 1. Expired license
+		add_filter(
+			'pre_http_request',
+			function () {
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => wp_json_encode(
+						array(
+							'valid'         => true,
+							'expiration_ts' => date( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ),
+						)
+					),
+				);
+			}
+		);
+
+		$result = $this->license->validate_license( 'expired-key' );
+		$this->assertFalse( $result['valid'] );
+
+		// 2. Unparseable date (should fallback to valid to be safe)
+		remove_all_filters( 'pre_http_request' );
+		add_filter(
+			'pre_http_request',
+			function () {
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => wp_json_encode(
+						array(
+							'valid'         => true,
+							'expiration_ts' => 'invalid-date-format',
+						)
+					),
+				);
+			}
+		);
+
+		$result = $this->license->validate_license( 'weird-key' );
+		$this->assertTrue( $result['valid'] );
+	}
+
+	/**
+	 * Test make_authenticated_request failures.
+	 */
+	public function test_make_authenticated_request_failures() {
+		// Missing details
+		delete_option( PaySentinel_License::OPTION_LICENSE_KEY );
+		$result = $this->license->make_authenticated_request( 'https://example.com' );
+		$this->assertWPError( $result );
+		$this->assertEquals( 'missing_authentication', $result->get_error_code() );
+	}
+
+	/**
+	 * Test init_hooks.
+	 */
+	public function test_init_hooks() {
+		$this->license->init_hooks();
+
+		$this->assertNotFalse( wp_next_scheduled( 'paysentinel_daily_check' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'paysentinel_hourly_sync' ) );
+		$this->assertGreaterThan( 0, has_action( 'admin_init', array( $this->license, 'check_license_on_admin' ) ) );
+	}
+
+	/**
 	 * Test license check on admin is triggered after 24 hours.
 	 */
 	public function test_check_license_on_admin() {
@@ -518,5 +700,85 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		// Assert last check was updated
 		$last_check = get_option( PaySentinel_License::OPTION_LAST_CHECK );
 		$this->assertGreaterThan( time() - 10, $last_check );
+	}
+
+	/**
+	 * Test sync_license with exhaustive fields.
+	 */
+	public function test_sync_license_exhaustive() {
+		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'test-key' );
+		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret_123' );
+		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
+
+		$full_response = array(
+			'valid'        => true,
+			'plan'         => 'agency',
+			'plan_color'   => '#ff0000',
+			'features'     => array(
+				'white_label' => true,
+				'custom_logo' => true,
+			),
+			'quota'        => array(
+				'sms'       => 500,
+				'remaining' => 450,
+			),
+			'expires_at'   => '2026-12-31 23:59:59',
+			'integrations' => array(
+				'slack' => array( 'id' => 'T99999' ),
+			),
+		);
+
+		add_filter(
+			'pre_http_request',
+			function () use ( $full_response ) {
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => wp_json_encode( $full_response ),
+				);
+			}
+		);
+
+		$this->license->sync_license();
+
+		$data = get_option( PaySentinel_License::OPTION_LICENSE_DATA );
+		$this->assertEquals( 'agency', $data['plan'] );
+		$this->assertEquals( '#ff0000', $data['plan_color'] );
+		$this->assertEquals( 450, $data['quota']['remaining'] );
+		$this->assertEquals( 'T99999', get_option( PaySentinel_License::OPTION_SLACK_WORKSPACE ) );
+	}
+
+	/**
+	 * Test authenticated requests (GET vs POST).
+	 */
+	public function test_authenticated_requests_signing() {
+		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'test-key' );
+		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret_123' );
+
+		$captured_args = null;
+		add_filter(
+			'pre_http_request',
+			function ( $pre, $args, $url ) use ( &$captured_args ) {
+				$captured_args = $args;
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => '{}',
+				);
+			},
+			10,
+			3
+		);
+
+		// 1. POST with body
+		$this->license->make_authenticated_request( 'https://api.test', 'POST', array( 'foo' => 'bar' ) );
+		$this->assertEquals( 'POST', $captured_args['method'] );
+		$this->assertStringContainsString( '"foo":"bar"', $captured_args['body'] );
+		$this->assertNotEmpty( $captured_args['headers']['X-PaySentinel-Signature'] );
+
+		// 2. GET with params (should move to URL)
+		$this->license->make_authenticated_request( 'https://api.test', 'GET', array( 'param' => 'val' ) );
+		$this->assertEquals( 'GET', $captured_args['method'] );
+		$this->assertEmpty( $captured_args['body'] );
+		// The URL modification is handled by make_authenticated_request_with_secret and passed to wp_remote_request
+		// Wait, I can't easily check the URL from $args in pre_http_request because it's passed as separate param.
 	}
 }

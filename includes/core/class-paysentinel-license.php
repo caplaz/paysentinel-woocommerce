@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class PaySentinel_License {
 
+
 	/**
 	 * SaaS API Base URL
 	 */
@@ -287,9 +288,11 @@ class PaySentinel_License {
 		if ( $is_valid && isset( $data['expiration_ts'] ) && ! empty( $data['expiration_ts'] ) ) {
 			try {
 				$expires_timestamp = strtotime( $data['expiration_ts'] );
-				$current_time      = current_time( 'timestamp' );
-				if ( $expires_timestamp <= $current_time ) {
-					$is_valid = false; // License expired
+				if ( false !== $expires_timestamp ) {
+					$current_time = current_time( 'timestamp' );
+					if ( $expires_timestamp <= $current_time ) {
+						$is_valid = false; // License expired
+					}
 				}
 			} catch ( Exception $e ) {
 				// If we can't parse the date, assume it's valid to avoid false negatives

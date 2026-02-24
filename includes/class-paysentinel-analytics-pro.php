@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class PaySentinel_Analytics_Pro {
 
+
 	/**
 	 * Database instance
 	 */
@@ -152,7 +153,7 @@ class PaySentinel_Analytics_Pro {
 		$failure_reasons = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT failure_reason, failure_code, COUNT(*) as count 
-				FROM `{$wpdb->esc_like( $table_name )}` 
+				FROM `{$table_name}` 
 				WHERE gateway_id = %s 
 				AND status = 'failed' 
 				AND created_at >= %s 
@@ -170,7 +171,7 @@ class PaySentinel_Analytics_Pro {
 		$hourly_distribution = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT HOUR(created_at) as hour, COUNT(*) as failures 
-				FROM `{$wpdb->esc_like( $table_name )}` 
+				FROM `{$table_name}` 
 				WHERE gateway_id = %s 
 				AND status = 'failed' 
 				AND created_at >= %s 
@@ -189,7 +190,7 @@ class PaySentinel_Analytics_Pro {
 				COUNT(*) as total_transactions,
 				SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_transactions,
 				SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_transactions
-				FROM `{$wpdb->esc_like( $table_name )}` 
+				FROM `{$table_name}` 
 				WHERE gateway_id = %s 
 				AND created_at >= %s 
 				GROUP BY DATE(created_at) 

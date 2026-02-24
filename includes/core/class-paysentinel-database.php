@@ -11,10 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class PaySentinel_Database {
 
+
 	/**
 	 * Database version
 	 */
-	public const DB_VERSION = '1.0.0';
+	public const DB_VERSION = '1.0.1';
 
 	/**
 	 * Table names
@@ -93,6 +94,18 @@ class PaySentinel_Database {
 	private function create_gateway_health_table() {
 		global $wpdb;
 
+		// Drop legacy unique index if it exists (dbDelta won't do this)
+		$index_exists = $wpdb->get_results(
+			$wpdb->prepare(
+				"SHOW INDEX FROM {$this->gateway_health_table} WHERE KEY_NAME = %s",
+				'idx_gateway_period'
+			)
+		);
+
+		if ( ! empty( $index_exists ) ) {
+			$wpdb->query( "ALTER TABLE {$this->gateway_health_table} DROP INDEX idx_gateway_period" );
+		}
+
 		$charset_collate = $wpdb->get_charset_collate();
 
 		$sql = "CREATE TABLE {$this->gateway_health_table} (
@@ -106,8 +119,8 @@ class PaySentinel_Database {
             avg_response_time INT(11) UNSIGNED DEFAULT NULL,
             last_failure_at DATETIME DEFAULT NULL,
             calculated_at DATETIME NOT NULL,
-            PRIMARY KEY (id),
-            UNIQUE KEY idx_gateway_period (gateway_id, period),
+            PRIMARY KEY  (id),
+            KEY idx_gateway_period_v2 (gateway_id, period),
             KEY idx_gateway_id (gateway_id),
             KEY idx_calculated_at (calculated_at)
         ) $charset_collate;";
@@ -282,6 +295,7 @@ class PaySentinel_Database {
 		// Migrations array: version => callable
 		$migrations = array(
 			'0.0.0' => array( $this, 'migrate_to_v1_0_0' ),
+			'1.0.0' => array( $this, 'migrate_to_v1_0_1' ),
 		);
 
 		foreach ( $migrations as $version => $migration ) {
@@ -303,6 +317,32 @@ class PaySentinel_Database {
 	private function migrate_to_v1_0_0() {
 		// Create all tables from scratch or update existing ones
 		$this->create_tables();
+		return true;
+	}
+
+	/**
+	 * Migrate to version 1.0.1
+	 *
+	 * @return bool True on success
+	 */
+	private function migrate_to_v1_0_1() {
+		global $wpdb;
+
+		// Drop the unique index to allow history
+		$index_exists = $wpdb->get_results(
+			$wpdb->prepare(
+				"SHOW INDEX FROM {$this->gateway_health_table} WHERE KEY_NAME = %s",
+				'idx_gateway_period'
+			)
+		);
+
+		if ( ! empty( $index_exists ) ) {
+			$wpdb->query( "ALTER TABLE {$this->gateway_health_table} DROP INDEX idx_gateway_period" );
+		}
+
+		// Recreate tables (this will add the new non-unique index via dbDelta)
+		$this->create_tables();
+
 		return true;
 	}
 

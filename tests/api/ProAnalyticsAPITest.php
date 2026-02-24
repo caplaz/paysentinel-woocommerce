@@ -5,8 +5,10 @@
  */
 class ProAnalyticsAPITest extends WP_UnitTestCase {
 
+
 	private $api;
 	private $license;
+	public $admin_user;
 
 	/**
 	 * Set up test environment

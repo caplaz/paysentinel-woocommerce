@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PaySentinel_Health {
 
 
+
 	/**
 	 * Database instance
 	 */
@@ -193,15 +194,6 @@ class PaySentinel_Health {
 
 		$table_name = $this->database->get_gateway_health_table();
 
-		// Check if record exists for this gateway and period
-		$existing_record = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT id FROM {$table_name} WHERE gateway_id = %s AND period = %s",
-				$gateway_id,
-				$period
-			)
-		);
-
 		$data = array(
 			'gateway_id'              => $health_data['gateway_id'],
 			'period'                  => $health_data['period'],
@@ -226,19 +218,8 @@ class PaySentinel_Health {
 			'%s',  // calculated_at
 		);
 
-		if ( $existing_record ) {
-			// Update existing record
-			$result = $wpdb->update(
-				$table_name,
-				$data,
-				array( 'id' => $existing_record->id ),
-				$format,
-				array( '%d' )
-			);
-		} else {
-			// Insert new record
-			$result = $wpdb->insert( $table_name, $data, $format );
-		}
+		// Always insert a new record to maintain history
+		$result = $wpdb->insert( $table_name, $data, $format );
 
 		return $result !== false;
 	}
@@ -258,7 +239,7 @@ class PaySentinel_Health {
 
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} WHERE gateway_id = %s AND period = %s",
+				"SELECT * FROM {$table_name} WHERE gateway_id = %s AND period = %s ORDER BY calculated_at DESC LIMIT 1",
 				$gateway_id,
 				$period
 			)
@@ -277,9 +258,18 @@ class PaySentinel_Health {
 
 		$table_name = $this->database->get_gateway_health_table();
 
+		// Get latest record for each period
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} WHERE gateway_id = %s ORDER BY period",
+				"SELECT t1.* FROM {$table_name} t1
+				INNER JOIN (
+					SELECT period, MAX(calculated_at) as latest_calc
+					FROM {$table_name}
+					WHERE gateway_id = %s
+					GROUP BY period
+				) t2 ON t1.period = t2.period AND t1.calculated_at = t2.latest_calc
+				WHERE t1.gateway_id = %s",
+				$gateway_id,
 				$gateway_id
 			),
 			ARRAY_A
