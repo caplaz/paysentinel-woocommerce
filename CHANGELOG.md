@@ -15,3 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Time period label removed from gateway health UI for cleaner layout.
 - Styling consistency fixes for subtitle text on health page.
 - Changelog file created.
+
+### Fixed
+
+- Build script simplified to avoid path issues in CI; `npm run build` now creates ZIP in repo root.
