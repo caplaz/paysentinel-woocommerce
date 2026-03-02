@@ -437,8 +437,7 @@
             React.createElement(
               "a",
               {
-                href: "https://paysentinel.caplaz.com/plans",
-                target: "_blank",
+                href: "admin.php?page=paysentinel-settings&tab=license",
                 className: "button button-primary",
                 style: { display: "inline-flex", alignItems: "center" },
               },

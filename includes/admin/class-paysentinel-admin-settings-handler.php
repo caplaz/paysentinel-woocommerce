@@ -968,8 +968,9 @@ class PaySentinel_Admin_Settings_Handler {
 						<strong><?php esc_html_e( 'Pro Feature', 'paysentinel' ); ?></strong><br>
 						<?php
 						printf(
-							__( 'Per-gateway alert configuration requires Pro plan or higher. <a href="%s" target="_blank" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'paysentinel' ),
-							PaySentinel_License::SAAS_URL . '/plans'
+							/* translators: %s: upgrade URL */
+							__( 'Per-gateway alert configuration requires Pro plan or higher. <a href="%s" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'paysentinel' ),
+							esc_url( admin_url( 'admin.php?page=paysentinel-settings&tab=license' ) )
 						);
 						?>
 					</p>
