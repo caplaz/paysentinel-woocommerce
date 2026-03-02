@@ -537,20 +537,13 @@ class PaySentinel_Failure_Simulator {
 	public function clear_simulated_failures() {
 		global $wpdb;
 
-		// Get orders with simulated failures
-		// Note: Include all post statuses (wc-failed, wc-pending, etc.)
-		$order_ids = get_posts(
-			array(
-				'post_type'      => 'shop_order',
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'meta_query'     => array(
-					array(
-						'key'     => '_paysentinel_simulated_failure',
-						'compare' => 'EXISTS',
-					),
-				),
-				'fields'         => 'ids',
+		// Get orders with simulated failures using postmeta query
+		// This works with both legacy and HPOS databases
+		$order_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT post_id FROM {$wpdb->postmeta}
+				WHERE meta_key = %s",
+				'_paysentinel_simulated_failure'
 			)
 		);
 
@@ -568,9 +561,12 @@ class PaySentinel_Failure_Simulator {
 			);
 		}
 
-		// Now delete the orders
+		// Now delete the orders using WooCommerce's proper method
 		foreach ( $order_ids as $order_id ) {
-			wp_delete_post( $order_id, true );
+			$order = wc_get_order( $order_id );
+			if ( $order ) {
+				$order->delete( true );
+			}
 		}
 
 		return array(
