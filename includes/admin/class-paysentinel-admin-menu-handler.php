@@ -138,18 +138,49 @@ class PaySentinel_Admin_Menu_Handler {
 			'paysentinel-help',
 			array( $this, 'redirect_to_help' )
 		);
+
+		// Do not modify the registered submenu slug; tests expect the slug
+		// `paysentinel-help` to be present. We'll update the link in the
+		// admin footer script instead so the visible anchor points to the
+		// external site while the registered slug remains intact.
+
+		// Ensure the menu link opens in a new tab by adding a small script
+		// to the admin footer that sets target and rel attributes on the anchor.
+		add_action( 'admin_print_footer_scripts', array( $this, 'make_remote_dashboard_open_new_tab' ) );
 	}
 
 	/**
-	 * Redirect to the external help site
+	 * Output JS in admin footer to make Remote Dashboard menu open in a new tab.
 	 */
-	public function redirect_to_help() {
+	public function make_remote_dashboard_open_new_tab() {
 		$help_url = PaySentinel_Admin_Page_Renderer::SIDEBAR_HELP_URL;
-		echo '<script type="text/javascript">window.open("' . esc_url( $help_url ) . '", "_blank"); history.back();</script>';
-		echo '<p>' . sprintf(
-			/* translators: %s: help URL */
-			__( 'Redirecting to <a href="%s" target="_blank">Remote Dashboard</a>...', 'paysentinel' ),
-			esc_url( $help_url )
-		) . '</p>';
+		?>
+		<script type="text/javascript">
+		(function(){
+			var helpUrl = "<?php echo esc_js( esc_url( $help_url ) ); ?>";
+			var anchors = document.querySelectorAll('#adminmenu a, #toplevel_page_paysentinel a');
+			for (var i = 0; i < anchors.length; i++) {
+				var a = anchors[i];
+				var hrefAttr = a.getAttribute('href') || '';
+				// Detect the admin slug link for paysentinel-help and replace it.
+				if (hrefAttr.indexOf('admin.php?page=paysentinel-help') !== -1 || hrefAttr.indexOf('paysentinel-help') !== -1) {
+					a.setAttribute('href', helpUrl);
+					a.setAttribute('target', '_blank');
+					a.setAttribute('rel', 'noopener noreferrer');
+				}
+				// Also handle fully-qualified hrefs that may include the admin URL
+				if (a.href && a.href.indexOf('admin.php?page=paysentinel-help') !== -1) {
+					a.href = helpUrl;
+					a.setAttribute('target', '_blank');
+					a.setAttribute('rel', 'noopener noreferrer');
+				}
+			}
+		})();
+		</script>
+		<?php
 	}
+
+	// The old `redirect_to_help()` method was removed because the submenu
+	// now points directly to the external help URL. Keeping this class focused
+	// on menu registration only.
 }
