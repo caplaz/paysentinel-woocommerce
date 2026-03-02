@@ -164,7 +164,7 @@ class PaySentinel_Retry {
 
 		// Get retry schedule from settings
 		$settings       = $config->get_all();
-		$retry_schedule = isset( $settings['retry_schedule'] ) ? $settings['retry_schedule'] : self::DEFAULT_RETRY_SCHEDULE;
+		$retry_schedule = isset( $settings[ PaySentinel_Settings_Constants::RETRY_SCHEDULE ] ) ? $settings[ PaySentinel_Settings_Constants::RETRY_SCHEDULE ] : self::DEFAULT_RETRY_SCHEDULE;
 
 		// Calculate next retry time
 		$retry_attempt = $transaction->retry_count;
@@ -329,7 +329,7 @@ class PaySentinel_Retry {
 			}
 
 			$settings    = get_option( 'paysentinel_options', array() );
-			$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+			$max_retries = isset( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ? intval( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) : self::MAX_RETRY_ATTEMPTS;
 
 			// Prepare order for retry
 			$order->add_order_note(
@@ -592,7 +592,7 @@ class PaySentinel_Retry {
 		);
 
 		$settings    = get_option( 'paysentinel_options', array() );
-		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+		$max_retries = isset( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ? intval( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) : self::MAX_RETRY_ATTEMPTS;
 
 		// If max attempts reached, add final note
 		if ( $retry_count >= $max_retries ) {
@@ -1034,7 +1034,7 @@ class PaySentinel_Retry {
 		}
 
 		$settings    = get_option( 'paysentinel_options', array() );
-		$max_retries = isset( $settings['max_retry_attempts'] ) ? intval( $settings['max_retry_attempts'] ) : self::MAX_RETRY_ATTEMPTS;
+		$max_retries = isset( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ? intval( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) : self::MAX_RETRY_ATTEMPTS;
 
 		if ( $transaction->retry_count >= $max_retries ) {
 			return array(

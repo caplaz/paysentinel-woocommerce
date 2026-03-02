@@ -438,18 +438,18 @@ class PaySentinel_Admin {
 		$errors    = array();
 
 		// Validate max_retry_attempts
-		if ( isset( $config['max_retry_attempts'] ) ) {
-			$attempts = intval( $config['max_retry_attempts'] );
+		if ( isset( $config[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ) {
+			$attempts = intval( $config[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] );
 			if ( $attempts < 1 || $attempts > 10 ) {
 				$errors[] = 'Max retry attempts must be between 1 and 10';
 			} else {
-				$validated['max_retry_attempts'] = $attempts;
+				$validated[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] = $attempts;
 			}
 		}
 
 		// Validate retry_enabled
-		if ( isset( $config['retry_enabled'] ) ) {
-			$validated['retry_enabled'] = (bool) $config['retry_enabled'];
+		if ( isset( $config[ PaySentinel_Settings_Constants::RETRY_ENABLED ] ) ) {
+			$validated[ PaySentinel_Settings_Constants::RETRY_ENABLED ] = (bool) $config[ PaySentinel_Settings_Constants::RETRY_ENABLED ];
 		}
 
 		if ( ! empty( $errors ) ) {
@@ -510,32 +510,32 @@ class PaySentinel_Admin {
 		$validated_settings = array();
 
 		// Validate health_check_interval
-		if ( isset( $settings['health_check_interval'] ) ) {
-			$value = intval( $settings['health_check_interval'] );
+		if ( isset( $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] ) ) {
+			$value = intval( $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] );
 			if ( $value < 1 || $value > 60 ) {
-				$errors['health_check_interval'] = 'Health check interval must be between 1 and 60 minutes';
+				$errors[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] = 'Health check interval must be between 1 and 60 minutes';
 			} else {
-				$validated_settings['health_check_interval'] = $value;
+				$validated_settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] = $value;
 			}
 		}
 
 		// Validate alert_threshold
-		if ( isset( $settings['alert_threshold'] ) ) {
-			$value = floatval( $settings['alert_threshold'] );
+		if ( isset( $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] ) ) {
+			$value = floatval( $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] );
 			if ( $value < 0 || $value > 100 ) {
-				$errors['alert_threshold'] = 'Alert threshold must be between 0 and 100';
+				$errors[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] = 'Alert threshold must be between 0 and 100';
 			} else {
-				$validated_settings['alert_threshold'] = $value;
+				$validated_settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] = $value;
 			}
 		}
 
 		// Validate max_retry_attempts
-		if ( isset( $settings['max_retry_attempts'] ) ) {
-			$value = intval( $settings['max_retry_attempts'] );
+		if ( isset( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ) {
+			$value = intval( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] );
 			if ( $value < 0 || $value > 10 ) {
-				$errors['max_retry_attempts'] = 'Max retry attempts must be between 0 and 10';
+				$errors[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] = 'Max retry attempts must be between 0 and 10';
 			} else {
-				$validated_settings['max_retry_attempts'] = $value;
+				$validated_settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] = $value;
 			}
 		}
 

@@ -227,7 +227,7 @@ class PaySentinel_Analytics_Pro {
 		$limit = PaySentinel_License::GATEWAY_LIMITS[ $tier ];
 
 		$settings            = get_option( 'paysentinel_settings', array() );
-		$enabled_gateways    = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
+		$enabled_gateways    = isset( $settings[ PaySentinel_Settings_Constants::ENABLED_GATEWAYS ] ) ? $settings[ PaySentinel_Settings_Constants::ENABLED_GATEWAYS ] : array();
 		$gateways_to_monitor = array_slice( $enabled_gateways, 0, $limit );
 
 		$summary = array(
@@ -238,7 +238,7 @@ class PaySentinel_Analytics_Pro {
 		foreach ( $gateways_to_monitor as $gateway_id ) {
 			$comparative = $this->get_comparative_analytics( $gateway_id );
 			if ( ! isset( $comparative['error'] ) ) {
-				$summary['gateway_metrics'][ $gateway_id ] = $comparative;
+				$summary[ PaySentinel_Settings_Constants::GATEWAY_METRICS ][ $gateway_id ] = $comparative;
 			}
 		}
 
@@ -286,7 +286,7 @@ class PaySentinel_Analytics_Pro {
 		$limit = PaySentinel_License::GATEWAY_LIMITS[ $tier ];
 
 		$settings            = get_option( 'paysentinel_settings', array() );
-		$enabled_gateways    = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
+		$enabled_gateways    = isset( $settings[ PaySentinel_Settings_Constants::ENABLED_GATEWAYS ] ) ? $settings[ PaySentinel_Settings_Constants::ENABLED_GATEWAYS ] : array();
 		$gateways_to_compare = array_slice( $enabled_gateways, 0, $limit );
 
 		$comparison = array(

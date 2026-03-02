@@ -48,7 +48,7 @@ class PaySentinel_Gateway_Manager {
 
 		// Get enabled gateways from settings
 		$settings         = get_option( 'paysentinel_settings', array() );
-		$enabled_gateways = isset( $settings['enabled_gateways'] ) ? $settings['enabled_gateways'] : array();
+		$enabled_gateways = isset( $settings[ PaySentinel_Settings_Constants::ENABLED_GATEWAYS ] ) ? $settings[ PaySentinel_Settings_Constants::ENABLED_GATEWAYS ] : array();
 
 		if ( ! empty( $enabled_gateways ) ) {
 			return array_slice( $enabled_gateways, 0, $limit );

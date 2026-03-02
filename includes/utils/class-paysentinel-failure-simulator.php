@@ -114,7 +114,7 @@ class PaySentinel_Failure_Simulator {
 	 */
 	public function is_test_mode_enabled() {
 		$settings = get_option( 'paysentinel_settings', array() );
-		return isset( $settings['enable_test_mode'] ) && $settings['enable_test_mode'];
+		return isset( $settings[ PaySentinel_Settings_Constants::ENABLE_TEST_MODE ] ) && $settings[ PaySentinel_Settings_Constants::ENABLE_TEST_MODE ];
 	}
 
 	/**
@@ -124,7 +124,7 @@ class PaySentinel_Failure_Simulator {
 	 */
 	private function get_failure_probability() {
 		$settings = get_option( 'paysentinel_settings', array() );
-		return isset( $settings['test_failure_rate'] ) ? intval( $settings['test_failure_rate'] ) : 10;
+		return isset( $settings[ PaySentinel_Settings_Constants::TEST_FAILURE_RATE ] ) ? intval( $settings[ PaySentinel_Settings_Constants::TEST_FAILURE_RATE ] ) : 10;
 	}
 
 	/**
@@ -134,7 +134,7 @@ class PaySentinel_Failure_Simulator {
 	 */
 	private function get_enabled_scenarios() {
 		$settings = get_option( 'paysentinel_settings', array() );
-		$enabled  = isset( $settings['test_failure_scenarios'] ) ? $settings['test_failure_scenarios'] : array_keys( self::FAILURE_SCENARIOS );
+		$enabled  = isset( $settings[ PaySentinel_Settings_Constants::TEST_FAILURE_SCENARIOS ] ) ? $settings[ PaySentinel_Settings_Constants::TEST_FAILURE_SCENARIOS ] : array_keys( self::FAILURE_SCENARIOS );
 
 		if ( empty( $enabled ) ) {
 			$enabled = array_keys( self::FAILURE_SCENARIOS );

@@ -167,8 +167,8 @@ class PaySentinel_Alert_Checker {
 		}
 
 		// Check if immediate transaction alerts are enabled
-		$immediate_alerts_enabled = isset( $settings['immediate_transaction_alerts'] )
-			? (bool) $settings['immediate_transaction_alerts']
+		$immediate_alerts_enabled = isset( $settings[ PaySentinel_Settings_Constants::IMMEDIATE_TRANSACTION_ALERTS ] )
+			? (bool) $settings[ PaySentinel_Settings_Constants::IMMEDIATE_TRANSACTION_ALERTS ]
 			: false;
 
 		if ( ! $immediate_alerts_enabled ) {
@@ -245,6 +245,14 @@ class PaySentinel_Alert_Checker {
 					'period'              => $period,
 					'total_transactions'  => $total_transactions,
 					'failed_transactions' => $data['failed_transactions'] ?? 0,
+					'message'             => sprintf(
+						__( 'Payment gateway "%1$s" success rate has dropped to %2$s%% in the last %3$s. Only %4$d out of %5$d transactions succeeded.', 'paysentinel' ),
+						$this->gateway_manager->get_gateway_display_name( $gateway_id ),
+						number_format( $success_rate, 2 ),
+						$period,
+						$total_transactions - ( $data['failed_transactions'] ?? 0 ),
+						$total_transactions
+					),
 					'metadata'            => array(
 						'success_rate'        => $success_rate,
 						'total_transactions'  => $total_transactions,
@@ -347,15 +355,15 @@ class PaySentinel_Alert_Checker {
 	 * @return float Threshold percentage (0-100).
 	 */
 	private function get_gateway_alert_threshold( $gateway_id, $settings ) {
-		// Check for gateway-specific threshold
-		$gateway_thresholds = isset( $settings['gateway_thresholds'] ) ? $settings['gateway_thresholds'] : array();
+		// Check for gateway-specific threshold in per-gateway config
+		$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
 
-		if ( isset( $gateway_thresholds[ $gateway_id ] ) ) {
-			return (float) $gateway_thresholds[ $gateway_id ];
+		if ( isset( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ] ) && ! empty( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ] ) ) {
+			return (float) $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ];
 		}
 
 		// Return default threshold
-		return isset( $settings['alert_threshold'] ) ? (float) $settings['alert_threshold'] : 95.0;
+		return isset( $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] ) ? (float) $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] : 95.0;
 	}
 
 	/**
@@ -366,22 +374,16 @@ class PaySentinel_Alert_Checker {
 	 * @return bool True if alerts are enabled.
 	 */
 	private function is_gateway_alerts_enabled( $gateway_id, $settings ) {
-		// Check global alerts enabled
-		$alerts_enabled = isset( $settings['alerts_enabled'] ) ? (bool) $settings['alerts_enabled'] : false;
+		// Check per-gateway configuration first (Pro+ feature)
+		$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
 
-		if ( ! $alerts_enabled ) {
-			return false;
+		// If per-gateway config exists for this gateway, check if it's enabled
+		if ( isset( $gateway_config[ $gateway_id ] ) ) {
+			return isset( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] ) ? (bool) $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] : true;
 		}
 
-		// Check gateway-specific setting
-		$gateway_alerts = isset( $settings['gateway_alerts'] ) ? $settings['gateway_alerts'] : array();
-
-		// If gateway_alerts is not set or empty, assume all gateways are enabled
-		if ( empty( $gateway_alerts ) ) {
-			return true;
-		}
-
-		return isset( $gateway_alerts[ $gateway_id ] ) ? (bool) $gateway_alerts[ $gateway_id ] : false;
+		// If no per-gateway config, assume alerts are enabled by default
+		return true;
 	}
 
 	/**

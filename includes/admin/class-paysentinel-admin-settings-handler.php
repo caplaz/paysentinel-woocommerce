@@ -662,7 +662,7 @@ class PaySentinel_Admin_Settings_Handler {
 	 */
 	public function render_field_alert_email() {
 		$settings = get_option( 'paysentinel_settings', array() );
-		$email    = isset( $settings['alert_email'] ) ? sanitize_email( $settings['alert_email'] ) : get_option( 'admin_email' );
+		$email    = isset( $settings[ PaySentinel_Settings_Constants::ALERT_EMAIL ] ) ? sanitize_email( $settings[ PaySentinel_Settings_Constants::ALERT_EMAIL ] ) : get_option( 'admin_email' );
 		?>
 		<input type="email" name="paysentinel_options[alert_email]" value="<?php echo esc_attr( $email ); ?>"
 			class="regular-text" />
@@ -677,7 +677,7 @@ class PaySentinel_Admin_Settings_Handler {
 	 */
 	public function render_field_alert_phone_number() {
 		$settings  = get_option( 'paysentinel_settings', array() );
-		$phone     = isset( $settings['alert_phone_number'] ) ? sanitize_text_field( $settings['alert_phone_number'] ) : '';
+		$phone     = isset( $settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ] ) ? sanitize_text_field( $settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ] ) : '';
 		$tier      = $this->license->get_license_tier();
 		$is_locked = ! in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
 		?>
@@ -931,7 +931,7 @@ class PaySentinel_Admin_Settings_Handler {
 	 */
 	public function render_field_gateway_alert_config() {
 		$settings       = get_option( 'paysentinel_settings', array() );
-		$gateway_config = isset( $settings['gateway_alert_config'] ) ? $settings['gateway_alert_config'] : array();
+		$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
 		$tier           = $this->license->get_license_tier();
 		$is_locked      = ! in_array( $tier, array( 'pro', 'agency' ), true );
 
@@ -994,9 +994,9 @@ class PaySentinel_Admin_Settings_Handler {
 					<?php foreach ( $active_gateways as $gateway_id => $gateway_name ) : ?>
 						<?php
 						$config    = isset( $gateway_config[ $gateway_id ] ) ? $gateway_config[ $gateway_id ] : array();
-						$enabled   = isset( $config['enabled'] ) ? (bool) $config['enabled'] : true;
-						$threshold = isset( $config['threshold'] ) ? floatval( $config['threshold'] ) : '';
-						$channels  = isset( $config['channels'] ) ? $config['channels'] : array( 'email' );
+						$enabled   = isset( $config[ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] ) ? (bool) $config[ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] : true;
+						$threshold = isset( $config[ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ] ) ? floatval( $config[ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ] ) : '';
+						$channels  = isset( $config[ PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS ] ) ? $config[ PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS ] : array( 'email' );
 						?>
 						<tr>
 							<td><strong><?php echo esc_html( $gateway_name ); ?></strong></td>
@@ -1009,7 +1009,7 @@ class PaySentinel_Admin_Settings_Handler {
 								<input type="number"
 									name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][threshold]"
 									value="<?php echo esc_attr( $threshold ); ?>"
-									placeholder="<?php echo esc_attr( $settings['alert_threshold'] ?? 85 ); ?>" min="1" max="100"
+										placeholder="<?php echo esc_attr( $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] ?? 85 ); ?>" min="1" max="100"
 									step="0.1" style="width: 80px;" <?php echo $is_locked ? 'disabled' : ''; ?> />
 							</td>
 							<td>

@@ -481,8 +481,8 @@ class PaySentinel_Security {
 
 		// Get existing settings to prevent data loss across tabs
 		$old_settings = get_option( 'paysentinel_options', array() );
-		$current_tab  = isset( $settings['current_tab'] ) ? sanitize_key( $settings['current_tab'] ) : '';
-		unset( $settings['current_tab'] );
+		$current_tab  = isset( $settings[ PaySentinel_Settings_Constants::CURRENT_TAB ] ) ? sanitize_key( $settings[ PaySentinel_Settings_Constants::CURRENT_TAB ] ) : '';
+		unset( $settings[ PaySentinel_Settings_Constants::CURRENT_TAB ] );
 
 		$validated = array();
 
@@ -510,15 +510,15 @@ class PaySentinel_Security {
 
 		// Handle checkboxes (which are missing from $_POST when unchecked)
 		if ( 'general' === $current_tab ) {
-			if ( ! isset( $validated['enable_monitoring'] ) ) {
-				$final_settings['enable_monitoring'] = 0;
+			if ( ! isset( $validated[ PaySentinel_Settings_Constants::ENABLE_MONITORING ] ) ) {
+				$final_settings[ PaySentinel_Settings_Constants::ENABLE_MONITORING ] = 0;
 			}
-			if ( ! isset( $validated['retry_enabled'] ) ) {
-				$final_settings['retry_enabled'] = 0;
+			if ( ! isset( $validated[ PaySentinel_Settings_Constants::RETRY_ENABLED ] ) ) {
+				$final_settings[ PaySentinel_Settings_Constants::RETRY_ENABLED ] = 0;
 			}
 		} elseif ( 'advanced' === $current_tab ) {
-			if ( ! isset( $validated['enable_test_mode'] ) ) {
-				$final_settings['enable_test_mode'] = 0;
+			if ( ! isset( $validated[ PaySentinel_Settings_Constants::ENABLE_TEST_MODE ] ) ) {
+				$final_settings[ PaySentinel_Settings_Constants::ENABLE_TEST_MODE ] = 0;
 			}
 		}
 

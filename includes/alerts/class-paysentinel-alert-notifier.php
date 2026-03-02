@@ -70,13 +70,13 @@ class PaySentinel_Alert_Notifier {
 		$channels = $this->get_alert_channels_for_gateway( $gateway_id, $settings, $tier );
 
 		// Email - check if using local (free) or server-side delivery (starter+)
-		if ( in_array( 'email', $channels, true ) && ! empty( $settings['alert_email'] ) ) {
+		if ( in_array( PaySentinel_Settings_Constants::CHANNEL_EMAIL, $channels, true ) && ! empty( $settings[ PaySentinel_Settings_Constants::ALERT_EMAIL ] ) ) {
 			if ( 'free' === $tier ) {
 				// Send email locally for free tier
-				$email_sent         = $this->send_email_notification( $alert_data, $settings['alert_email'] );
+				$email_sent         = $this->send_email_notification( $alert_data, $settings[ PaySentinel_Settings_Constants::ALERT_EMAIL ] );
 				$notifications_sent = $notifications_sent || $email_sent;
 				// Remove email from channels array since we handled it locally
-				$channels = array_diff( $channels, array( 'email' ) );
+			$channels = array_diff( $channels, array( PaySentinel_Settings_Constants::CHANNEL_EMAIL ) );
 			}
 		}
 
@@ -102,10 +102,10 @@ class PaySentinel_Alert_Notifier {
 
 		// Check per-gateway configuration first (Pro+ feature)
 		if ( $this->has_feature( 'per_gateway_config' ) ) {
-			$gateway_config = isset( $settings['gateway_alert_config'] ) ? $settings['gateway_alert_config'] : array();
+			$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
 
-			if ( isset( $gateway_config[ $gateway_id ] ) && isset( $gateway_config[ $gateway_id ]['channels'] ) ) {
-				$configured_channels = $gateway_config[ $gateway_id ]['channels'];
+			if ( isset( $gateway_config[ $gateway_id ] ) && isset( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS ] ) ) {
+				$configured_channels = $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS ];
 
 				// Validate channels against tier permissions
 				foreach ( $configured_channels as $channel ) {
@@ -119,17 +119,17 @@ class PaySentinel_Alert_Notifier {
 		}
 
 		// Fall back to global channel configuration
-		if ( ! empty( $settings['alert_email'] ) ) {
-			$channels[] = 'email';
+		if ( ! empty( $settings[ PaySentinel_Settings_Constants::ALERT_EMAIL ] ) ) {
+			$channels[] = PaySentinel_Settings_Constants::CHANNEL_EMAIL;
 		}
 
-		if ( ! empty( $settings['alert_phone_number'] ) && in_array( $tier, array( 'starter', 'pro', 'agency' ), true ) ) {
-			$channels[] = 'sms';
+		if ( ! empty( $settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ] ) && in_array( $tier, array( 'starter', 'pro', 'agency' ), true ) ) {
+			$channels[] = PaySentinel_Settings_Constants::CHANNEL_SMS;
 		}
 
 		$slack_workspace = get_option( 'paysentinel_slack_workspace' );
 		if ( ! empty( $slack_workspace ) && in_array( $tier, array( 'pro', 'agency' ), true ) ) {
-			$channels[] = 'slack';
+			$channels[] = PaySentinel_Settings_Constants::CHANNEL_SLACK;
 		}
 
 		return $channels;
@@ -145,13 +145,13 @@ class PaySentinel_Alert_Notifier {
 	 */
 	private function is_channel_available( $channel, $tier, $settings ) {
 		switch ( $channel ) {
-			case 'email':
-				return ! empty( $settings['alert_email'] );
+			case PaySentinel_Settings_Constants::CHANNEL_EMAIL:
+				return ! empty( $settings[ PaySentinel_Settings_Constants::ALERT_EMAIL ] );
 
 			case 'sms':
-				return ! empty( $settings['alert_phone_number'] ) && in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
+				return ! empty( $settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ] ) && in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
 
-			case 'slack':
+		case PaySentinel_Settings_Constants::CHANNEL_SLACK:
 				$slack_workspace = get_option( 'paysentinel_slack_workspace' );
 				return ! empty( $slack_workspace ) && in_array( $tier, array( 'pro', 'agency' ), true );
 
@@ -209,11 +209,11 @@ class PaySentinel_Alert_Notifier {
 
 		// Prepare contact information
 		$contact = array(
-			'email' => isset( $settings['alert_email'] ) ? $settings['alert_email'] : '',
+			'email' => isset( $settings[ PaySentinel_Settings_Constants::ALERT_EMAIL ] ) ? $settings[ PaySentinel_Settings_Constants::ALERT_EMAIL ] : '',
 		);
 
-		if ( ! empty( $settings['alert_phone_number'] ) ) {
-			$contact['phone'] = $settings['alert_phone_number'];
+		if ( ! empty( $settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ] ) ) {
+			$contact['phone'] = $settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ];
 		}
 
 		// Check for Slack integration
@@ -244,7 +244,7 @@ class PaySentinel_Alert_Notifier {
 		if ( in_array( 'sms', $channels, true ) && ! empty( $contact['phone'] ) ) {
 			$payload['alert_type'] = 'SMS';
 			$payload['recipient']  = $contact['phone'];
-		} elseif ( in_array( 'slack', $channels, true ) && ! empty( $contact['slack_workspace'] ) ) {
+		} elseif ( in_array( PaySentinel_Settings_Constants::CHANNEL_SLACK, $channels, true ) && ! empty( $contact['slack_workspace'] ) ) {
 			$payload['alert_type']     = 'SLACK';
 			$payload['integration_id'] = $contact['slack_workspace'];
 		} else {
@@ -319,8 +319,8 @@ class PaySentinel_Alert_Notifier {
 	 * @return bool Success.
 	 */
 	private function send_sms_notification( $alert_data, $phone_number ) {
-		$settings                       = get_option( 'paysentinel_settings', array() );
-		$settings['alert_phone_number'] = $phone_number;
+		$settings                                  = get_option( 'paysentinel_settings', array() );
+		$settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ] = $phone_number;
 		return $this->send_to_api( $alert_data, array( 'sms' ), $settings );
 	}
 
@@ -333,8 +333,8 @@ class PaySentinel_Alert_Notifier {
 	 * @return bool Success.
 	 */
 	private function send_slack_notification( $alert_data, $webhook_url ) {
-		$settings                          = get_option( 'paysentinel_settings', array() );
-		$settings['alert_slack_workspace'] = $webhook_url;
+		$settings                                     = get_option( 'paysentinel_settings', array() );
+		$settings[ PaySentinel_Settings_Constants::ALERT_SLACK_WORKSPACE ] = $webhook_url;
 		return $this->send_to_api( $alert_data, array( 'slack' ), $settings );
 	}
 

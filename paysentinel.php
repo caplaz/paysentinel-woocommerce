@@ -121,6 +121,7 @@ class PaySentinel {
 
 		// Load core classes.
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-config.php';
+		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-settings-constants.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-database.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-license.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/gateways/class-paysentinel-gateway-manager.php';
@@ -529,18 +530,26 @@ class PaySentinel {
 	 */
 	private function set_default_options() {
 		$default_settings = array(
-			'enabled_gateways'      => array(),
-			'alert_email'           => get_option( 'admin_email' ),
-			'alert_phone_number'    => '',
-			'alert_slack_workspace' => '',
-			'alert_threshold'       => 85,
-			'gateway_alert_config'  => array(), // Per-gateway configuration (Pro+ feature)
-			'monitoring_interval'   => 300, // 5 minutes
-			'enable_auto_retry'     => true,
-			'retry_schedule'        => array( 3600, 21600, 86400 ), // 1h, 6h, 24h
+			PaySentinel_Settings_Constants::ENABLED_GATEWAYS => array(),
+			PaySentinel_Settings_Constants::ALERT_EMAIL => get_option( 'admin_email' ),
+			PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER => '',
+			PaySentinel_Settings_Constants::ALERT_SLACK_WORKSPACE => '',
+			PaySentinel_Settings_Constants::ALERT_THRESHOLD => 85,
+			PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(), // Per-gateway configuration (Pro+ feature)
 		);
 
 		add_option( 'paysentinel_settings', $default_settings );
+		
+		// Also set defaults in main options (paysentinel_options)
+		$default_options = array(
+			PaySentinel_Settings_Constants::ENABLE_MONITORING => true,
+			PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL => 300, // 5 minutes
+			PaySentinel_Settings_Constants::RETRY_ENABLED => true,
+			PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS => 3,
+			PaySentinel_Settings_Constants::RETRY_SCHEDULE => array( 3600, 21600, 86400 ), // 1h, 6h, 24h
+		);
+
+		add_option( 'paysentinel_options', $default_options );
 	}
 
 	/**

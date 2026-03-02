@@ -70,8 +70,8 @@ class PaySentinel_Health {
 	public function schedule_health_calculation() {
 		if ( ! wp_next_scheduled( 'paysentinel_health_calculation' ) ) {
 			// Get monitoring interval from settings (default 5 minutes)
-			$settings = get_option( 'paysentinel_settings', array() );
-			$interval = isset( $settings['monitoring_interval'] ) ? $settings['monitoring_interval'] : 300;
+			$settings = get_option( 'paysentinel_options', array() );
+			$interval = isset( $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] ) ? $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] : 300;
 
 			wp_schedule_event( time(), 'paysentinel_interval', 'paysentinel_health_calculation' );
 		}
@@ -88,8 +88,8 @@ class PaySentinel_Health {
 	 * @return array Modified schedules
 	 */
 	public function add_cron_interval( $schedules ) {
-		$settings = get_option( 'paysentinel_settings', array() );
-		$interval = isset( $settings['monitoring_interval'] ) ? $settings['monitoring_interval'] : 300;
+		$settings = get_option( 'paysentinel_options', array() );
+		$interval = isset( $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] ) ? $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] : 300;
 
 		$schedules['paysentinel_interval'] = array(
 			'interval' => $interval,
@@ -329,7 +329,7 @@ class PaySentinel_Health {
 		}
 
 		$settings  = get_option( 'paysentinel_settings', array() );
-		$threshold = isset( $settings['alert_threshold'] ) ? $settings['alert_threshold'] : 85;
+		$threshold = isset( $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] ) ? $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] : 85;
 
 		// DEVELOPER FILTER: `paysentinel_alert_threshold`
 		// Permits developers to programmatically override the threshold for specific gateways.

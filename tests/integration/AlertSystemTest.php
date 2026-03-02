@@ -146,7 +146,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 		update_option(
 			'paysentinel_settings',
 			array(
-				'alert_email' => 'admin@example.com',
+				PaySentinel_Settings_Constants::ALERT_EMAIL => 'admin@example.com',
 			)
 		);
 
@@ -181,8 +181,8 @@ class AlertSystemTest extends WP_UnitTestCase {
 		update_option(
 			'paysentinel_settings',
 			array(
-				'alert_email'        => 'pro@example.com',
-				'alert_phone_number' => '+1234567890',
+				PaySentinel_Settings_Constants::ALERT_EMAIL => 'pro@example.com',
+				PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER => '+1234567890',
 			)
 		);
 		update_option( 'paysentinel_slack_workspace', 'SLACK-ID' );
@@ -238,13 +238,13 @@ class AlertSystemTest extends WP_UnitTestCase {
 		update_option(
 			'paysentinel_settings',
 			array(
-				'alert_email'          => 'global@example.com',
-				'gateway_alert_config' => array(
+				PaySentinel_Settings_Constants::ALERT_EMAIL => 'global@example.com',
+				PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(
 					'stripe' => array(
-						'channels' => array( 'sms' ), // Only SMS for stripe
+						PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS => array( 'sms' ), // Only SMS for stripe
 					),
 				),
-				'alert_phone_number'   => '+1234567890',
+				PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER => '+1234567890',
 			)
 		);
 
@@ -763,8 +763,8 @@ class AlertSystemTest extends WP_UnitTestCase {
 				'gateway_id' => 'stripe',
 				'severity'   => 'high',
 			),
-			array( 'email' ),
-			array( 'alert_email' => 'admin@test.com' )
+			array( PaySentinel_Settings_Constants::CHANNEL_EMAIL ),
+			array( PaySentinel_Settings_Constants::ALERT_EMAIL => 'admin@test.com' )
 		);
 		$this->assertEquals( 'EMAIL', $last_payload['alert_type'] );
 		$this->assertEquals( 'admin@test.com', $last_payload['recipient'] );
