@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class PaySentinel_Logger {
 
+
 	/**
 	 * Database instance
 	 */
@@ -195,15 +196,17 @@ class PaySentinel_Logger {
 			}
 		}
 
-		// Get order notes to extract failure information
-		$notes = get_comments(
+		// Get order notes using the HPOS-compatible wc_get_order_notes() function.
+		// IMPORTANT: get_comments(['post_id' => ...]) does NOT work under HPOS because
+		// HPOS orders are stored in wp_woocommerce_orders, not wp_posts. Using
+		// get_comments() would return an empty array, causing every failure reason
+		// to fall through to the generic "Payment failed - no specific reason provided".
+		$notes = wc_get_order_notes(
 			array(
-				'post_id' => $order->get_id(),
-				'number'  => 5,
-				'orderby' => 'comment_date',
-				'order'   => 'DESC',
-				'approve' => 'approve',
-				'type'    => 'order_note',
+				'order_id' => $order->get_id(),
+				'limit'    => 5,
+				'orderby'  => 'date_created',
+				'order'    => 'DESC',
 			)
 		);
 
@@ -211,10 +214,12 @@ class PaySentinel_Logger {
 			$note_content = strtolower( $note->content );
 
 			// Look for common failure patterns
-			if ( strpos( $note_content, 'payment failed' ) !== false ||
+			if (
+				strpos( $note_content, 'payment failed' ) !== false ||
 				strpos( $note_content, 'transaction failed' ) !== false ||
 				strpos( $note_content, 'declined' ) !== false ||
-				strpos( $note_content, 'error' ) !== false ) {
+				strpos( $note_content, 'error' ) !== false
+			) {
 
 				$failure_info['reason'] = $note->content;
 

@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class PaySentinel_Diagnostics {
 
+
 	/**
 	 * Database instance
 	 */
@@ -225,14 +226,22 @@ class PaySentinel_Diagnostics {
 		$issues = array();
 
 		// Find orders failed more than 24 hours ago with no retry attempts
-		$old_failed_orders = $wpdb->get_results(
-			"SELECT p.ID, p.post_date
-			FROM {$wpdb->posts} p
-			WHERE p.post_type = 'shop_order'
-			AND p.post_status = 'wc-failed'
-			AND p.post_date < DATE_SUB(NOW(), INTERVAL 24 HOUR)
-			LIMIT 50"
+		$failed_orders = wc_get_orders(
+			array(
+				'status'       => 'failed',
+				'date_created' => '<' . ( time() - DAY_IN_SECONDS ),
+				'limit'        => 50,
+			)
 		);
+
+		$old_failed_orders = array();
+		foreach ( $failed_orders as $order ) {
+			$date                = $order->get_date_created();
+			$old_failed_orders[] = (object) array(
+				'ID'        => $order->get_id(),
+				'post_date' => $date ? $date->date( 'Y-m-d H:i:s' ) : '',
+			);
+		}
 
 		if ( ! empty( $old_failed_orders ) ) {
 			$issues['old_failed'] = array(
@@ -243,14 +252,22 @@ class PaySentinel_Diagnostics {
 		}
 
 		// Find orders stuck in pending payment
-		$stuck_pending = $wpdb->get_results(
-			"SELECT p.ID, p.post_date
-			FROM {$wpdb->posts} p
-			WHERE p.post_type = 'shop_order'
-			AND p.post_status = 'wc-pending'
-			AND p.post_date < DATE_SUB(NOW(), INTERVAL 48 HOUR)
-			LIMIT 50"
+		$pending_orders = wc_get_orders(
+			array(
+				'status'       => 'pending',
+				'date_created' => '<' . ( time() - ( 2 * DAY_IN_SECONDS ) ),
+				'limit'        => 50,
+			)
 		);
+
+		$stuck_pending = array();
+		foreach ( $pending_orders as $order ) {
+			$date            = $order->get_date_created();
+			$stuck_pending[] = (object) array(
+				'ID'        => $order->get_id(),
+				'post_date' => $date ? $date->date( 'Y-m-d H:i:s' ) : '',
+			);
+		}
 
 		if ( ! empty( $stuck_pending ) ) {
 			$issues['stuck_pending'] = array(
@@ -352,6 +369,11 @@ class PaySentinel_Diagnostics {
 	/**
 	 * Find orphaned transaction records
 	 *
+	 * Uses wc_get_order() to check order existence, which works with both
+	 * legacy (wp_posts) and HPOS (wp_woocommerce_orders) storage models.
+	 * A direct JOIN against wp_posts would incorrectly flag every record as
+	 * orphaned when HPOS is active because orders are not in wp_posts.
+	 *
 	 * @return int Count of orphaned records
 	 */
 	private function find_orphaned_transactions() {
@@ -359,18 +381,29 @@ class PaySentinel_Diagnostics {
 
 		$table_name = $this->database->get_transactions_table();
 
-		$count = $wpdb->get_var(
-			"SELECT COUNT(*)
-			FROM {$table_name} t
-			LEFT JOIN {$wpdb->posts} p ON t.order_id = p.ID
-			WHERE p.ID IS NULL"
+		// Get all distinct order IDs from our transactions table.
+		$order_ids = $wpdb->get_col(
+			"SELECT DISTINCT order_id FROM {$table_name} WHERE order_id > 0"
 		);
 
-		return intval( $count );
+		$orphaned_count = 0;
+		foreach ( $order_ids as $order_id ) {
+			// wc_get_order() works with both HPOS and legacy storage.
+			if ( ! wc_get_order( $order_id ) ) {
+				++$orphaned_count;
+			}
+		}
+
+		return $orphaned_count;
 	}
 
 	/**
 	 * Clean orphaned records
+	 *
+	 * Uses wc_get_order() to verify order existence, which works with both
+	 * legacy (wp_posts) and HPOS (wp_woocommerce_orders) storage models.
+	 * IMPORTANT: A direct LEFT JOIN against wp_posts would delete ALL records
+	 * under HPOS because HPOS orders are not stored in wp_posts.
 	 *
 	 * @return array Result
 	 */
@@ -380,58 +413,54 @@ class PaySentinel_Diagnostics {
 		$table_name   = $this->database->get_transactions_table();
 		$alerts_table = $this->database->get_alerts_table();
 
-		// Clean orphaned transaction records
-		$deleted_transactions = $wpdb->query(
-			"DELETE t FROM {$table_name} t
-			LEFT JOIN {$wpdb->posts} p ON t.order_id = p.ID
-			WHERE p.ID IS NULL"
+		// Find orphaned transaction records using wc_get_order() (HPOS-compatible).
+		$order_ids = $wpdb->get_col(
+			"SELECT DISTINCT order_id FROM {$table_name} WHERE order_id > 0"
 		);
 
-		// Clean orphaned alerts (gateway_error alerts referencing deleted orders)
-		$deleted_alerts = 0;
-		if ( $wpdb->has_cap( 'json_extract' ) ) {
-			// MySQL 5.7.8+ or MariaDB 10.2.3+ with native JSON support
-			$deleted_alerts = $wpdb->query(
-				"DELETE a FROM {$alerts_table} a
-				LEFT JOIN {$wpdb->posts} p ON JSON_EXTRACT(a.metadata, '$.order_id') = p.ID
-				WHERE a.alert_type = 'gateway_error'
-				AND JSON_EXTRACT(a.metadata, '$.order_id') IS NOT NULL
-				AND p.ID IS NULL"
-			);
-		} else {
-			// Fallback for older MySQL versions - get alerts and check manually
-			$orphaned_alert_ids = array();
-			$potential_alerts   = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT id, metadata FROM {$alerts_table} WHERE alert_type = %s",
-					'gateway_error'
-				)
-			);
+		$orphaned_order_ids = array();
+		foreach ( $order_ids as $order_id ) {
+			if ( ! wc_get_order( $order_id ) ) {
+				$orphaned_order_ids[] = absint( $order_id );
+			}
+		}
 
-			foreach ( $potential_alerts as $alert ) {
-				$metadata = json_decode( $alert->metadata, true );
-				if ( isset( $metadata['order_id'] ) && ! empty( $metadata['order_id'] ) ) {
-					$order_exists = $wpdb->get_var(
-						$wpdb->prepare(
-							"SELECT ID FROM {$wpdb->posts} WHERE ID = %d",
-							$metadata['order_id']
-						)
-					);
-					if ( ! $order_exists ) {
-						$orphaned_alert_ids[] = $alert->id;
-					}
+		$deleted_transactions = 0;
+		if ( ! empty( $orphaned_order_ids ) ) {
+			$placeholders         = implode( ',', array_map( 'absint', $orphaned_order_ids ) );
+			$deleted_transactions = $wpdb->query(
+				"DELETE FROM {$table_name} WHERE order_id IN ({$placeholders})"
+			);
+		}
+
+		// Clean orphaned alerts (gateway_error alerts referencing deleted orders).
+		// Also uses wc_get_order() for HPOS compatibility.
+		$deleted_alerts   = 0;
+		$potential_alerts = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, metadata FROM {$alerts_table} WHERE alert_type = %s",
+				'gateway_error'
+			)
+		);
+
+		$orphaned_alert_ids = array();
+		foreach ( $potential_alerts as $alert ) {
+			$metadata = json_decode( $alert->metadata, true );
+			if ( isset( $metadata['order_id'] ) && ! empty( $metadata['order_id'] ) ) {
+				if ( ! wc_get_order( $metadata['order_id'] ) ) {
+					$orphaned_alert_ids[] = $alert->id;
 				}
 			}
+		}
 
-			if ( ! empty( $orphaned_alert_ids ) ) {
-				$placeholders   = implode( ',', array_fill( 0, count( $orphaned_alert_ids ), '%d' ) );
-				$deleted_alerts = $wpdb->query(
-					$wpdb->prepare(
-						"DELETE FROM {$alerts_table} WHERE id IN ({$placeholders})",
-						$orphaned_alert_ids
-					)
-				);
-			}
+		if ( ! empty( $orphaned_alert_ids ) ) {
+			$placeholders   = implode( ',', array_fill( 0, count( $orphaned_alert_ids ), '%d' ) );
+			$deleted_alerts = $wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$alerts_table} WHERE id IN ({$placeholders})",
+					$orphaned_alert_ids
+				)
+			);
 		}
 
 		$total_deleted = intval( $deleted_transactions ) + intval( $deleted_alerts );
@@ -695,15 +724,15 @@ class PaySentinel_Diagnostics {
 
 		// @codingStandardsIgnoreStart
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$count_sql               = 'SELECT COUNT(DISTINCT order_id) FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0';
-		$simulated_order_count   = (int) $wpdb->get_var(
-			$wpdb->prepare( $count_sql, '[SIMULATED FAILURE]%' )
+		$count_sql = 'SELECT COUNT(DISTINCT order_id) FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0';
+		$simulated_order_count = (int) $wpdb->get_var(
+			$wpdb->prepare($count_sql, '[SIMULATED FAILURE]%')
 		);
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$sample_sql    = 'SELECT DISTINCT order_id FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0 LIMIT 5';
+		$sample_sql = 'SELECT DISTINCT order_id FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0 LIMIT 5';
 		$sample_orders = $wpdb->get_col(
-			$wpdb->prepare( $sample_sql, '[SIMULATED FAILURE]%' )
+			$wpdb->prepare($sample_sql, '[SIMULATED FAILURE]%')
 		);
 		// @codingStandardsIgnoreEnd
 
@@ -717,9 +746,9 @@ class PaySentinel_Diagnostics {
 		// Secondary check: postmeta count (informational).
 		// @codingStandardsIgnoreStart
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$postmeta_sql           = 'SELECT COUNT(DISTINCT post_id) FROM ' . $wpdb->postmeta . ' WHERE meta_key = %s';
-		$postmeta_count         = (int) $wpdb->get_var(
-			$wpdb->prepare( $postmeta_sql, '_paysentinel_simulated_failure' )
+		$postmeta_sql = 'SELECT COUNT(DISTINCT post_id) FROM ' . $wpdb->postmeta . ' WHERE meta_key = %s';
+		$postmeta_count = (int) $wpdb->get_var(
+			$wpdb->prepare($postmeta_sql, '_paysentinel_simulated_failure')
 		);
 		// @codingStandardsIgnoreEnd
 
@@ -732,7 +761,7 @@ class PaySentinel_Diagnostics {
 			// @codingStandardsIgnoreStart
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_exists = $wpdb->get_var(
-				$wpdb->prepare( 'SHOW TABLES LIKE %s', $hpos_meta_table )
+				$wpdb->prepare('SHOW TABLES LIKE %s', $hpos_meta_table)
 			) === $hpos_meta_table;
 			// @codingStandardsIgnoreEnd
 
@@ -742,9 +771,9 @@ class PaySentinel_Diagnostics {
 			if ( $table_exists ) {
 				// @codingStandardsIgnoreStart
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$hpos_sql   = 'SELECT COUNT(DISTINCT order_id) FROM ' . $hpos_meta_table . ' WHERE meta_key = %s';
+				$hpos_sql = 'SELECT COUNT(DISTINCT order_id) FROM ' . $hpos_meta_table . ' WHERE meta_key = %s';
 				$hpos_count = (int) $wpdb->get_var(
-					$wpdb->prepare( $hpos_sql, '_paysentinel_simulated_failure' )
+					$wpdb->prepare($hpos_sql, '_paysentinel_simulated_failure')
 				);
 				// @codingStandardsIgnoreEnd
 			}

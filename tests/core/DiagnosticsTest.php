@@ -6,6 +6,7 @@
  */
 class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 
+
 	/**
 	 * Test that diagnostics class can be instantiated
 	 */
@@ -276,16 +277,10 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		$alerts_table = $database->get_alerts_table();
 
 		// Create a valid order first
-		$order_id = $wpdb->insert(
-			$wpdb->posts,
-			array(
-				'post_type'     => 'shop_order',
-				'post_status'   => 'wc-completed',
-				'post_date'     => current_time( 'mysql' ),
-				'post_date_gmt' => current_time( 'mysql', true ),
-			)
-		);
-		$order_id = $wpdb->insert_id;
+		$order = wc_create_order();
+		$order->set_status( 'completed' );
+		$order->save();
+		$order_id = $order->get_id();
 
 		// Create a mock alert with valid order ID in metadata
 		$metadata = json_encode(
@@ -324,6 +319,8 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 
 		// Clean up
 		$wpdb->delete( $alerts_table, array( 'id' => $inserted_id ) );
-		$wpdb->delete( $wpdb->posts, array( 'ID' => $order_id ) );
+		if ( $order ) {
+			$order->delete( true );
+		}
 	}
 }
