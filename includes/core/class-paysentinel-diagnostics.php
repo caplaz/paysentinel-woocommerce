@@ -54,13 +54,14 @@ class PaySentinel_Diagnostics {
 	 */
 	public function run_full_diagnostics() {
 		return array(
-			'timestamp'       => current_time( 'mysql' ),
-			'database'        => $this->check_database_health(),
-			'gateways'        => $this->check_all_gateways(),
-			'recent_failures' => $this->get_recent_failures(),
-			'stuck_orders'    => $this->find_stuck_orders(),
-			'retry_queue'     => $this->check_retry_queue(),
-			'system_info'     => $this->get_system_info(),
+			'timestamp'          => current_time( 'mysql' ),
+			'database'           => $this->check_database_health(),
+			'gateways'           => $this->check_all_gateways(),
+			'recent_failures'    => $this->get_recent_failures(),
+			'stuck_orders'       => $this->find_stuck_orders(),
+			'retry_queue'        => $this->check_retry_queue(),
+			'simulated_failures' => $this->check_simulated_failures(),
+			'system_info'        => $this->get_system_info(),
 		);
 	}
 
@@ -647,5 +648,110 @@ class PaySentinel_Diagnostics {
 			'by_reason'      => $by_reason,
 			'hourly_pattern' => $hourly_pattern,
 		);
+	}
+
+	/**
+	 * Check simulated failures (test mode diagnostic data)
+	 *
+	 * Helps diagnose issues with clearing simulated test failures
+	 *
+	 * @return array Simulated failures diagnostic data
+	 */
+	public function check_simulated_failures() {
+		global $wpdb;
+
+		$results = array(
+			'status'          => 'healthy',
+			'total_simulated' => 0,
+			'storage_model'   => 'unknown',
+			'issues'          => array(),
+			'details'         => array(),
+		);
+
+		// Determine storage model (informational only).
+		$using_hpos = false;
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) ) {
+			$using_hpos = \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+		}
+		$results['storage_model'] = $using_hpos ? 'HPOS' : 'Legacy (postmeta)';
+
+		// Source of truth: query the transactions table.
+		// This is storage-model agnostic and always reliable.
+		$table_name = $this->database->get_transactions_table();
+
+		// Verify the transactions table itself exists — a missing table is the most common cause
+		// of "Cleared 0" because needs_update() returns false when the DB version option is set
+		// from a prior partial activation, even if the tables were never actually created.
+		$transactions_table_exists                       = $this->database->tables_exist();
+		$results['details']['transactions_table_exists'] = $transactions_table_exists;
+
+		if ( ! $transactions_table_exists ) {
+			$results['status']   = 'error';
+			$results['issues'][] = 'Plugin database tables are missing. Deactivate and reactivate the plugin, or visit the plugin settings page to trigger table creation.';
+			// Trigger table creation immediately so the next simulate call succeeds.
+			$this->database->create_tables();
+			return $results;
+		}
+
+		// @codingStandardsIgnoreStart
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$count_sql               = 'SELECT COUNT(DISTINCT order_id) FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0';
+		$simulated_order_count   = (int) $wpdb->get_var(
+			$wpdb->prepare( $count_sql, '[SIMULATED FAILURE]%' )
+		);
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$sample_sql    = 'SELECT DISTINCT order_id FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0 LIMIT 5';
+		$sample_orders = $wpdb->get_col(
+			$wpdb->prepare( $sample_sql, '[SIMULATED FAILURE]%' )
+		);
+		// @codingStandardsIgnoreEnd
+
+		$results['total_simulated']                        = $simulated_order_count;
+		$results['details']['simulated_transaction_count'] = $simulated_order_count;
+
+		if ( ! empty( $sample_orders ) ) {
+			$results['details']['sample_order_ids'] = array_map( 'intval', $sample_orders );
+		}
+
+		// Secondary check: postmeta count (informational).
+		// @codingStandardsIgnoreStart
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$postmeta_sql           = 'SELECT COUNT(DISTINCT post_id) FROM ' . $wpdb->postmeta . ' WHERE meta_key = %s';
+		$postmeta_count         = (int) $wpdb->get_var(
+			$wpdb->prepare( $postmeta_sql, '_paysentinel_simulated_failure' )
+		);
+		// @codingStandardsIgnoreEnd
+
+		$results['details']['postmeta_count'] = $postmeta_count;
+
+		// Secondary check: HPOS meta table count (informational).
+		if ( $using_hpos ) {
+			$hpos_meta_table = $wpdb->prefix . 'woocommerce_orders_meta';
+
+			// @codingStandardsIgnoreStart
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$table_exists = $wpdb->get_var(
+				$wpdb->prepare( 'SHOW TABLES LIKE %s', $hpos_meta_table )
+			) === $hpos_meta_table;
+			// @codingStandardsIgnoreEnd
+
+			$results['details']['hpos_meta_table_exists'] = $table_exists;
+			$hpos_count                                   = 0;
+
+			if ( $table_exists ) {
+				// @codingStandardsIgnoreStart
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$hpos_sql   = 'SELECT COUNT(DISTINCT order_id) FROM ' . $hpos_meta_table . ' WHERE meta_key = %s';
+				$hpos_count = (int) $wpdb->get_var(
+					$wpdb->prepare( $hpos_sql, '_paysentinel_simulated_failure' )
+				);
+				// @codingStandardsIgnoreEnd
+			}
+
+			$results['details']['hpos_count'] = $hpos_count;
+		}
+
+		return $results;
 	}
 }

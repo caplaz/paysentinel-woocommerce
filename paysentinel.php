@@ -3,7 +3,7 @@
  * Plugin Name: PaySentinel - Payment Monitor for WooCommerce
  * Plugin URI: https://github.com/caplaz/paysentinel-woocommerce/
  * Description: Real-time monitoring, alerting, and recovery capabilities for WooCommerce payment gateway failures.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Caplaz
  * Author URI: https://www.caplaz.com
  * License: GPL v2 or later
@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'PAYSENTINEL_VERSION', '1.0.1' );
+define( 'PAYSENTINEL_VERSION', '1.0.2' );
 define( 'PAYSENTINEL_PLUGIN_FILE', __FILE__ );
 define( 'PAYSENTINEL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PAYSENTINEL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -246,6 +246,15 @@ class PaySentinel {
 	 * Initialize plugin components
 	 */
 	private function init_components() {
+		// Ensure database tables exist at runtime, not only on activation.
+		// needs_update() only checks the DB version option, which can be set from
+		// a prior partial activation even when the tables were never created.
+		// tables_exist() does the authoritative SHOW TABLES check.
+		$database = new PaySentinel_Database();
+		if ( $database->needs_update() || ! $database->tables_exist() ) {
+			$database->create_tables();
+		}
+
 		// Initialize transaction logger.
 		$this->logger = new PaySentinel_Logger();
 
@@ -429,19 +438,24 @@ class PaySentinel {
 	public function activate() {
 		// Note: Requirements check moved to init() method to ensure WooCommerce is loaded
 		// This allows activation even if WooCommerce loads after this plugin
+		try {
+			// Create database tables.
+			$database = new PaySentinel_Database();
+			$database->create_tables();
 
-		// Create database tables
-		$database = new PaySentinel_Database();
-		$database->create_tables();
+			// Set plugin version.
+			update_option( 'paysentinel_version', PAYSENTINEL_VERSION );
 
-		// Set plugin version
-		update_option( 'paysentinel_version', PAYSENTINEL_VERSION );
+			// Set default options.
+			$this->set_default_options();
 
-		// Set default options
-		$this->set_default_options();
-
-		// Trigger health calculation scheduling
-		do_action( 'paysentinel_activated' );
+			// Trigger health calculation scheduling.
+			do_action( 'paysentinel_activated' );
+		} catch ( \Throwable $e ) {
+			error_log( 'PaySentinel activation error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+			// Re-throw so WordPress shows the activation error notice instead of a blank screen.
+			throw $e;
+		}
 	}
 
 	/**
@@ -539,12 +553,12 @@ class PaySentinel {
 		);
 
 		add_option( 'paysentinel_settings', $default_settings );
-		
+
 		// Also set defaults in main options (paysentinel_options)
 		$default_options = array(
 			PaySentinel_Settings_Constants::ENABLE_MONITORING => true,
 			PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL => 300, // 5 minutes
-			PaySentinel_Settings_Constants::RETRY_ENABLED => true,
+			PaySentinel_Settings_Constants::RETRY_ENABLED  => true,
 			PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS => 3,
 			PaySentinel_Settings_Constants::RETRY_SCHEDULE => array( 3600, 21600, 86400 ), // 1h, 6h, 24h
 		);

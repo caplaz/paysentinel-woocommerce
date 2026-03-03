@@ -643,8 +643,8 @@ class PaySentinel_License {
 				update_option( 'paysentinel_slack_workspace', $data['integrations']['slack']['id'] );
 
 				// Also update main options for compatibility
-			$options                                                        = get_option( 'paysentinel_options', array() );
-			$options[ PaySentinel_Settings_Constants::ALERT_SLACK_WORKSPACE ] = $data['integrations']['slack']['id'];
+				$options = get_option( 'paysentinel_options', array() );
+				$options[ PaySentinel_Settings_Constants::ALERT_SLACK_WORKSPACE ] = $data['integrations']['slack']['id'];
 				update_option( 'paysentinel_options', $options );
 			}
 

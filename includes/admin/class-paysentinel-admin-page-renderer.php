@@ -753,6 +753,48 @@ class PaySentinel_Admin_Page_Renderer {
 							html += formatGatewayResults(data.gateways);
 						}
 
+						// Simulated Failures section (Test Mode Diagnostics)
+						if (data.simulated_failures) {
+							var simStatus = data.simulated_failures.status === 'healthy' ? '✅ Healthy' : '⚠️ Issues Found';
+							html += '<div class="card" style="margin-bottom: 20px; padding: 15px;">';
+							html += '<h4 style="margin-top: 0;"><?php esc_html_e( 'Simulated Test Failures', 'paysentinel' ); ?>: ' + simStatus + '</h4>';
+
+							if (data.simulated_failures.issues && data.simulated_failures.issues.length > 0) {
+								html += '<div class="notice notice-warning inline"><ul style="margin: 5px 0 5px 20px; list-style: disc;">';
+								data.simulated_failures.issues.forEach(function (issue) {
+									html += '<li>' + issue + '</li>';
+								});
+								html += '</ul></div>';
+							}
+
+							html += '<table class="widefat fixed striped" style="width: 100%; border: 1px solid #eee;"><tbody>';
+							html += '<tr><td style="width: 300px; font-weight: 600;"><?php esc_html_e( 'Storage Model', 'paysentinel' ); ?></td><td>' + data.simulated_failures.storage_model + '</td></tr>';
+							html += '<tr><td style="width: 300px; font-weight: 600;"><?php esc_html_e( 'Total Simulated Test Orders', 'paysentinel' ); ?></td><td>' + data.simulated_failures.total_simulated + '</td></tr>';
+
+							if (data.simulated_failures.details) {
+								if (data.simulated_failures.details.postmeta_count !== undefined) {
+									html += '<tr><td style="width: 300px; font-weight: 600;"><?php esc_html_e( 'Count in Postmeta', 'paysentinel' ); ?></td><td>' + data.simulated_failures.details.postmeta_count + '</td></tr>';
+								}
+								if (data.simulated_failures.details.hpos_count !== undefined) {
+									html += '<tr><td style="width: 300px; font-weight: 600;"><?php esc_html_e( 'Count in HPOS', 'paysentinel' ); ?></td><td>' + data.simulated_failures.details.hpos_count + '</td></tr>';
+								}
+								if (data.simulated_failures.details.hpos_meta_table_exists !== undefined) {
+									html += '<tr><td style="width: 300px; font-weight: 600;"><?php esc_html_e( 'HPOS Meta Table Exists', 'paysentinel' ); ?></td><td>' + (data.simulated_failures.details.hpos_meta_table_exists ? 'Yes' : 'No') + '</td></tr>';
+								}
+								if (data.simulated_failures.details.transactions_table_exists !== undefined) {
+									var tableExistsLabel = data.simulated_failures.details.transactions_table_exists ? 'Yes' : '<strong style="color:red;">No — tables missing, please deactivate &amp; reactivate the plugin</strong>';
+									html += '<tr><td style="width: 300px; font-weight: 600;"><?php esc_html_e( 'Transactions Table Exists', 'paysentinel' ); ?></td><td>' + tableExistsLabel + '</td></tr>';
+								}
+								if (data.simulated_failures.details.simulated_transaction_count !== undefined) {
+									html += '<tr><td style="width: 300px; font-weight: 600;"><?php esc_html_e( 'Simulated Transaction Records', 'paysentinel' ); ?></td><td>' + data.simulated_failures.details.simulated_transaction_count + '</td></tr>';
+								}
+								if (data.simulated_failures.details.sample_order_ids) {
+									html += '<tr><td style="width: 300px; font-weight: 600;" valign="top"><?php esc_html_e( 'Sample Order IDs', 'paysentinel' ); ?></td><td>' + data.simulated_failures.details.sample_order_ids.join(', ') + '</td></tr>';
+								}
+							}
+							html += '</tbody></table></div>';
+						}
+
 						html += '</div>';
 						return html;
 					}
