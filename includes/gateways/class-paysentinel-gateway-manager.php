@@ -129,6 +129,7 @@ class PaySentinel_Gateway_Manager {
 	 * Get WooCommerce enabled gateways
 	 *
 	 * Returns only gateways that are enabled in WooCommerce settings.
+	 * Only includes actual payment processors, not manual payment methods.
 	 *
 	 * @return array Gateway IDs
 	 */
@@ -143,12 +144,42 @@ class PaySentinel_Gateway_Manager {
 		$available_gateways = $wc_gateways->get_available_payment_gateways();
 
 		foreach ( $available_gateways as $gateway_id => $gateway ) {
-			if ( $gateway->enabled === 'yes' ) {
+			// Only monitor gateways that are enabled and are actual payment processors
+			// (not offline payment methods like cheque, bacs, cod, or token storage like card)
+			if ( $gateway->enabled === 'yes' && $this->is_payment_processor_gateway( $gateway ) ) {
 				$gateways[] = $gateway_id;
 			}
 		}
 
 		return $gateways;
+	}
+
+	/**
+	 * Check if a gateway is an actual payment processor gateway
+	 *
+	 * Filters out offline payment methods and payment token storage.
+	 * Real payment gateways have external payment processing capabilities.
+	 *
+	 * @param WC_Payment_Gateway $gateway Gateway object to check
+	 * @return bool True if this is a real payment processor gateway
+	 */
+	private function is_payment_processor_gateway( $gateway ) {
+		// Offline payment methods should not be monitored
+		if ( isset( $gateway->order_button_text ) && 'offline' === $gateway->type ) {
+			return false;
+		}
+
+		// Known non-processor payment methods to exclude
+		$non_processor_ids = array( 'card', 'bacs', 'cheque', 'cod' );
+
+		// Get gateway ID from gateway object
+		if ( isset( $gateway->id ) && in_array( $gateway->id, $non_processor_ids, true ) ) {
+			return false;
+		}
+
+		// If it has external payment processing capability, it's a real gateway
+		// Real gateways either have API integration or handle external transactions
+		return true;
 	}
 
 	/**
