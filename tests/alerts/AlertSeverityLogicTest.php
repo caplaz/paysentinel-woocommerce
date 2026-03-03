@@ -61,11 +61,13 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		$this->logger_instance->save_transaction( $data );
 
-		// Create a mock order object with get_payment_method method
+		// Create a mock order object with required methods
 		$order_mock = $this->getMockBuilder( 'WC_Order' )
 			->disableOriginalConstructor()
 			->getMock();
 		$order_mock->method( 'get_payment_method' )->willReturn( 'stripe' );
+		$order_mock->method( 'get_total' )->willReturn( 100.00 );
+		$order_mock->method( 'get_billing_email' )->willReturn( 'test@example.com' );
 
 		// Capture alerts created
 		$start_count = $this->get_alert_count();
@@ -108,11 +110,13 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		$this->logger_instance->save_transaction( $data );
 
-		// Create a mock order object with get_payment_method method
+		// Create a mock order object with required methods
 		$order_mock = $this->getMockBuilder( 'WC_Order' )
 			->disableOriginalConstructor()
 			->getMock();
 		$order_mock->method( 'get_payment_method' )->willReturn( 'stripe' );
+		$order_mock->method( 'get_total' )->willReturn( 50.00 );
+		$order_mock->method( 'get_billing_email' )->willReturn( 'test@example.com' );
 
 		$start_count = $this->get_alert_count();
 		$this->alerts_instance->check_immediate_transaction_alert( $order_id, $order_mock );
