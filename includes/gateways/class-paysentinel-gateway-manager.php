@@ -164,16 +164,16 @@ class PaySentinel_Gateway_Manager {
 	 * @return bool True if this is a real payment processor gateway
 	 */
 	private function is_payment_processor_gateway( $gateway ) {
-		// Offline payment methods should not be monitored
-		if ( isset( $gateway->order_button_text ) && 'offline' === $gateway->type ) {
-			return false;
-		}
-
 		// Known non-processor payment methods to exclude
 		$non_processor_ids = array( 'card', 'bacs', 'cheque', 'cod' );
 
 		// Get gateway ID from gateway object
 		if ( isset( $gateway->id ) && in_array( $gateway->id, $non_processor_ids, true ) ) {
+			return false;
+		}
+
+		// Offline payment methods should not be monitored
+		if ( isset( $gateway->type ) && 'offline' === $gateway->type ) {
 			return false;
 		}
 
