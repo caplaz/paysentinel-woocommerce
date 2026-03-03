@@ -799,27 +799,7 @@ class PaySentinel_Admin_Page_Renderer {
 						return html;
 					}
 
-					// Load available payment gateways on page load
-					$.ajax({
-						url: wcPaymentMonitor.apiUrl + '/simulator/gateways',
-						method: 'GET',
-						headers: {
-							'X-WP-Nonce': wcPaymentMonitor.restNonce
-						},
-						success: function (response) {
-							if (response.data && response.data.length > 0) {
-								response.data.forEach(function (gateway) {
-									if (gateway.enabled) {
-										$('#failure-gateway').append(
-											$('<option></option>')
-												.attr('value', gateway.id)
-												.text(gateway.title)
-										);
-									}
-								});
-							}
-						}
-					});
+
 
 					// Add basic JavaScript functionality
 					$('#run-full-diagnostics').on('click', function () {
