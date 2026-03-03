@@ -34,7 +34,7 @@ class GatewayManagerTest extends WP_UnitTestCase {
 		$method->setAccessible( true );
 
 		// Create a mock card gateway
-		$card_gateway = $this->getMockBuilder( 'WC_Payment_Gateway' )
+		$card_gateway     = $this->getMockBuilder( 'WC_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->getMock();
 		$card_gateway->id = 'card';
@@ -53,7 +53,7 @@ class GatewayManagerTest extends WP_UnitTestCase {
 		$method->setAccessible( true );
 
 		// Create a mock BACS gateway
-		$bacs_gateway = $this->getMockBuilder( 'WC_Payment_Gateway' )
+		$bacs_gateway     = $this->getMockBuilder( 'WC_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->getMock();
 		$bacs_gateway->id = 'bacs';
@@ -72,7 +72,7 @@ class GatewayManagerTest extends WP_UnitTestCase {
 		$method->setAccessible( true );
 
 		// Create a mock cheque gateway
-		$cheque_gateway = $this->getMockBuilder( 'WC_Payment_Gateway' )
+		$cheque_gateway     = $this->getMockBuilder( 'WC_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->getMock();
 		$cheque_gateway->id = 'cheque';
@@ -91,7 +91,7 @@ class GatewayManagerTest extends WP_UnitTestCase {
 		$method->setAccessible( true );
 
 		// Create a mock COD gateway
-		$cod_gateway = $this->getMockBuilder( 'WC_Payment_Gateway' )
+		$cod_gateway     = $this->getMockBuilder( 'WC_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->getMock();
 		$cod_gateway->id = 'cod';
@@ -110,7 +110,7 @@ class GatewayManagerTest extends WP_UnitTestCase {
 		$method->setAccessible( true );
 
 		// Create a mock Stripe gateway
-		$stripe_gateway = $this->getMockBuilder( 'WC_Payment_Gateway' )
+		$stripe_gateway       = $this->getMockBuilder( 'WC_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->getMock();
 		$stripe_gateway->id   = 'stripe';
@@ -130,7 +130,7 @@ class GatewayManagerTest extends WP_UnitTestCase {
 		$method->setAccessible( true );
 
 		// Create a mock PayPal gateway
-		$paypal_gateway = $this->getMockBuilder( 'WC_Payment_Gateway' )
+		$paypal_gateway       = $this->getMockBuilder( 'WC_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->getMock();
 		$paypal_gateway->id   = 'paypal';
@@ -150,7 +150,7 @@ class GatewayManagerTest extends WP_UnitTestCase {
 		$method->setAccessible( true );
 
 		// Create a mock offline gateway
-		$offline_gateway = $this->getMockBuilder( 'WC_Payment_Gateway' )
+		$offline_gateway       = $this->getMockBuilder( 'WC_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->getMock();
 		$offline_gateway->id   = 'custom_offline';
@@ -194,7 +194,7 @@ class GatewayManagerTest extends WP_UnitTestCase {
 		// For an unknown gateway, it should return a formatted version of the ID
 		$name = $this->gateway_manager->get_gateway_display_name( 'custom_payment_gateway' );
 		$this->assertIsString( $name );
-		
+
 		// The formatted name should contain recognizable parts of the original name
 		// (after removing prefixes and converting underscores/hyphens to spaces)
 		$this->assertStringContainsString( 'custom', strtolower( $name ) );

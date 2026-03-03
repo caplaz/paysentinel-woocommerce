@@ -34,8 +34,8 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		$property->setValue( null );
 
 		// NOW create alert instances - they will get the fresh config
-		$this->alerts_instance   = new PaySentinel_Alerts();
-		$this->logger_instance   = new PaySentinel_Logger();
+		$this->alerts_instance = new PaySentinel_Alerts();
+		$this->logger_instance = new PaySentinel_Logger();
 	}
 
 	/**
@@ -230,7 +230,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 	 */
 	private function get_latest_alert_for_order( $order_id ) {
 		global $wpdb;
-		$table = $this->database_instance->get_alerts_table();
+		$table  = $this->database_instance->get_alerts_table();
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT * FROM {$table} WHERE metadata LIKE %s ORDER BY created_at DESC LIMIT 1",
