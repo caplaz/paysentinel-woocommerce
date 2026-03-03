@@ -12,14 +12,12 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		$this->alerts_instance   = new PaySentinel_Alerts();
-		$this->logger_instance   = new PaySentinel_Logger();
 		$this->database_instance = new PaySentinel_Database();
 
 		// Ensure tables exist
 		$this->database_instance->create_tables();
 
-		// Enable alerts for testing
+		// Enable alerts for testing BEFORE creating alert instances
 		update_option(
 			'paysentinel_options',
 			array(
@@ -29,8 +27,15 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Clear config cache to pick up new settings
-		PaySentinel_Config::instance()->clear_cache();
+		// Reset the singleton config instance to ensure fresh config load with new settings
+		$reflection = new ReflectionClass( 'PaySentinel_Config' );
+		$property   = $reflection->getProperty( 'instance' );
+		$property->setAccessible( true );
+		$property->setValue( null );
+
+		// NOW create alert instances - they will get the fresh config
+		$this->alerts_instance   = new PaySentinel_Alerts();
+		$this->logger_instance   = new PaySentinel_Logger();
 	}
 
 	/**
@@ -77,8 +82,9 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		$end_count = $this->get_alert_count();
 		$this->assertEquals( $start_count + 1, $end_count, 'Should create one alert' );
 
-		// 3. Verify the alert is CRITICAL
-		$latest_alert = $this->get_latest_alert();
+		// 3. Verify the alert is CRITICAL (get alert specific to this order to avoid test isolation issues)
+		$latest_alert = $this->get_latest_alert_for_order( $order_id );
+		$this->assertNotNull( $latest_alert, 'Alert should exist for order ' . $order_id );
 		$this->assertEquals( 'critical', $latest_alert['severity'] );
 		$this->assertEquals( 'gateway_error', $latest_alert['alert_type'] );
 	}
@@ -217,5 +223,21 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $this->database_instance->get_alerts_table();
 		return $wpdb->get_row( "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT 1", ARRAY_A );
+	}
+
+	/**
+	 * Get the latest alert for a specific order (prevents test isolation issues)
+	 */
+	private function get_latest_alert_for_order( $order_id ) {
+		global $wpdb;
+		$table = $this->database_instance->get_alerts_table();
+		$result = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE metadata LIKE %s ORDER BY created_at DESC LIMIT 1",
+				'%"order_id":' . $order_id . '%'
+			),
+			ARRAY_A
+		);
+		return $result;
 	}
 }
