@@ -22,6 +22,7 @@ class PaySentinel_Admin_Page_Renderer {
 
 
 
+
 	/**
 	 * Base URL for the plugin's user-facing help documentation.
 	 * Update this single constant to change the help URL across all admin pages.
@@ -76,43 +77,16 @@ class PaySentinel_Admin_Page_Renderer {
 	}
 
 	/**
-	 * Render a consistent page header: h1 title + Help & Documentation button.
+	 * Render a consistent page header: h1 title.
 	 *
-	 * This is the single source of truth for page headers across all admin pages,
-	 * ensuring banners from WordPress (e.g. Action Scheduler, license notices) render
-	 * naturally *between* the title and the help button, stacked vertically.
+	 * This is the single source of truth for page headers across all admin pages.
 	 *
 	 * @param string $title       The page title (should match its sidebar menu label).
-	 * @param string $help_anchor Optional URL fragment (#section) for the docs link.
+	 * @param string $help_anchor Optional URL fragment (#section) for the docs link (deprecated).
 	 */
 	private function render_page_header( $title, $help_anchor = '' ) {
-		$help_url = self::HELP_URL . ( $help_anchor ? '#' . ltrim( $help_anchor, '#' ) : '' );
 		?>
 		<h1><?php echo esc_html( $title ); ?></h1>
-		<a href="<?php echo esc_url( $help_url ); ?>" target="_blank" class="button button-secondary"
-			style="margin-bottom: 15px;">
-			<span class="dashicons dashicons-external" style="vertical-align: middle; margin-right: 5px;"></span>
-			<?php esc_html_e( 'Help & Documentation', 'paysentinel' ); ?>
-		</a>
-		<?php
-	}
-
-	/**
-	 * Render just the Help & Documentation button.
-	 *
-	 * Use this on pages where notices must appear between the <h1> and the button
-	 * (so render_page_header() cannot be used as a single call).
-	 *
-	 * @param string $help_anchor Optional URL fragment (#section) for the docs link.
-	 */
-	private function render_help_button( $help_anchor = '' ) {
-		$help_url = self::HELP_URL . ( $help_anchor ? '#' . ltrim( $help_anchor, '#' ) : '' );
-		?>
-		<a href="<?php echo esc_url( $help_url ); ?>" target="_blank" class="button button-secondary"
-			style="margin-bottom: 15px;">
-			<span class="dashicons dashicons-external" style="vertical-align: middle; margin-right: 5px;"></span>
-			<?php esc_html_e( 'Help & Documentation', 'paysentinel' ); ?>
-		</a>
 		<?php
 	}
 

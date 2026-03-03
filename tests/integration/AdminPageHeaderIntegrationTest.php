@@ -9,9 +9,9 @@
  * - All expected submenu slugs are registered
  * - Submenu page_title and menu_title are consistent with each other
  * - Every render_*_page() method outputs an h1 matching its sidebar label
- * - Every render_*_page() method includes a Help & Documentation button
  */
 class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
+
 
 
 	/**
@@ -201,48 +201,7 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 		);
 	}
 
-	// -------------------------------------------------------------------------
-	// Help button on every page
-	// -------------------------------------------------------------------------
 
-	/**
-	 * Every render method must include a Help & Documentation button linked to HELP_URL.
-	 *
-	 * @dataProvider all_pages_provider
-	 */
-	public function test_every_page_includes_help_button( string $method ) {
-		$output = $this->capture( $method );
-
-		$this->assertStringContainsString(
-			PaySentinel_Admin_Page_Renderer::HELP_URL,
-			$output,
-			"{$method} must include a link to PaySentinel_Admin_Page_Renderer::HELP_URL"
-		);
-		$this->assertStringContainsString(
-			'Help &amp; Documentation',
-			$output,
-			"{$method} must output a 'Help &amp; Documentation' button"
-		);
-		$this->assertStringContainsString(
-			'target="_blank"',
-			$output,
-			"{$method} help link must open in a new tab"
-		);
-	}
-
-	/**
-	 * @return array<string, array{string}>
-	 */
-	public function all_pages_provider(): array {
-		return array(
-			'dashboard'    => array( 'render_dashboard_page' ),
-			'health'       => array( 'render_health_page' ),
-			'transactions' => array( 'render_transactions_page' ),
-			'alerts'       => array( 'render_alerts_page' ),
-			'settings'     => array( 'render_settings_page' ),
-			'diagnostics'  => array( 'render_diagnostics_page' ),
-		);
-	}
 
 	// -------------------------------------------------------------------------
 	// Helper

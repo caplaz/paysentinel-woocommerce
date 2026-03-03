@@ -6,10 +6,10 @@
  * These tests run without a full WordPress environment (plain PHPUnit).
  * They cover:
  * - PaySentinel_Admin_Page_Renderer::HELP_URL constant
- * - render_page_header() output (h1 + help button)
- * - render_help_button() output (button only, no h1)
+ * - render_page_header() output (h1)
  */
 class AdminPageHeaderTest extends PaySentinel_Test_Case {
+
 
 
 	/**
@@ -29,9 +29,9 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 		// PaySentinel_Admin constructor may call them indirectly).
 		foreach ( array( 'add_menu_page', 'add_submenu_page', 'add_action', 'add_filter' ) as $fn ) {
 			if ( ! function_exists( $fn ) ) {
-                // phpcs:disable
-                eval ("function {$fn}() { return ''; }");
-                // phpcs:enable
+				// phpcs:disable
+				eval ("function {$fn}() { return ''; }");
+				// phpcs:enable
 			}
 		}
 
@@ -135,110 +135,7 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 		$this->assertStringContainsString( 'My Page', $output );
 	}
 
-	/**
-	 * render_page_header() must output the Help & Documentation button.
-	 */
-	public function test_render_page_header_outputs_help_button() {
-		$output = $this->invoke_header( 'Any' );
 
-		$this->assertStringContainsString( 'button button-secondary', $output );
-		$this->assertStringContainsString( 'Help &amp; Documentation', $output );
-		$this->assertStringContainsString( 'target="_blank"', $output );
-	}
-
-	/**
-	 * render_page_header() must include HELP_URL in the button href.
-	 */
-	public function test_render_page_header_uses_help_url_constant_in_href() {
-		$output = $this->invoke_header( 'Any' );
-
-		$this->assertStringContainsString(
-			PaySentinel_Admin_Page_Renderer::HELP_URL,
-			$output,
-			'render_page_header must embed HELP_URL in the href'
-		);
-	}
-
-	/**
-	 * render_page_header() must append #anchor when one is provided.
-	 */
-	public function test_render_page_header_appends_anchor_fragment() {
-		$output = $this->invoke_header( 'Health', 'health' );
-
-		$this->assertStringContainsString(
-			PaySentinel_Admin_Page_Renderer::HELP_URL . '#health',
-			$output
-		);
-	}
-
-	/**
-	 * render_page_header() must NOT add a trailing # when no anchor is given.
-	 */
-	public function test_render_page_header_no_fragment_without_anchor() {
-		$output = $this->invoke_header( 'Dashboard' );
-
-		// The base URL should appear, but not with a trailing hash
-		$this->assertStringNotContainsString(
-			PaySentinel_Admin_Page_Renderer::HELP_URL . '#',
-			$output
-		);
-	}
-
-	/**
-	 * render_page_header() must strip a leading # from the anchor argument.
-	 */
-	public function test_render_page_header_strips_leading_hash_from_anchor() {
-		$output_explicit = $this->invoke_header( 'Settings', '#settings' );
-		$output_clean    = $this->invoke_header( 'Settings', 'settings' );
-
-		// Both should produce the same href
-		$this->assertStringContainsString( HELP_URL_BASE . '#settings', $output_explicit );
-		$this->assertStringContainsString( HELP_URL_BASE . '#settings', $output_clean );
-	}
-
-	// -------------------------------------------------------------------------
-	// render_help_button() — button only, no h1
-	// -------------------------------------------------------------------------
-
-	/**
-	 * render_help_button() must be private.
-	 */
-	public function test_render_help_button_is_private_method() {
-		$m = new ReflectionMethod( PaySentinel_Admin_Page_Renderer::class, 'render_help_button' );
-		$this->assertTrue( $m->isPrivate(), 'render_help_button() must be private' );
-	}
-
-	/**
-	 * render_help_button() must output the button but NOT an h1.
-	 */
-	public function test_render_help_button_outputs_button_without_h1() {
-		$output = $this->invoke_help_button( 'transactions' );
-
-		$this->assertStringContainsString( 'button button-secondary', $output );
-		$this->assertStringContainsString( 'Help &amp; Documentation', $output );
-		$this->assertStringNotContainsString( '<h1>', $output, 'render_help_button must not emit an h1' );
-	}
-
-	/**
-	 * render_help_button() must include HELP_URL in its href.
-	 */
-	public function test_render_help_button_uses_help_url_constant() {
-		$output = $this->invoke_help_button();
-
-		$this->assertStringContainsString( PaySentinel_Admin_Page_Renderer::HELP_URL, $output );
-	}
-
-	/**
-	 * render_help_button() must append the given anchor.
-	 */
-	public function test_render_help_button_appends_anchor() {
-		$output = $this->invoke_help_button( 'settings' );
-
-		$this->assertStringContainsString(
-			PaySentinel_Admin_Page_Renderer::HELP_URL . '#settings',
-			$output
-		);
-	}
 
 	// -------------------------------------------------------------------------
 	// Helpers
@@ -249,14 +146,6 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 		$m->setAccessible( true );
 		ob_start();
 		$m->invoke( $this->renderer, $title, $anchor );
-		return ob_get_clean();
-	}
-
-	private function invoke_help_button( string $anchor = '' ): string {
-		$m = new ReflectionMethod( $this->renderer, 'render_help_button' );
-		$m->setAccessible( true );
-		ob_start();
-		$m->invoke( $this->renderer, $anchor );
 		return ob_get_clean();
 	}
 }
