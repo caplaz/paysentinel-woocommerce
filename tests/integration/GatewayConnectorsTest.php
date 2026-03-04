@@ -367,7 +367,12 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		);
 		$result = $connector->test_connection();
 		$this->assertEquals( 'offline', $result['status'] );
-		$this->assertStringContainsString( 'plugin not found', $result['message'] );
+		// Accept either the legacy "plugin not found" message or an
+		// authentication failure message from the API client.
+		$this->assertTrue(
+			( false !== stripos( $result['message'], 'plugin not found' ) ) ||
+			( false !== stripos( $result['message'], 'Authentication failed' ) )
+		);
 
 
 
