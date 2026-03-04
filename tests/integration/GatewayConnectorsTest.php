@@ -5,6 +5,9 @@
  * @package PaySentinel
  */
 
+// Load stubs for optional external classes used by connectors.
+require_once __DIR__ . '/../stubs/WC_Payments_API_Client.php';
+
 /**
  * Class GatewayConnectorsTest
  */
@@ -17,7 +20,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		// Reset options
+		// Reset options.
 		delete_option( 'woocommerce_stripe_settings' );
 		delete_option( 'woocommerce_paypal_settings' );
 		delete_option( 'woocommerce_square_settings' );
@@ -195,10 +198,10 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 	public function test_paypal_connector() {
 		$connector = new PaySentinel_PayPal_Connector();
 
-		// 1. Unconfigured
+		// 1. Unconfigured.
 		$this->assertEquals( 'unconfigured', $connector->test_connection()['status'] );
 
-		// 2. Success
+		// 2. Success.
 		update_option(
 			'woocommerce_paypal_settings',
 			array(
@@ -269,7 +272,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 	public function test_square_connector() {
 		$connector = new PaySentinel_Square_Connector();
 
-		// 1. Unconfigured
+		// 1. Unconfigured.
 		$this->assertEquals( 'unconfigured', $connector->test_connection()['status'] );
 
 		// 2. Success
@@ -366,10 +369,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		$this->assertEquals( 'offline', $result['status'] );
 		$this->assertStringContainsString( 'plugin not found', $result['message'] );
 
-		// 4. Success (mocking class)
-		if ( ! class_exists( 'WC_Payments_API_Client' ) ) {
-			eval( 'class WC_Payments_API_Client {}' );
-		}
+
 
 		add_filter(
 			'pre_http_request',
@@ -398,7 +398,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 	public function test_gateway_connectivity_coordinator() {
 		$connectivity = new PaySentinel_Gateway_Connectivity();
 
-		// Mock Stripe success
+		// Mock Stripe success.
 		update_option( 'woocommerce_stripe_settings', array( 'secret_key' => 'sk_live_test' ) );
 		add_filter(
 			'pre_http_request',
@@ -435,14 +435,14 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		$table        = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
 
 		// Add old record
-		$wpdb->insert(
-			$table,
-			array(
-				'gateway_id' => 'stripe',
-				'status'     => 'online',
-				'checked_at' => date( 'Y-m-d H:i:s', strtotime( '-40 days' ) ),
-			)
-		);
+			$wpdb->insert(
+				$table,
+				array(
+					'gateway_id' => 'stripe',
+					'status'     => 'online',
+					'checked_at' => gmdate( 'Y-m-d H:i:s', strtotime( '-40 days' ) ),
+				)
+			);
 
 		// Add recent record
 		$wpdb->insert(
@@ -471,8 +471,8 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		$this->assertContains( 'stripe', $supported );
 		$this->assertContains( 'paypal', $supported );
 
-		// Mock WC not active or no gateways enabled
-		// This might be tricky without full WC suite, but we can try to mock the global WC()
+		// Mock WC not active or no gateways enabled.
+		// This might be tricky without full WC suite, but we can try to mock the global WC().
 		if ( function_exists( 'WC' ) ) {
 			$enabled = $connectivity->get_enabled_gateways();
 			$this->assertIsArray( $enabled );

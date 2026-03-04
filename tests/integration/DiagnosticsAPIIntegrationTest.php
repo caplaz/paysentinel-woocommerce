@@ -5,6 +5,8 @@
  *
  * Ensures that diagnostics and maintenance endpoints return data in a structure
  * consistent with what the JavaScript frontend expects, preventing "undefined" errors.
+ *
+ * @package PaySentinel\Tests\Integration
  */
 class DiagnosticsAPIIntegrationTest extends WP_UnitTestCase {
 
@@ -27,7 +29,7 @@ class DiagnosticsAPIIntegrationTest extends WP_UnitTestCase {
 
 		$this->api = new PaySentinel_API_Diagnostics();
 
-		// Create admin user for API access
+		// Create admin user for API access.
 		$this->admin_user = $this->factory->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->admin_user );
 	}
@@ -50,20 +52,20 @@ class DiagnosticsAPIIntegrationTest extends WP_UnitTestCase {
 		foreach ( $endpoints as $route => $method ) {
 			$request = new WP_REST_Request( 'POST', $route );
 
-			// Call the method directly
+			// Call the method directly.
 			$response = $this->api->$method( $request );
 
 			$this->assertInstanceOf( 'WP_REST_Response', $response, "Method $method for route $route did not return WP_REST_Response" );
 
 			$data = $response->get_data();
 
-			// Universal Property: Success response must have 'success' and 'data' keys
+			// Universal Property: Success response must have 'success' and 'data' keys.
 			$this->assertIsArray( $data, "Response from $route should be an array" );
 			$this->assertArrayHasKey( 'success', $data, "Response from $route missing 'success' key" );
 			$this->assertTrue( $data['success'], "Response from $route should indicate success" );
 			$this->assertArrayHasKey( 'data', $data, "Response from $route missing 'data' key (JS expects data.message)" );
 
-			// Verified Payload: The message must be inside the 'data' object
+			// Verified Payload: The message must be inside the 'data' object.
 			$this->assertIsArray( $data['data'], "The 'data' property in $route response must be an array/object" );
 			$this->assertArrayHasKey( 'message', $data['data'], "The 'message' property in $route must be inside 'data' (JS expects response.data.message)" );
 			$this->assertIsString( $data['data']['message'] );
@@ -103,7 +105,7 @@ class DiagnosticsAPIIntegrationTest extends WP_UnitTestCase {
 		$payload = $data['data'];
 		$this->assertIsArray( $payload );
 
-		// Ensure required sections for JS rendering are present
+		// Ensure required sections for JS rendering are present.
 		$this->assertArrayHasKey( 'timestamp', $payload );
 		$this->assertArrayHasKey( 'system_info', $payload );
 		$this->assertArrayHasKey( 'database', $payload );

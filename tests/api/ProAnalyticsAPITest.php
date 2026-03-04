@@ -1,7 +1,9 @@
 <?php
 
 /**
- * Tests for PRO tier analytics REST API endpoints
+ * Tests for PRO tier analytics REST API endpoints.
+ *
+ * @package PaySentinel\Tests\API
  */
 class ProAnalyticsAPITest extends WP_UnitTestCase {
 
@@ -18,7 +20,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		$this->api     = new PaySentinel_API_Analytics_Pro();
 		$this->license = new PaySentinel_License();
 
-		// Create admin user for API access
+		// Create admin user for API access.
 		$this->admin_user = $this->factory->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->admin_user );
 	}
@@ -62,7 +64,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 * Test failure patterns endpoint gating
 	 */
 	public function test_failure_patterns_endpoint_gating() {
-		// Free tier - should fail
+		// Free tier - should fail.
 		update_option( 'paysentinel_license_status', 'invalid' );
 
 		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/failure-patterns/stripe' );
@@ -73,7 +75,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		$data = $response->get_data();
 		$this->assertFalse( $data['success'] );
 
-		// PRO tier - should succeed
+		// PRO tier - should succeed.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
@@ -87,7 +89,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 * Test metrics summary endpoint
 	 */
 	public function test_metrics_summary_endpoint() {
-		// Free tier - should fail
+		// Free tier - should fail.
 		update_option( 'paysentinel_license_status', 'invalid' );
 
 		$request  = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/metrics-summary' );
@@ -96,7 +98,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		$data = $response->get_data();
 		$this->assertFalse( $data['success'] );
 
-		// PRO tier - should succeed
+		// PRO tier - should succeed.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( 'stripe' ) ) );
@@ -111,7 +113,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 * Test extended history endpoint
 	 */
 	public function test_extended_history_endpoint() {
-		// Free tier - should fail
+		// Free tier - should fail.
 		update_option( 'paysentinel_license_status', 'invalid' );
 
 		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/extended-history/stripe' );
@@ -122,7 +124,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		$data = $response->get_data();
 		$this->assertFalse( $data['success'] );
 
-		// PRO tier - should succeed
+		// PRO tier - should succeed.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
@@ -135,7 +137,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 	 * Test gateway comparison endpoint
 	 */
 	public function test_gateway_comparison_endpoint() {
-		// Free tier - should fail
+		// Free tier - should fail.
 		update_option( 'paysentinel_license_status', 'invalid' );
 
 		$request  = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/gateway-comparison' );
@@ -144,7 +146,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		$data = $response->get_data();
 		$this->assertFalse( $data['success'] );
 
-		// PRO tier - should succeed
+		// PRO tier - should succeed.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
@@ -163,7 +165,7 @@ class ProAnalyticsAPITest extends WP_UnitTestCase {
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
 		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/analytics/comparative/stripe' );
-		// Don't set gateway_id parameter
+		// Don't set gateway_id parameter.
 		$response = $this->api->get_comparative_analytics( $request );
 
 		$this->assertInstanceOf( 'WP_REST_Response', $response );

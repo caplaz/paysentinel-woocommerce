@@ -1,8 +1,10 @@
 <?php
 
 /**
- * Property-based tests for REST API endpoints
- * Tests universal correctness properties with 100+ iterations
+ * Property-based tests for REST API endpoints.
+ * Tests universal correctness properties with 100+ iterations.
+ *
+ * @package PaySentinel\Tests\API
  */
 class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 
@@ -14,7 +16,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_api_response_consistency() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			// Test success response structure
+			// Test success response structure.
 			$success_response = array(
 				'success' => true,
 				'data'    => array(
@@ -24,21 +26,21 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 				),
 			);
 
-			// Verify success response has required fields
+			// Verify success response has required fields.
 			$this->assertIsArray( $success_response );
 			$this->assertArrayHasKey( 'success', $success_response );
 			$this->assertArrayHasKey( 'data', $success_response );
 			$this->assertTrue( $success_response['success'] );
 			$this->assertIsArray( $success_response['data'] );
 
-			// Test error response structure
+			// Test error response structure.
 			$error_response = array(
 				'success' => false,
 				'code'    => 'invalid_request',
 				'message' => 'Invalid parameters',
 			);
 
-			// Verify error response has required fields
+			// Verify error response has required fields.
 			$this->assertIsArray( $error_response );
 			$this->assertFalse( $error_response['success'] );
 			$this->assertArrayHasKey( 'code', $error_response );
@@ -56,7 +58,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_api_data_type_consistency() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			// Test gateway health response types
+			// Test gateway health response types.
 			$gateway_health = array(
 				'gateway_id'              => 'stripe_' . rand( 1, 100 ),
 				'gateway_name'            => 'Stripe Gateway',
@@ -69,7 +71,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 				'last_updated'            => date( 'Y-m-d H:i:s' ),
 			);
 
-			// Validate types
+			// Validate types.
 			$this->assertIsString( $gateway_health['gateway_id'] );
 			$this->assertIsString( $gateway_health['gateway_name'] );
 			$this->assertIsString( $gateway_health['period'] );
@@ -80,7 +82,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 			$this->assertIsString( $gateway_health['status'] );
 			$this->assertIsString( $gateway_health['last_updated'] );
 
-			// Test transaction response types
+			// Test transaction response types.
 			$transaction = array(
 				'id'            => rand( 1, 100000 ),
 				'order_id'      => rand( 1, 100000 ),
@@ -93,7 +95,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 				'response_data' => array( 'some' => 'data' ),
 			);
 
-			// Validate types
+			// Validate types.
 			$this->assertIsInt( $transaction['id'] );
 			$this->assertIsInt( $transaction['order_id'] );
 			$this->assertIsString( $transaction['gateway_id'] );
@@ -125,21 +127,21 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 			$error_code  = $error_codes[ array_rand( $error_codes ) ];
 			$http_status = rand( 400, 599 );
 
-			// Simulate error response
+			// Simulate error response.
 			$error_response = array(
 				'code'    => $error_code,
 				'message' => 'Error description',
 				'status'  => $http_status,
 			);
 
-			// Verify error structure
+			// Verify error structure.
 			$this->assertIsString( $error_response['code'] );
 			$this->assertIsString( $error_response['message'] );
 			$this->assertIsInt( $error_response['status'] );
 			$this->assertGreaterThanOrEqual( 400, $error_response['status'] );
 			$this->assertLessThanOrEqual( 599, $error_response['status'] );
 
-			// Error code should not be empty
+			// Error code should not be empty.
 			$this->assertNotEmpty( $error_response['code'] );
 			$this->assertNotEmpty( $error_response['message'] );
 		}
@@ -157,7 +159,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 		for ( $i = 0; $i < 50; $i++ ) {
 			$gateway_id = $valid_gateway_ids[ array_rand( $valid_gateway_ids ) ];
 
-			// Gateway ID validation
+			// Gateway ID validation.
 			$this->assertIsString( $gateway_id );
 			$this->assertNotEmpty( $gateway_id );
 			$this->assertMatchesRegularExpression( '/^[a-z0-9_]+$/', $gateway_id );
@@ -176,7 +178,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 		for ( $i = 0; $i < 100; $i++ ) {
 			$status = $valid_statuses[ array_rand( $valid_statuses ) ];
 
-			// Status validation
+			// Status validation.
 			$this->assertIsString( $status );
 			$this->assertContains( $status, $valid_statuses );
 			$this->assertMatchesRegularExpression( '/^[a-z]+$/', $status );
@@ -195,7 +197,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 		for ( $i = 0; $i < 100; $i++ ) {
 			$status = $valid_transaction_statuses[ array_rand( $valid_transaction_statuses ) ];
 
-			// Status validation
+			// Status validation.
 			$this->assertIsString( $status );
 			$this->assertContains( $status, $valid_transaction_statuses );
 			$this->assertMatchesRegularExpression( '/^[a-z]+$/', $status );
@@ -210,16 +212,16 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_api_numeric_value_ranges() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			// Success rate must be 0-100
+			// Success rate must be 0-100.
 			$success_rate = rand( 0, 10000 ) / 100;
 			$this->assertGreaterThanOrEqual( 0, $success_rate );
 			$this->assertLessThanOrEqual( 100, $success_rate );
 
-			// Transaction amounts must be positive
+			// Transaction amounts must be positive.
 			$amount = rand( 1, 1000000 ) / 100;
 			$this->assertGreaterThan( 0, $amount );
 
-			// Transaction counts must be non-negative integers
+			// Transaction counts must be non-negative integers.
 			$count = rand( 0, 100000 );
 			$this->assertGreaterThanOrEqual( 0, $count );
 			$this->assertIsInt( $count );
@@ -236,11 +238,11 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 		for ( $i = 0; $i < 50; $i++ ) {
 			$timestamp = date( 'Y-m-d H:i:s' );
 
-			// Verify format
+			// Verify format.
 			$this->assertIsString( $timestamp );
 			$this->assertMatchesRegularExpression( '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $timestamp );
 
-			// Verify it can be parsed
+			// Verify it can be parsed.
 			$parsed = DateTime::createFromFormat( 'Y-m-d H:i:s', $timestamp );
 			$this->assertNotFalse( $parsed );
 		}
@@ -258,17 +260,17 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 		$server_error_codes = array( 500, 502, 503 );
 
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Test success codes
+			// Test success codes.
 			$success_code = $success_codes[ array_rand( $success_codes ) ];
 			$this->assertGreaterThanOrEqual( 200, $success_code );
 			$this->assertLessThan( 300, $success_code );
 
-			// Test client error codes
+			// Test client error codes.
 			$client_error_code = $client_error_codes[ array_rand( $client_error_codes ) ];
 			$this->assertGreaterThanOrEqual( 400, $client_error_code );
 			$this->assertLessThan( 500, $client_error_code );
 
-			// Test server error codes
+			// Test server error codes.
 			$server_error_code = $server_error_codes[ array_rand( $server_error_codes ) ];
 			$this->assertGreaterThanOrEqual( 500, $server_error_code );
 			$this->assertLessThan( 600, $server_error_code );

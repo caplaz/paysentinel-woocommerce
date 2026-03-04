@@ -2,7 +2,9 @@
 
 /**
  * Property-based tests for API pagination
- * Tests pagination correctness across various scenarios
+ * Tests pagination correctness across various scenarios.
+ *
+ * @package PaySentinel\Tests\API
  */
 class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 
@@ -17,14 +19,15 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 			$total_items = rand( 0, 10000 );
 			$per_page    = rand( 1, 100 );
 
-			// Calculate expected total pages
+			// Calculate expected total pages.
+			// Calculate expected total pages.
 			$expected_total_pages = $total_items > 0 ? (int) ceil( $total_items / $per_page ) : 1;
 
-			// Verify calculation
+			// Verify calculation.
 			$this->assertGreaterThanOrEqual( 1, $expected_total_pages );
 			$this->assertIsInt( $expected_total_pages );
 
-			// Verify formula
+			// Verify formula.
 			if ( $total_items > 0 ) {
 				$actual = (int) ceil( $total_items / $per_page );
 				$this->assertEquals( $expected_total_pages, $actual );
@@ -43,11 +46,11 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 			$total_pages  = rand( 1, 100 );
 			$current_page = rand( 1, $total_pages );
 
-			// Page number must be positive integer
+			// Page number must be positive integer.
 			$this->assertGreaterThanOrEqual( 1, $current_page );
 			$this->assertIsInt( $current_page );
 
-			// Page number must not exceed total pages
+			// Page number must not exceed total pages.
 			$this->assertLessThanOrEqual( $total_pages, $current_page );
 		}
 	}
@@ -65,7 +68,7 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 		for ( $i = 0; $i < 100; $i++ ) {
 			$per_page = rand( $min_per_page, $max_per_page );
 
-			// Per page must be within bounds
+			// Per page must be within bounds.
 			$this->assertGreaterThanOrEqual( $min_per_page, $per_page );
 			$this->assertLessThanOrEqual( $max_per_page, $per_page );
 			$this->assertIsInt( $per_page );
@@ -83,18 +86,18 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 			$page     = rand( 1, 100 );
 			$per_page = rand( 1, 100 );
 
-			// Calculate offset
+			// Calculate offset.
 			$expected_offset = ( $page - 1 ) * $per_page;
 
-			// Verify calculation
+			// Verify calculation.
 			$this->assertGreaterThanOrEqual( 0, $expected_offset );
 			$this->assertIsInt( $expected_offset );
 
-			// Verify formula
+			// Verify formula.
 			$actual_offset = ( $page - 1 ) * $per_page;
 			$this->assertEquals( $expected_offset, $actual_offset );
 
-			// For page 1, offset should always be 0
+			// For page 1, offset should always be 0.
 			if ( $page === 1 ) {
 				$this->assertEquals( 0, $expected_offset );
 			}
@@ -113,10 +116,10 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 			$per_page = rand( 1, 100 );
 			$total    = rand( 0, 10000 );
 
-			// Calculate total pages
+			// Calculate total pages.
 			$total_pages = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
 
-			// Create pagination metadata
+			// Create pagination metadata.
 			$pagination = array(
 				'page'        => $page,
 				'per_page'    => $per_page,
@@ -124,19 +127,19 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 				'total_pages' => $total_pages,
 			);
 
-			// Verify all fields are present
+			// Verify all fields are present.
 			$this->assertArrayHasKey( 'page', $pagination );
 			$this->assertArrayHasKey( 'per_page', $pagination );
 			$this->assertArrayHasKey( 'total', $pagination );
 			$this->assertArrayHasKey( 'total_pages', $pagination );
 
-			// Verify types
+			// Verify types.
 			$this->assertIsInt( $pagination['page'] );
 			$this->assertIsInt( $pagination['per_page'] );
 			$this->assertIsInt( $pagination['total'] );
 			$this->assertIsInt( $pagination['total_pages'] );
 
-			// Verify ranges
+			// Verify ranges.
 			$this->assertGreaterThanOrEqual( 1, $pagination['page'] );
 			$this->assertGreaterThanOrEqual( 1, $pagination['per_page'] );
 			$this->assertGreaterThanOrEqual( 0, $pagination['total'] );
@@ -158,15 +161,15 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 			$per_page    = rand( 1, 100 );
 			$page        = rand( 1, max( 1, (int) ceil( $total_items / $per_page ) ) );
 
-			// Calculate items on this page
+			// Calculate items on this page.
 			$offset        = ( $page - 1 ) * $per_page;
 			$items_on_page = min( $per_page, max( 0, $total_items - $offset ) );
 
-			// Verify calculation
+			// Verify calculation.
 			$this->assertGreaterThanOrEqual( 0, $items_on_page );
 			$this->assertLessThanOrEqual( $per_page, $items_on_page );
 
-			// Last page should have fewer or equal items
+			// Last page should have fewer or equal items.
 			$total_pages = $total_items > 0 ? (int) ceil( $total_items / $per_page ) : 1;
 			if ( $page === $total_pages && $total_items > 0 ) {
 				$expected_items = ( ( $total_items - 1 ) % $per_page ) + 1;
@@ -221,7 +224,7 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 			$total       = rand( 0, 1000 );
 			$total_pages = $total > 0 ? ceil( $total / $per_page ) : 1;
 
-			// Create paginated response
+			// Create paginated response.
 			$response = array(
 				'success'    => true,
 				'data'       => array(),
@@ -233,19 +236,19 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 				),
 			);
 
-			// Verify structure
+			// Verify structure.
 			$this->assertArrayHasKey( 'success', $response );
 			$this->assertArrayHasKey( 'data', $response );
 			$this->assertArrayHasKey( 'pagination', $response );
 
-			// Verify pagination object
+			// Verify pagination object.
 			$pagination = $response['pagination'];
 			$this->assertArrayHasKey( 'page', $pagination );
 			$this->assertArrayHasKey( 'per_page', $pagination );
 			$this->assertArrayHasKey( 'total', $pagination );
 			$this->assertArrayHasKey( 'total_pages', $pagination );
 
-			// Verify types
+			// Verify types.
 			$this->assertTrue( $response['success'] );
 			$this->assertIsArray( $response['data'] );
 			$this->assertIsArray( $pagination );
@@ -263,14 +266,14 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 		$default_per_page = 20;
 
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Default page should be 1
+			// Default page should be 1.
 			$this->assertEquals( 1, $default_page );
 
-			// Default per_page should be reasonable
+			// Default per_page should be reasonable.
 			$this->assertGreaterThanOrEqual( 1, $default_per_page );
 			$this->assertLessThanOrEqual( 100, $default_per_page );
 
-			// Default per_page should be a multiple of common values
+			// Default per_page should be a multiple of common values.
 			$this->assertTrue(
 				in_array( $default_per_page, array( 10, 20, 25, 50, 100 ), true )
 			);
@@ -285,7 +288,7 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_pagination_bounds_enforcement() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			// Test per_page bounds
+			// Test per_page bounds.
 			$requested_per_page = rand( -100, 200 );
 			$min_per_page       = 1;
 			$max_per_page       = 100;
@@ -297,7 +300,7 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 			$this->assertGreaterThanOrEqual( $min_per_page, $enforced_per_page );
 			$this->assertLessThanOrEqual( $max_per_page, $enforced_per_page );
 
-			// Test page bounds
+			// Test page bounds.
 			$requested_page = rand( -10, 1000 );
 			$enforced_page  = $requested_page > 0 ? $requested_page : 1;
 

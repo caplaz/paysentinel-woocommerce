@@ -1,8 +1,10 @@
 <?php
 
 /**
- * Unit tests for PaySentinel_API_Health class
- * Tests the health API endpoints and real-time transaction statistics
+ * Unit tests for PaySentinel_API_Health class.
+ * Tests the health API endpoints and real-time transaction statistics.
+ *
+ * @package PaySentinel\Tests\API
  */
 class HealthAPITest extends WP_UnitTestCase {
 
@@ -20,11 +22,11 @@ class HealthAPITest extends WP_UnitTestCase {
 		$this->database = new PaySentinel_Database();
 		$this->logger   = new PaySentinel_Logger();
 
-		// Create admin user for API access
+		// Create admin user for API access.
 		$this->admin_user = $this->factory->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->admin_user );
 
-		// Ensure tables exist
+		// Ensure tables exist.
 		$this->database->create_tables();
 	}
 
@@ -43,7 +45,7 @@ class HealthAPITest extends WP_UnitTestCase {
 	public function test_get_realtime_transaction_stats_no_transactions() {
 		$gateway_id = 'test_gateway';
 
-		// Use reflection to access private method
+		// Use reflection to access private method.
 		$reflection = new ReflectionClass( $this->api );
 		$method     = $reflection->getMethod( 'get_realtime_transaction_stats' );
 		$method->setAccessible( true );
@@ -65,7 +67,7 @@ class HealthAPITest extends WP_UnitTestCase {
 
 		$gateway_id = 'test_gateway';
 
-		// Insert test transactions
+		// Insert test transactions.
 		$transactions = array(
 			array(
 				'gateway_id' => $gateway_id,
@@ -95,7 +97,7 @@ class HealthAPITest extends WP_UnitTestCase {
 			);
 		}
 
-		// Use reflection to access private method
+		// Use reflection to access private method.
 		$reflection = new ReflectionClass( $this->api );
 		$method     = $reflection->getMethod( 'get_realtime_transaction_stats' );
 		$method->setAccessible( true );
@@ -130,7 +132,7 @@ class HealthAPITest extends WP_UnitTestCase {
 			array( '%s', '%s', '%f', '%s' )
 		);
 
-		// Use reflection to access private method
+		// Use reflection to access private method.
 		$reflection = new ReflectionClass( $this->api );
 		$method     = $reflection->getMethod( 'get_realtime_transaction_stats' );
 		$method->setAccessible( true );
@@ -150,7 +152,7 @@ class HealthAPITest extends WP_UnitTestCase {
 
 		$gateway_id = 'test_gateway';
 
-		// Insert test transactions
+		// Insert test transactions.
 		$wpdb->insert(
 			$wpdb->prefix . 'payment_monitor_transactions',
 			array(
@@ -162,19 +164,19 @@ class HealthAPITest extends WP_UnitTestCase {
 			array( '%s', '%s', '%f', '%s' )
 		);
 
-		// Create a request
+		// Create a request.
 		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 
-		// Test that the method can be called without errors
+		// Test that the method can be called without errors.
 		$response = $this->api->get_all_gateway_health( $request );
 		$this->assertInstanceOf( 'WP_REST_Response', $response );
 
 		$data = $response->get_data();
 
-		// The response should be successful
+		// The response should be successful.
 		$this->assertTrue( isset( $data['success'] ) ? $data['success'] : false );
 
-		// If there are items, they should have the total_transactions field
+		// If there are items, they should have the total_transactions field.
 		if ( isset( $data['data']['items'] ) && is_array( $data['data']['items'] ) && ! empty( $data['data']['items'] ) ) {
 			foreach ( $data['data']['items'] as $gateway_data ) {
 				$this->assertArrayHasKey( 'total_transactions', $gateway_data );
@@ -187,7 +189,7 @@ class HealthAPITest extends WP_UnitTestCase {
 	 * Test get_all_gateway_health handles missing health data gracefully
 	 */
 	public function test_get_all_gateway_health_handles_missing_health_data() {
-		// Create a request
+		// Create a request.
 		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
 
 		$response = $this->api->get_all_gateway_health( $request );
@@ -206,7 +208,7 @@ class HealthAPITest extends WP_UnitTestCase {
 
 		$gateway_id = 'test_gateway';
 
-		// Temporarily rename the table to simulate it not existing
+		// Temporarily rename the table to simulate it not existing.
 		$table_name = $wpdb->prefix . 'payment_monitor_transactions';
 		$temp_table = $table_name . '_temp';
 
@@ -216,7 +218,7 @@ class HealthAPITest extends WP_UnitTestCase {
 		}
 
 		try {
-			// Use reflection to access private method
+			// Use reflection to access private method.
 			$reflection = new ReflectionClass( $this->api );
 			$method     = $reflection->getMethod( 'get_realtime_transaction_stats' );
 			$method->setAccessible( true );
@@ -229,7 +231,7 @@ class HealthAPITest extends WP_UnitTestCase {
 			$this->assertEquals( 0, $result['failed'] );
 			$this->assertEquals( 0, $result['pending'] );
 		} finally {
-			// Restore the table
+			// Restore the table.
 			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $temp_table ) ) === $temp_table ) {
 				$wpdb->query( "RENAME TABLE {$temp_table} TO {$table_name}" );
 			}
@@ -244,7 +246,7 @@ class HealthAPITest extends WP_UnitTestCase {
 
 		$gateway_id = 'test_gateway';
 
-		// Insert multiple transactions
+		// Insert multiple transactions.
 		for ( $i = 0; $i < 5; $i++ ) {
 			$wpdb->insert(
 				$wpdb->prefix . 'payment_monitor_transactions',
@@ -258,7 +260,7 @@ class HealthAPITest extends WP_UnitTestCase {
 			);
 		}
 
-		// Use reflection to access private method
+		// Use reflection to access private method.
 		$reflection = new ReflectionClass( $this->api );
 		$method     = $reflection->getMethod( 'get_realtime_transaction_stats' );
 		$method->setAccessible( true );
@@ -277,7 +279,7 @@ class HealthAPITest extends WP_UnitTestCase {
 	public function tearDown(): void {
 		global $wpdb;
 
-		// Clean up test data
+		// Clean up test data.
 		$wpdb->query( "DELETE FROM {$wpdb->prefix}payment_monitor_transactions WHERE gateway_id LIKE 'test_%'" );
 		$wpdb->query( "DELETE FROM {$wpdb->prefix}payment_monitor_gateway_health WHERE gateway_id LIKE 'test_%'" );
 

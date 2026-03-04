@@ -1,12 +1,14 @@
 <?php
 
 /**
- * Integration tests for PRO plan features
+ * Integration tests for PRO plan features.
  *
  * This test suite verifies that all PRO features work correctly:
  * - 30-day and 90-day analytics
  * - Unlimited gateway monitoring
  * - Dynamic data retention based on license tier
+ *
+ * @package PaySentinel\Tests\Integration
  */
 class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 
@@ -14,27 +16,27 @@ class ProFeaturesIntegrationTest extends WP_UnitTestCase {
 	 * Test 30-day analytics are gated to PRO tier
 	 */
 	public function test_30day_analytics_requires_pro_tier() {
-		// Setup: Create a Free tier license
+		// Setup: Create a Free tier license.
 		update_option( 'paysentinel_license_status', 'invalid' );
 		delete_option( 'paysentinel_license_data' );
 
 		$license = new PaySentinel_License();
 		$this->assertEquals( 'free', $license->get_license_tier() );
 
-		// Create health engine
+		// Create health engine.
 		$health = new PaySentinel_Health();
 
-		// Verify that calculate_health skips 30day period for free tier
+		// Verify that calculate_health skips 30day period for free tier.
 		$gateway_id = 'test_gateway';
 		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( $gateway_id ) ) );
 
 		$health_data = $health->calculate_health( $gateway_id );
 
-		// Free tier should NOT have 30day or 90day
+		// Free tier should NOT have 30day or 90day.
 		$this->assertArrayNotHasKey( '30day', $health_data );
 		$this->assertArrayNotHasKey( '90day', $health_data );
 
-		// But should have the standard periods
+		// But should have the standard periods.
 		$this->assertArrayHasKey( '1hour', $health_data );
 		$this->assertArrayHasKey( '24hour', $health_data );
 		$this->assertArrayHasKey( '7day', $health_data );

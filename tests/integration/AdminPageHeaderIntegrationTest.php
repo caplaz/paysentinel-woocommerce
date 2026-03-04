@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Integration tests for admin page header consistency.
  *
@@ -9,6 +8,8 @@
  * - All expected submenu slugs are registered
  * - Submenu page_title and menu_title are consistent with each other
  * - Every render_*_page() method outputs an h1 matching its sidebar label
+ *
+ * @package PaySentinel\Tests\Integration
  */
 class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 

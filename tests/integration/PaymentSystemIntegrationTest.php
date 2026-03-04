@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Integration tests for complete payment monitoring system
+ * Integration tests for complete payment monitoring system.
  *
  * Tests the integration of all components:
  * - Transaction monitoring -> Health calculation -> Alert triggering
@@ -13,31 +13,43 @@
  * - Property 27: Complete Payment Flow Integration
  * - Property 28: Health-Alert Integration
  * - Property 29: Retry-Recovery Integration
+ *
+ * @package PaySentinel\Tests\Integration
  */
 class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 
 	/**
-	 * Transaction logger instance
+	 * Transaction logger instance.
+	 *
+	 * @var PaySentinel_Logger
 	 */
 	private $logger;
 
 	/**
-	 * Health calculator instance
+	 * Health calculator instance.
+	 *
+	 * @var PaySentinel_Health
 	 */
 	private $health;
 
 	/**
-	 * Alert system instance
+	 * Alert system instance.
+	 *
+	 * @var PaySentinel_Alerts
 	 */
 	private $alerts;
 
 	/**
-	 * Retry engine instance
+	 * Retry engine instance.
+	 *
+	 * @var PaySentinel_Retry
 	 */
 	private $retry;
 
 	/**
-	 * Database instance
+	 * Database instance.
+	 *
+	 * @var PaySentinel_Database
 	 */
 	private $database;
 
@@ -47,7 +59,7 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 	protected function setUp(): void {
 		parent::setUp();
 
-		// Initialize all components
+		// Initialize all components.
 		$this->database = new PaySentinel_Database();
 		$this->logger   = new PaySentinel_Logger();
 		$this->health   = new PaySentinel_Health();

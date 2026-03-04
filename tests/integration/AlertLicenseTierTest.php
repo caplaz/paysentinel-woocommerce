@@ -1,20 +1,33 @@
 <?php
 /**
- * Alert system tests across license tiers
+ * Alert system tests across license tiers.
  *
  * Tests the bug fix for alert creation logic working correctly
  * with the corrected config key references.
  *
- * @package PaySentinel
+ * @package PaySentinel\Tests\Integration
  */
-
 class AlertLicenseTierTest extends WP_UnitTestCase {
 
+	/**
+	 * Database helper instance.
+	 *
+	 * @var PaySentinel_Database|null
+	 */
 	private $database;
+
+	/**
+	 * Internal alert checker instance.
+	 *
+	 * @var object|null
+	 */
 	private $checker;
 
 	/**
-	 * Setup with given license tier and settings
+	 * Setup with given license tier and settings.
+	 *
+	 * @param string     $plan               License plan identifier.
+	 * @param array|null $per_gateway_config Optional per-gateway config array.
 	 */
 	private function setup_with_license( $plan, $per_gateway_config = null ) {
 		// Reset the static singleton to force reload from options
@@ -23,7 +36,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		$property->setAccessible( true );
 		$property->setValue( null, null );
 
-		// Clean up
+		// Clean up.
 		global $wpdb;
 		$this->database = new PaySentinel_Database();
 		$wpdb->query( "DELETE FROM {$this->database->get_alerts_table()}" );
@@ -33,7 +46,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		delete_option( PaySentinel_License::OPTION_LICENSE_STATUS );
 		delete_option( PaySentinel_License::OPTION_LICENSE_DATA );
 
-		// Register site
+		// Register site.
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 
@@ -43,10 +56,10 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		}
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, $plan_data );
 
-		// Setup settings in paysentinel_options (this is what get_all() reads from)
+		// Setup settings in paysentinel_options (this is what get_all() reads from).
 		$settings = array(
 			PaySentinel_Settings_Constants::ALERT_EMAIL => 'admin@example.com',
-			PaySentinel_Settings_Constants::ALERT_THRESHOLD => 85,  // Global default
+			PaySentinel_Settings_Constants::ALERT_THRESHOLD => 85,  // Global default.
 		);
 
 		if ( null !== $per_gateway_config ) {
@@ -55,10 +68,10 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 
 		update_option( 'paysentinel_options', $settings );
 
-		// Clear config cache (reinitialize from fresh options)
+		// Clear config cache (reinitialize from fresh options).
 		PaySentinel_Config::instance()->clear_cache();
 
-		// Reinitialize alert system
+		// Reinitialize alert system.
 		$alerts = new PaySentinel_Alerts();
 
 		$reflection = new ReflectionClass( $alerts );

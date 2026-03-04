@@ -1,16 +1,43 @@
 <?php
-
 /**
- * Integration tests for Analytics and Reporting
+ * Integration tests for Analytics and Reporting.
+ *
+ * @package PaySentinel\Tests\Integration
  */
 class AnalyticsTest extends WP_UnitTestCase {
 
 
+	/**
+	 * Analytics service under test.
+	 *
+	 * @var PaySentinel_Analytics_Pro
+	 */
 	private $analytics;
+
+	/**
+	 * Health service used by analytics.
+	 *
+	 * @var PaySentinel_Health
+	 */
 	private $health;
+
+	/**
+	 * Logger instance for tests.
+	 *
+	 * @var PaySentinel_Logger
+	 */
 	private $logger;
+
+	/**
+	 * Database helper used in tests.
+	 *
+	 * @var PaySentinel_Database
+	 */
 	private $database;
 
+	/**
+	 * Set up test environment.
+	 */
 	public function setUp(): void {
 		parent::setUp();
 		$this->analytics = new PaySentinel_Analytics_Pro();
@@ -18,21 +45,28 @@ class AnalyticsTest extends WP_UnitTestCase {
 		$this->logger    = new PaySentinel_Logger();
 		$this->database  = new PaySentinel_Database();
 
-		// Ensure fresh schema (PaySentinel_Database::create_gateway_health_table now drops the legacy unique index)
+		// Ensure fresh schema (PaySentinel_Database::create_gateway_health_table now drops the legacy unique index).
 		$this->database->create_tables();
 
-		// Clean up tables before each test
+		// Clean up tables before each test.
 		global $wpdb;
 		$wpdb->query( "TRUNCATE TABLE {$this->database->get_transactions_table()}" );
 		$wpdb->query( "TRUNCATE TABLE {$this->database->get_gateway_health_table()}" );
 
-		// Set PRO license to enable all features
+		// Set PRO license to enable all features.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 	}
 
 	/**
-	 * Helper to insert transactions with custom data
+	 * Helper to insert transactions with custom data.
+	 *
+	 * @param string      $gateway    Gateway identifier.
+	 * @param string      $status     Transaction status.
+	 * @param string      $created_at Creation timestamp in MySQL format.
+	 * @param string|null $reason     Optional failure reason.
+	 * @param string|null $code       Optional failure code.
+	 *	@return void
 	 */
 	private function insert_transaction( $gateway, $status, $created_at, $reason = null, $code = null ) {
 		global $wpdb;
@@ -59,7 +93,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		$gateway = 'stripe';
 		$now     = current_time( 'mysql' );
 
-		// 1. Insert 10 transactions: 8 success, 2 failed
+		// 1. Insert 10 transactions: 8 success, 2 failed.
 		for ( $i = 0; $i < 8; $i++ ) {
 			$this->insert_transaction( $gateway, 'success', $now );
 		}
@@ -67,10 +101,10 @@ class AnalyticsTest extends WP_UnitTestCase {
 			$this->insert_transaction( $gateway, 'failed', $now );
 		}
 
-		// 2. Calculate health
+		// 2. Calculate health.
 		$this->health->calculate_health( $gateway );
 
-		// 3. Verify health record in DB
+		// 3. Verify health record in DB.
 		global $wpdb;
 		$row = $wpdb->get_row( "SELECT * FROM {$this->database->get_gateway_health_table()} WHERE gateway_id = '$gateway' AND period = '1hour'" );
 
@@ -88,7 +122,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		$gateway = 'paypal';
 		$now     = current_time( 'mysql' );
 
-		// Insert failures with specific reasons
+		// Insert failures with specific reasons.
 		$this->insert_transaction( $gateway, 'failed', $now, 'Insufficient funds', '10001' );
 		$this->insert_transaction( $gateway, 'failed', $now, 'Insufficient funds', '10001' );
 		$this->insert_transaction( $gateway, 'failed', $now, 'Insufficient funds', '10001' );
@@ -112,7 +146,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 	public function test_comparative_analytics_and_trends() {
 		$gateway = 'stripe';
 
-		// Mock health data for different periods
+		// Mock health data for different periods.
 		global $wpdb;
 		$table = $this->database->get_gateway_health_table();
 		$now   = current_time( 'mysql' );
@@ -156,7 +190,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $this->database->get_transactions_table();
 
-		// Insert old transaction (95 days ago)
+		// Insert old transaction (95 days ago).
 		$old_date = gmdate( 'Y-m-d H:i:s', time() - ( 95 * DAY_IN_SECONDS ) );
 		$wpdb->insert(
 			$table,
@@ -170,7 +204,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Insert recent transaction
+		// Insert recent transaction.
 		$wpdb->insert(
 			$table,
 			array(
@@ -194,7 +228,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 	public function test_advanced_metrics_summary() {
 		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( 'stripe', 'paypal' ) ) );
 
-		// Insert health for stripe
+		// Insert health for stripe.
 		global $wpdb;
 		$table = $this->database->get_gateway_health_table();
 		$wpdb->insert(
@@ -223,7 +257,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $this->database->get_gateway_health_table();
 
-		// Insert health for 3 different days
+		// Insert health for 3 different days.
 		$wpdb->insert(
 			$table,
 			array(
@@ -257,7 +291,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		$table = $this->database->get_gateway_health_table();
 		$now   = current_time( 'mysql' );
 
-		// Stripe 99%
+		// Stripe 99%.
 		$wpdb->insert(
 			$table,
 			array(
@@ -267,7 +301,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 				'calculated_at' => $now,
 			)
 		);
-		// PayPal 80%
+		// PayPal 80%.
 		$wpdb->insert(
 			$table,
 			array(

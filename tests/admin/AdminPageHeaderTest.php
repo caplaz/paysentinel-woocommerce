@@ -7,10 +7,11 @@
  * They cover:
  * - PaySentinel_Admin_Page_Renderer::HELP_URL constant
  * - render_page_header() output (h1)
+ *
+ * @package PaySentinel\Tests\Admin
  */
+
 class AdminPageHeaderTest extends PaySentinel_Test_Case {
-
-
 
 	/**
 	 * Renderer instance obtained via reflection.
@@ -70,7 +71,7 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 			filter_var( $url, FILTER_VALIDATE_URL ),
 			'HELP_URL must be a valid URL'
 		);
-		// should still use docs path here
+		// should still use docs path here.
 		$this->assertStringContainsString(
 			'/docs/user-guide',
 			$url,
@@ -135,12 +136,17 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 		$this->assertStringContainsString( 'My Page', $output );
 	}
 
-
-
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Invoke the private renderer method to capture header output.
+	 *
+	 * @param string $title Header title.
+	 * @param string $anchor Anchor identifier.
+	 * @return string
+	 */
 	private function invoke_header( string $title, string $anchor = '' ): string {
 		$m = new ReflectionMethod( $this->renderer, 'render_page_header' );
 		$m->setAccessible( true );
@@ -148,9 +154,10 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 		$m->invoke( $this->renderer, $title, $anchor );
 		return ob_get_clean();
 	}
+
 }
 
-// File-scope constant to avoid repeating the long URL in assertions
+// File-scope constant to avoid repeating the long URL in assertions.
 if ( ! defined( 'HELP_URL_BASE' ) ) {
 	define( 'HELP_URL_BASE', 'https://paysentinel.caplaz.com/docs/user-guide' );
 }

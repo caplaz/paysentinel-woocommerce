@@ -1,33 +1,37 @@
 <?php
-
 /**
- * Base test case class for PaySentinel tests
+ * Base test case class for PaySentinel tests.
+ *
+ * @package PaySentinel\Tests\Includes
  */
 
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Class PaySentinel_Test_Case
+ */
 class PaySentinel_Test_Case extends TestCase {
 
 	/**
-	 * Set up test environment
+	 * Set up test environment.
 	 */
 	public function set_up() {
 		parent::set_up();
 
-		// Reset database state
+		// Reset database state.
 		$this->clean_up_database();
 
-		// Initialize WordPress environment
+		// Initialize WordPress environment.
 		if ( ! defined( 'ABSPATH' ) ) {
 			define( 'ABSPATH', '/tmp/wordpress/' );
 		}
 
-		// Mock WordPress functions if not available
+		// Mock WordPress functions if not available.
 		$this->mock_wordpress_functions();
 	}
 
 	/**
-	 * Clean up after tests
+	 * Clean up after tests.
 	 */
 	public function tear_down() {
 		$this->clean_up_database();
@@ -35,7 +39,7 @@ class PaySentinel_Test_Case extends TestCase {
 	}
 
 	/**
-	 * Clean up database tables
+	 * Clean up database tables.
 	 */
 	protected function clean_up_database() {
 		global $wpdb;
@@ -51,27 +55,41 @@ class PaySentinel_Test_Case extends TestCase {
 		);
 
 		foreach ( $tables as $table ) {
-			$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+			$wpdb->query( 'DROP TABLE IF EXISTS ' . $table );
 		}
 
-		// Clean up options
+		// Clean up options.
 		delete_option( 'payment_monitor_db_version' );
 		delete_option( 'paysentinel_version' );
 		delete_option( 'paysentinel_settings' );
 	}
 
 	/**
-	 * Mock WordPress functions for testing
+	 * Mock WordPress functions for testing.
 	 */
 	protected function mock_wordpress_functions() {
 		if ( ! function_exists( 'get_option' ) ) {
-			function get_option( $option, $default = false ) {
+			/**
+			 * Retrieve an option value from the mocked storage.
+			 *
+			 * @param string $option Option name.
+			 * @param mixed  $default_value Default value to return when option not set.
+			 * @return mixed
+			 */
+			function get_option( $option, $default_value = false ) {
 				static $options = array();
-				return isset( $options[ $option ] ) ? $options[ $option ] : $default;
+				return isset( $options[ $option ] ) ? $options[ $option ] : $default_value;
 			}
 		}
 
 		if ( ! function_exists( 'update_option' ) ) {
+			/**
+			 * Update an option in the mocked storage.
+			 *
+			 * @param string $option Option name.
+			 * @param mixed  $value Value to set.
+			 * @return bool
+			 */
 			function update_option( $option, $value ) {
 				static $options     = array();
 				$options[ $option ] = $value;
@@ -80,12 +98,25 @@ class PaySentinel_Test_Case extends TestCase {
 		}
 
 		if ( ! function_exists( 'add_option' ) ) {
+			/**
+			 * Add an option to the mocked storage.
+			 *
+			 * @param string $option Option name.
+			 * @param mixed  $value Value to set.
+			 * @return bool
+			 */
 			function add_option( $option, $value ) {
 				return update_option( $option, $value );
 			}
 		}
 
 		if ( ! function_exists( 'delete_option' ) ) {
+			/**
+			 * Delete an option from the mocked storage.
+			 *
+			 * @param string $option Option name.
+			 * @return bool
+			 */
 			function delete_option( $option ) {
 				static $options = array();
 				unset( $options[ $option ] );
@@ -94,18 +125,36 @@ class PaySentinel_Test_Case extends TestCase {
 		}
 
 		if ( ! function_exists( 'plugin_basename' ) ) {
+			/**
+			 * Get plugin basename for a file path.
+			 *
+			 * @param string $file File path.
+			 * @return string
+			 */
 			function plugin_basename( $file ) {
 				return basename( dirname( $file ) ) . '/' . basename( $file );
 			}
 		}
 
 		if ( ! function_exists( 'plugin_dir_path' ) ) {
+			/**
+			 * Get plugin directory path for a file.
+			 *
+			 * @param string $file File path.
+			 * @return string
+			 */
 			function plugin_dir_path( $file ) {
 				return dirname( $file ) . '/';
 			}
 		}
 
 		if ( ! function_exists( 'plugin_dir_url' ) ) {
+			/**
+			 * Get plugin directory URL for a file.
+			 *
+			 * @param string $file File path.
+			 * @return string
+			 */
 			function plugin_dir_url( $file ) {
 				return 'http://example.org/wp-content/plugins/' . basename( dirname( $file ) ) . '/';
 			}
@@ -113,7 +162,7 @@ class PaySentinel_Test_Case extends TestCase {
 	}
 
 	/**
-	 * Create a mock wpdb object for testing
+	 * Create a mock wpdb object for testing.
 	 */
 	protected function create_mock_wpdb() {
 		global $wpdb;

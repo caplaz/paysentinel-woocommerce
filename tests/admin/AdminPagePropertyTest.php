@@ -1,32 +1,38 @@
 <?php
 
 /**
- * Property tests for admin dashboard implementation
+ * Property tests for admin dashboard implementation.
  *
  * Tests Properties:
  * - Property 22: Admin page registration structure
  * - Property 23: Settings form validation
  * - Property 24: Admin settings retrieval
+ *
+ * @package PaySentinel\Tests\Admin
  */
 class AdminPagePropertyTest extends PaySentinel_Test_Case {
 
 	/**
-	 * Menu handler instance
+	 * Menu handler instance.
+	 *
+	 * @var PaySentinel_Menu_Handler
 	 */
 	private $menu_handler;
 
 	/**
-	 * Settings handler instance
+	 * Settings handler instance.
+	 *
+	 * @var PaySentinel_Settings_Handler
 	 */
 	private $settings_handler;
 
 	/**
-	 * Setup test
+	 * Setup test.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 
-		// Mock WordPress admin functions that aren't available in CLI
+		// Mock WordPress admin functions that aren't available in CLI.
 		if ( ! function_exists( 'add_menu_page' ) ) {
 			function add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $function = '', $icon_url = '', $position = null ) {
 				global $admin_menu_pages;

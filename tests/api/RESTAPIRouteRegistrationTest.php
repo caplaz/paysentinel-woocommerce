@@ -1,9 +1,14 @@
 <?php
 
+/**
+ * Tests that REST API routes are registered correctly.
+ *
+ * @package PaySentinel\Tests\API
+ */
 class RESTAPIRouteRegistrationTest extends PaySentinel_Test_Case {
 
 	public function test_api_routes_are_registered() {
-		// Ensure REST API is initialized
+		// Ensure REST API is initialized.
 		PaySentinel::get_instance()->init_api_endpoints();
 
 		$server = rest_get_server();
