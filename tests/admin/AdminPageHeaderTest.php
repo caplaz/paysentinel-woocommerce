@@ -154,7 +154,6 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 		$m->invoke( $this->renderer, $title, $anchor );
 		return ob_get_clean();
 	}
-
 }
 
 // File-scope constant to avoid repeating the long URL in assertions.

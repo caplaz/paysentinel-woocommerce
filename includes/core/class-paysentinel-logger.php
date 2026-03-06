@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PaySentinel_Logger {
 
 
+
 	/**
 	 * Database instance
 	 */
@@ -37,6 +38,10 @@ class PaySentinel_Logger {
 		// Hook into payment gateway responses for more detailed logging
 		add_action( 'woocommerce_payment_complete_order_status_completed', array( $this, 'log_payment_completion' ), 10, 2 );
 		add_action( 'woocommerce_payment_complete_order_status_processing', array( $this, 'log_payment_completion' ), 10, 2 );
+
+		// Hook to clean up transactions when an order is deleted or trashed
+		add_action( 'woocommerce_delete_order', array( $this, 'delete_transaction' ), 10, 1 );
+		add_action( 'woocommerce_trash_order', array( $this, 'delete_transaction' ), 10, 1 );
 	}
 
 	/**
@@ -477,5 +482,22 @@ class PaySentinel_Logger {
 		}
 
 		return $stats;
+	}
+
+	/**
+	 * Delete transaction when order is deleted or trashed
+	 *
+	 * @param int $order_id Order ID
+	 */
+	public function delete_transaction( $order_id ) {
+		global $wpdb;
+
+		$table_name = $this->database->get_transactions_table();
+
+		$wpdb->delete(
+			$table_name,
+			array( 'order_id' => $order_id ),
+			array( '%d' )
+		);
 	}
 }

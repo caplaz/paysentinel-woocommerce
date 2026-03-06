@@ -66,7 +66,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 	 * @param string      $created_at Creation timestamp in MySQL format.
 	 * @param string|null $reason     Optional failure reason.
 	 * @param string|null $code       Optional failure code.
-	 *	@return void
+	 *  @return void
 	 */
 	private function insert_transaction( $gateway, $status, $created_at, $reason = null, $code = null ) {
 		global $wpdb;

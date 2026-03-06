@@ -374,8 +374,6 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 			( false !== stripos( $result['message'], 'Authentication failed' ) )
 		);
 
-
-
 		add_filter(
 			'pre_http_request',
 			function ( $pre, $args, $url ) {
