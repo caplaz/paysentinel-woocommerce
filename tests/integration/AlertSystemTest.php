@@ -14,6 +14,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 
 
+
 	/**
 	 * Notifier instance.
 	 *
@@ -521,6 +522,73 @@ class AlertSystemTest extends WP_UnitTestCase {
 			)
 		);
 		$this->assertEquals( 1, $wpdb->get_var( "SELECT COUNT(*) FROM $table_name" ) );
+	}
+
+	/**
+	 * Test check_and_send skips premature alerts for short-lived gateways.
+	 */
+	public function test_checker_check_and_send_skips_premature_alerts() {
+		global $wpdb;
+		$database        = new PaySentinel_Database();
+		$health          = new PaySentinel_Health();
+		$gateway_manager = new PaySentinel_Gateway_Manager();
+		$checker         = new PaySentinel_Alert_Checker( $database, $health, $gateway_manager, $this->notifier );
+
+		$database->create_tables();
+		$table_name = $database->get_alerts_table();
+		$wpdb->query( "TRUNCATE TABLE $table_name" );
+		$tx_table_name = $database->get_transactions_table();
+		$wpdb->query( "TRUNCATE TABLE $tx_table_name" );
+
+		PaySentinel_Config::instance()->update_all(
+			array(
+				'alerts_enabled'  => 1,
+				'alert_threshold' => 95.0,
+			)
+		);
+		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
+
+		// Create a transaction from 2 hours ago.
+		// So gateway age is ~2 hours.
+		$wpdb->insert(
+			$tx_table_name,
+			array(
+				'order_id'   => 1,
+				'gateway_id' => 'stripe',
+				'amount'     => 10.0,
+				'currency'   => 'USD',
+				'status'     => 'success',
+				'created_at' => date( 'Y-m-d H:i:s', time() - 7200 ), // 2 hours ago
+			)
+		);
+
+		// Trigger check_and_send with 1hour, 24hour and 7day failing data.
+		$checker->check_and_send(
+			'stripe',
+			array(
+				'1hour'  => array(
+					'success_rate'        => 50.0,
+					'total_transactions'  => 100,
+					'failed_transactions' => 50,
+				),
+				'24hour' => array(
+					'success_rate'        => 50.0,
+					'total_transactions'  => 100,
+					'failed_transactions' => 50,
+				),
+				'7day'   => array(
+					'success_rate'        => 50.0,
+					'total_transactions'  => 100,
+					'failed_transactions' => 50,
+				),
+			)
+		);
+
+		$alert_count = $wpdb->get_var( "SELECT COUNT(*) FROM $table_name" );
+		$this->assertEquals( 1, $alert_count );
+
+		$alert = $wpdb->get_row( "SELECT * FROM $table_name LIMIT 1" );
+		$this->assertStringContainsString( '1hour', $alert->message );
 	}
 
 	/**

@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PaySentinel_Alert_Checker {
 
 
+
 	/**
 	 * Database instance
 	 *
@@ -224,8 +225,20 @@ class PaySentinel_Alert_Checker {
 			return;
 		}
 
+		// Get the first transaction date for this gateway to prevent premature alerts
+		// for large time windows when the gateway was just recently added.
+		$first_tx_date       = $this->database->get_first_transaction_date_for_gateway( $gateway_id );
+		$gateway_age_seconds = $first_tx_date ? ( time() - strtotime( $first_tx_date ) ) : 0;
+		$period_seconds_map  = PaySentinel_Health::PERIODS;
+
 		// Check each period that has health data
 		foreach ( $health_data as $period => $data ) {
+			// Skip larger alert periods if the gateway hasn't been active for that duration yet.
+			// Always allow the 1hour (shortest) period to ensure we can alert immediately on failure.
+			if ( '1hour' !== $period && isset( $period_seconds_map[ $period ] ) && $gateway_age_seconds < $period_seconds_map[ $period ] ) {
+				continue;
+			}
+
 			if ( ! isset( $data['success_rate'] ) || ! isset( $data['total_transactions'] ) ) {
 				continue;
 			}

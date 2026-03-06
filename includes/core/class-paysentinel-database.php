@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PaySentinel_Database {
 
 
+
 	/**
 	 * Database version
 	 */
@@ -275,6 +276,25 @@ class PaySentinel_Database {
 		);
 
 		return $wpdb->get_row( $query );
+	}
+
+	/**
+	 * Get the date of the first transaction for a gateway
+	 *
+	 * @param string $gateway_id Gateway ID
+	 *
+	 * @return string|null Date string or null if no transactions
+	 */
+	public function get_first_transaction_date_for_gateway( $gateway_id ) {
+		global $wpdb;
+
+		$table_name = $this->get_transactions_table();
+		$query      = $wpdb->prepare(
+			"SELECT MIN(created_at) FROM {$table_name} WHERE gateway_id = %s",
+			$gateway_id
+		);
+
+		return $wpdb->get_var( $query );
 	}
 
 	/**
