@@ -9,6 +9,7 @@
  */
 class AlertLicenseTierTest extends WP_UnitTestCase {
 
+
 	/**
 	 * Database helper instance.
 	 *
@@ -51,7 +52,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 
 		$plan_data = array( 'plan' => $plan );
-		if ( in_array( $plan, array( 'pro', 'agency' ), true ) ) {
+		if ( 'agency' === $plan ) {
 			$plan_data['features'] = array( 'per_gateway_config' => true );
 		}
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, $plan_data );

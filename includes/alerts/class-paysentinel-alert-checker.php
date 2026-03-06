@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class PaySentinel_Alert_Checker {
 
+
 	/**
 	 * Database instance
 	 *
@@ -355,11 +356,13 @@ class PaySentinel_Alert_Checker {
 	 * @return float Threshold percentage (0-100).
 	 */
 	private function get_gateway_alert_threshold( $gateway_id, $settings ) {
-		// Check for gateway-specific threshold in per-gateway config
-		$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
+		// Check for gateway-specific threshold in per-gateway config (Agency feature)
+		if ( $this->get_license_tier() === 'agency' && $this->has_feature( 'per_gateway_config' ) ) {
+			$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
 
-		if ( isset( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ] ) && ! empty( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ] ) ) {
-			return (float) $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ];
+			if ( isset( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ] ) && ! empty( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ] ) ) {
+				return (float) $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD ];
+			}
 		}
 
 		// Return default threshold
@@ -374,12 +377,14 @@ class PaySentinel_Alert_Checker {
 	 * @return bool True if alerts are enabled.
 	 */
 	private function is_gateway_alerts_enabled( $gateway_id, $settings ) {
-		// Check per-gateway configuration first (Pro+ feature)
-		$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
+		// Check per-gateway configuration first (Agency feature)
+		if ( $this->get_license_tier() === 'agency' && $this->has_feature( 'per_gateway_config' ) ) {
+			$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
 
-		// If per-gateway config exists for this gateway, check if it's enabled
-		if ( isset( $gateway_config[ $gateway_id ] ) ) {
-			return isset( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] ) ? (bool) $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] : true;
+			// If per-gateway config exists for this gateway, check if it's enabled
+			if ( isset( $gateway_config[ $gateway_id ] ) ) {
+				return isset( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] ) ? (bool) $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] : true;
+			}
 		}
 
 		// If no per-gateway config, assume alerts are enabled by default
@@ -559,5 +564,26 @@ class PaySentinel_Alert_Checker {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Get the current license tier
+	 *
+	 * @return string License tier
+	 */
+	private function get_license_tier() {
+		$license = new PaySentinel_License();
+		return $license->get_license_tier();
+	}
+
+	/**
+	 * Check if the license has a specific feature
+	 *
+	 * @param string $feature_name Feature name
+	 * @return bool Feature available
+	 */
+	private function has_feature( $feature_name ) {
+		$license = new PaySentinel_License();
+		return $license->has_feature( $feature_name );
 	}
 }

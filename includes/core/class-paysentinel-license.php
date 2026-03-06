@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PaySentinel_License {
 
 
+
 	/**
 	 * SaaS API Base URL
 	 */
@@ -41,7 +42,7 @@ class PaySentinel_License {
 	 */
 	public const GATEWAY_LIMITS = array(
 		'free'    => 1,
-		'starter' => 3,
+		'starter' => 5,
 		'pro'     => 999,
 		'agency'  => 999,
 	);

@@ -11,6 +11,9 @@
 class AlertSystemTest extends WP_UnitTestCase {
 
 
+
+
+
 	/**
 	 * Notifier instance.
 	 *
@@ -137,55 +140,13 @@ class AlertSystemTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test Free tier local email sending.
+	 * Test API-based notifications.
 	 */
-	public function test_notifier_sends_local_email_on_free_tier() {
-		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
-		// Free tier by default if no data
-
-		update_option(
-			'paysentinel_settings',
-			array(
-				PaySentinel_Settings_Constants::ALERT_EMAIL => 'admin@example.com',
-			)
-		);
-
-		// We need to catch wp_mail. Since it's a pluggable function, WP_UnitTestCase handles it via phpunit features usually,
-		// but in this environment we can use a mock or check a global.
-		// Actually, in this test environment, we might not have a reliable way to check wp_mail without a mock.
-		// Let's assume it works if we reach that line and it returns true (mocking wp_mail is tricky in integration tests).
-
-		$alert_data = array(
-			'gateway_id'          => 'stripe',
-			'severity'            => 'warning',
-			'success_rate'        => 80.0,
-			'period'              => '1hour',
-			'failed_transactions' => 2,
-			'total_transactions'  => 10,
-			'calculated_at'       => '2026-02-23 18:00:00',
-		);
-
-		$result = $this->notifier->send_notifications( $alert_data, 1 );
-		$this->assertTrue( $result );
-	}
-
-	/**
-	 * Test API-based notifications for premium tiers.
-	 */
-	public function test_notifier_sends_to_api_on_premium_tier() {
+	public function test_notifier_sends_to_api() {
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
 		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'PA-PRO-TEST-KEY' );
 		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
-
-		update_option(
-			'paysentinel_settings',
-			array(
-				PaySentinel_Settings_Constants::ALERT_EMAIL => 'pro@example.com',
-				PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER => '+1234567890',
-			)
-		);
-		update_option( 'paysentinel_slack_workspace', 'SLACK-ID' );
 
 		// Mock API call
 		add_filter(
@@ -215,71 +176,6 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 		$result = $this->notifier->send_notifications( $alert_data, 1 );
 		$this->assertTrue( $result );
-
-		remove_all_filters( 'pre_http_request' );
-	}
-
-	/**
-	 * Test per-gateway channel configuration.
-	 */
-	public function test_notifier_respects_per_gateway_config() {
-		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
-		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
-		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'PA-PRO-TEST-KEY' );
-		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret' );
-		update_option(
-			PaySentinel_License::OPTION_LICENSE_DATA,
-			array(
-				'plan'     => 'pro',
-				'features' => array( 'per_gateway_config' => true ),
-			)
-		);
-
-		update_option(
-			'paysentinel_settings',
-			array(
-				PaySentinel_Settings_Constants::ALERT_EMAIL => 'global@example.com',
-				PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(
-					'stripe' => array(
-						PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS => array( 'sms' ), // Only SMS for stripe
-					),
-				),
-				PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER => '+1234567890',
-			)
-		);
-
-		// Capture the alert_type sent to API
-		$sent_alert_type = '';
-		add_filter(
-			'pre_http_request',
-			function ( $pre, $args, $url ) use ( &$sent_alert_type ) {
-				if ( strpos( $url, '/api/alerts' ) !== false ) {
-					$body            = json_decode( $args['body'], true );
-					$sent_alert_type = $body['alert_type'];
-					return array(
-						'response' => array( 'code' => 200 ),
-						'body'     => wp_json_encode( array( 'success' => true ) ),
-					);
-				}
-				return $pre;
-			},
-			10,
-			3
-		);
-
-		$alert_data = array(
-			'gateway_id'          => 'stripe',
-			'severity'            => 'critical',
-			'success_rate'        => 5.0,
-			'period'              => '1hour',
-			'failed_transactions' => 19,
-			'total_transactions'  => 20,
-			'calculated_at'       => '2026-02-23 18:00:00',
-		);
-
-		$this->notifier->send_notifications( $alert_data, 1 );
-
-		$this->assertEquals( 'SMS', $sent_alert_type );
 
 		remove_all_filters( 'pre_http_request' );
 	}
@@ -734,10 +630,11 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$send_to_api->invoke(
 			$this->notifier,
 			array(
-				'gateway_id' => 'stripe',
-				'severity'   => 'high',
+				'gateway_id'     => 'stripe',
+				'severity'       => 'high',
+				'alert_type'     => 'SLACK',
+				'integration_id' => 'SLACK-ID',
 			),
-			array( 'slack' ),
 			array()
 		);
 		$this->assertEquals( 'SLACK', $last_payload['alert_type'] );
@@ -749,9 +646,10 @@ class AlertSystemTest extends WP_UnitTestCase {
 			array(
 				'gateway_id' => 'stripe',
 				'severity'   => 'high',
+				'alert_type' => 'SMS',
+				'recipient'  => '+1111111111',
 			),
-			array( 'sms' ),
-			array( 'alert_phone_number' => '+1111111111' )
+			array()
 		);
 		$this->assertEquals( 'SMS', $last_payload['alert_type'] );
 		$this->assertEquals( '+1111111111', $last_payload['recipient'] );
@@ -762,12 +660,11 @@ class AlertSystemTest extends WP_UnitTestCase {
 			array(
 				'gateway_id' => 'stripe',
 				'severity'   => 'high',
+				'alert_type' => 'general_alert',
 			),
-			array( PaySentinel_Settings_Constants::CHANNEL_EMAIL ),
 			array( PaySentinel_Settings_Constants::ALERT_EMAIL => 'admin@test.com' )
 		);
-		$this->assertEquals( 'EMAIL', $last_payload['alert_type'] );
-		$this->assertEquals( 'admin@test.com', $last_payload['recipient'] );
+		$this->assertEquals( 'general_alert', $last_payload['alert_type'] );
 
 		remove_all_filters( 'pre_http_request' );
 	}
