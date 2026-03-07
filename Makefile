@@ -43,3 +43,12 @@ static-analysis:
 # Run all code quality checks
 quality:
 	composer quality
+
+# Create a distributable ZIP of the plugin (excludes tests, vendor and dev files)
+.PHONY: package dist zip
+package dist zip:
+	@echo "Building paysentinel.zip..."
+	@rm -f paysentinel.zip
+	@zip -r paysentinel.zip . \
+		-x "tests/*" "vendor/*" ".*" "Makefile" "docker-compose.yml" "Dockerfile.tests" "*.md" "phpcs.xml" "phpmd.xml" "phpstan.neon" "phpunit.xml" "codeception.yml" "run-tests.sh" "install-wp-tests.sh" "composer.*" "docs/*" "examples/*" "package.json" "*.cache" "*.zip"
+	@echo "Created paysentinel.zip"

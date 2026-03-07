@@ -148,6 +148,17 @@ Run tests locally:
 make test
 ```
 
+## Packaging & Releases
+
+Use the Makefile to create a distributable ZIP for releases:
+
+```bash
+make package
+# produces paysentinel.zip
+```
+
+This target excludes tests, vendor/dev files, and documentation to produce a compact plugin ZIP suitable for distribution.
+
 ## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:

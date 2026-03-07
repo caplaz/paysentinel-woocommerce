@@ -46,10 +46,12 @@ If you're integrating an unlisted payment gateway or a custom notification servi
 For an up-to-date and complete list of hooks, please search the source code for `do_action` and `apply_filters`. Standard hooks include:
 
 ### Actions
+
 - `paysentinel_after_health_check` — Triggered when a health check calculates and commits gateway status to database.
 - `paysentinel_transaction_logged` — Triggered whenever a transaction is logged successfully into the custom table.
 
 ### Filters
+
 - `paysentinel_alert_threshold` — Allows modifying the dynamic success rate threshold necessary to trigger an alert.
 - `paysentinel_is_retriable_error` — Modify the boolean response matching failed transactions that are eligible for retry.
 
@@ -73,9 +75,16 @@ You are highly encouraged to write DocBlocks describing the functionality of met
 
 ## Running Tests
 
-Automated testing is integrated inside the plugin via **PHPUnit** and WP Mock. Check the `tests/` directory for existing test cases.
+Automated testing is integrated inside the plugin via **PHPUnit** and the WordPress test suite. Use the project's Makefile to run tests in the Docker test environment:
 
 ```bash
-composer test
-composer test-coverage
+make test
+# or to rebuild the test image first:
+make test-rebuild
+```
+
+For CI and release packaging we use the `Makefile` as well.
+
+```bash
+make package  # creates paysentinel.zip for releases
 ```
