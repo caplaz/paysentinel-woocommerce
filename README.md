@@ -179,5 +179,5 @@ PaySentinel is developed and maintained with care for the WooCommerce community.
 ---
 
 **Version:** 1.0.2  
-**Last Updated:** March 3, 2026  
+**Last Updated:** March 7, 2026  
 **Status:** Production Ready
