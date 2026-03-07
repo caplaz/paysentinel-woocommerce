@@ -2,7 +2,7 @@
 /**
  * Alert Notifier Class
  *
- * Handles sending notifications through various channels (email, SMS, Slack).
+ * Handles sending notifications through various channels (email, Slack, etc.).
  *
  * @package PaySentinel
  * @since 1.0.0
@@ -66,7 +66,7 @@ class PaySentinel_Alert_Notifier {
 			return false;
 		}
 
-		// Send through API so they appear in the SaaS dashboard - SaaS will handle all email/sms/slack channel deliveries
+		// Send through API so they appear in the SaaS dashboard - SaaS will handle all email/slack channel deliveries
 		return $this->send_to_api( $alert_data, $settings );
 	}
 
@@ -168,20 +168,7 @@ class PaySentinel_Alert_Notifier {
 		}
 	}
 
-	/**
-	 * Send SMS notification (legacy method - now uses API)
-	 * Kept for backward compatibility with test endpoints
-	 *
-	 * @param array  $alert_data   Alert data.
-	 * @param string $phone_number Phone number.
-	 * @return bool Success.
-	 */
-	private function send_sms_notification( $alert_data, $phone_number ) {
-		// SMS is no longer a supported notification channel. Channels supported by the SaaS API
-		// are: SLACK, EMAIL, DISCORD, TEAMS.
-		error_log( 'PaySentinel: SMS notifications are no longer supported. Use email or Slack alerts instead.' );
-		return false;
-	}
+
 
 	/**
 	 * Send Slack notification (legacy method - now uses API)
@@ -192,9 +179,9 @@ class PaySentinel_Alert_Notifier {
 	 * @return bool Success.
 	 */
 	private function send_slack_notification( $alert_data, $webhook_url ) {
-		$settings                                                          = get_option( 'paysentinel_settings', array() );
+		$settings = get_option( 'paysentinel_settings', array() );
 		$settings[ PaySentinel_Settings_Constants::ALERT_SLACK_WORKSPACE ] = $webhook_url;
-		$alert_data['channels']                                            = array( 'SLACK' );
+		$alert_data['channels'] = array( 'SLACK' );
 		return $this->send_to_api( $alert_data, $settings );
 	}
 
@@ -245,18 +232,6 @@ class PaySentinel_Alert_Notifier {
 		}
 	}
 
-	/**
-	 * Test SMS configuration
-	 *
-	 * @param string $phone_number Phone number.
-	 * @return array Test result.
-	 */
-	public function test_sms_configuration( $phone_number ) {
-		return array(
-			'success' => false,
-			'message' => __( 'SMS notifications are no longer supported. Please use email or Slack alerts instead.', 'paysentinel' ),
-		);
-	}
 
 	/**
 	 * Test Slack configuration

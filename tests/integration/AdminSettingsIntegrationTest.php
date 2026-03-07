@@ -211,12 +211,10 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 
 		// Config fields
 		ob_start();
-		$this->handler->render_field_alert_phone_number();
 		$this->handler->render_field_alert_slack_workspace();
 		$this->handler->render_field_gateway_alert_config();
 		$this->handler->render_field_test_failure_rate();
 		$output = ob_get_clean();
-		$this->assertStringContainsString( 'alert_phone_number', $output );
 		$this->assertStringContainsString( 'slack-integration-container', $output );
 		$this->assertStringContainsString( 'gateway_alert_config', $output );
 
@@ -238,7 +236,6 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
 
 		ob_start();
-		$this->handler->render_field_alert_phone_number();
 		$this->handler->render_field_gateway_alert_config();
 		$output = ob_get_clean();
 
@@ -250,7 +247,6 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'invalid' );
 
 		ob_start();
-		$this->handler->render_field_alert_phone_number();
 		$this->handler->render_field_gateway_alert_config();
 		$output = ob_get_clean();
 

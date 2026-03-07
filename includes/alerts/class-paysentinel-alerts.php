@@ -413,18 +413,6 @@ class PaySentinel_Alerts {
 	}
 
 	/**
-	 * Test SMS configuration
-	 *
-	 * Delegates to notifier class.
-	 *
-	 * @param string $phone_number Phone number to test.
-	 * @return array Test result.
-	 */
-	public function test_sms_configuration( $phone_number ) {
-		return $this->notifier->test_sms_configuration( $phone_number );
-	}
-
-	/**
 	 * Test Slack configuration
 	 *
 	 * Delegates to notifier class.

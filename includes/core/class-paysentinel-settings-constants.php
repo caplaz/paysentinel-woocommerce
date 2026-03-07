@@ -24,7 +24,6 @@ class PaySentinel_Settings_Constants {
 	 * Alert Settings Keys
 	 */
 	public const ALERT_EMAIL                  = 'alert_email';
-	public const ALERT_PHONE_NUMBER           = 'alert_phone_number';
 	public const ALERT_SLACK_WORKSPACE        = 'alert_slack_workspace';
 	public const ALERT_THRESHOLD              = 'alert_threshold';
 	public const IMMEDIATE_TRANSACTION_ALERTS = 'immediate_transaction_alerts';
@@ -59,7 +58,6 @@ class PaySentinel_Settings_Constants {
 	 * Alert Notification Channels
 	 */
 	public const CHANNEL_EMAIL = 'email';
-	public const CHANNEL_SMS   = 'sms';
 	public const CHANNEL_SLACK = 'slack';
 
 	/**

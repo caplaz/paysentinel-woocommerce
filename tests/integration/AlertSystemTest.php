@@ -93,23 +93,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'View Dashboard', $html );
 	}
 
-	/**
-	 * Test SMS message creation.
-	 */
-	public function test_template_manager_create_sms_message() {
-		$alert_data = array(
-			'gateway_id'          => 'stripe',
-			'severity'            => 'high',
-			'success_rate'        => 50.0,
-			'failed_transactions' => 5,
-			'total_transactions'  => 10,
-		);
 
-		$sms = $this->template_manager->create_sms_message( $alert_data );
-		$this->assertStringContainsString( 'HIGH ALERT', $sms );
-		$this->assertStringContainsString( 'Stripe', $sms );
-		$this->assertStringContainsString( '50.0%', $sms );
-	}
 
 	/**
 	 * Test Slack payload creation.
@@ -285,9 +269,6 @@ class AlertSystemTest extends WP_UnitTestCase {
 			10,
 			3
 		);
-
-		$sms_result = $this->notifier->test_sms_configuration( '+1234567890' );
-		$this->assertTrue( $sms_result['success'] );
 
 		$slack_result = $this->notifier->test_slack_configuration( 'SLACK-ID' );
 		$this->assertTrue( $slack_result['success'] );
@@ -693,46 +674,37 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$send_to_api = new ReflectionMethod( 'PaySentinel_Alert_Notifier', 'send_to_api' );
 		$send_to_api->setAccessible( true );
 
-		// 1. Slack payload
+		// 1. Slack payload with channels array
 		update_option( 'paysentinel_slack_workspace', 'SLACK-ID' );
 		$send_to_api->invoke(
 			$this->notifier,
 			array(
-				'gateway_id'     => 'stripe',
-				'severity'       => 'high',
-				'alert_type'     => 'SLACK',
-				'integration_id' => 'SLACK-ID',
+				'gateway_id'  => 'stripe',
+				'severity'    => 'high',
+				'alert_type'  => 'low_success_rate',
+				'channels'    => array( 'SLACK' ),
+				'message'     => 'Test alert',
 			),
 			array()
 		);
-		$this->assertEquals( 'SLACK', $last_payload['alert_type'] );
-		$this->assertEquals( 'SLACK-ID', $last_payload['integration_id'] );
+		// Verify the payload contains channels array instead of alert_type
+		$this->assertArrayHasKey( 'channels', $last_payload );
+		$this->assertContains( 'SLACK', $last_payload['channels'] );
 
-		// 2. SMS payload
+		// 2. Email payload (default with no channels specified)
 		$send_to_api->invoke(
 			$this->notifier,
 			array(
-				'gateway_id' => 'stripe',
-				'severity'   => 'high',
-				'alert_type' => 'SMS',
-				'recipient'  => '+1111111111',
-			),
-			array()
-		);
-		$this->assertEquals( 'SMS', $last_payload['alert_type'] );
-		$this->assertEquals( '+1111111111', $last_payload['recipient'] );
-
-		// 3. Email payload (default)
-		$send_to_api->invoke(
-			$this->notifier,
-			array(
-				'gateway_id' => 'stripe',
-				'severity'   => 'high',
-				'alert_type' => 'general_alert',
+				'gateway_id'  => 'stripe',
+				'severity'    => 'high',
+				'alert_type'  => 'low_success_rate',
+				'message'     => 'Test alert',
 			),
 			array( PaySentinel_Settings_Constants::ALERT_EMAIL => 'admin@test.com' )
 		);
-		$this->assertEquals( 'general_alert', $last_payload['alert_type'] );
+		// When no channels are specified, the payload should not include channels field
+		// and the API will deliver to all enabled channels
+		$this->assertArrayHasKey( 'message', $last_payload );
 
 		remove_all_filters( 'pre_http_request' );
 	}

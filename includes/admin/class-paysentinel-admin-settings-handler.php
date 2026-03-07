@@ -166,14 +166,6 @@ class PaySentinel_Admin_Settings_Handler {
 		);
 
 		add_settings_field(
-			'alert_phone_number',
-			__( 'Alert Phone Number (SMS)', 'paysentinel' ),
-			array( $this, 'render_field_alert_phone_number' ),
-			'paysentinel_settings',
-			'paysentinel_notifications'
-		);
-
-		add_settings_field(
 			'alert_slack_workspace',
 			__( 'Slack Integration', 'paysentinel' ),
 			array( $this, 'render_field_alert_slack_workspace' ),
@@ -611,7 +603,7 @@ class PaySentinel_Admin_Settings_Handler {
 					<p style="margin: 0; color: #d63638; font-size: 13px;">
 						<span class="dashicons dashicons-warning"
 							style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
-						<?php esc_html_e( 'Enter a valid license key to unlock real-time monitoring and SMS/Slack alerts.', 'paysentinel' ); ?>
+						<?php esc_html_e( 'Enter a valid license key to unlock real-time monitoring and Slack alerts.', 'paysentinel' ); ?>
 					</p>
 					<div style="margin-top: 15px;">
 						<a href="<?php echo esc_url( PaySentinel_License::SAAS_URL . '/plans' ); ?>" target="_blank"
@@ -675,47 +667,6 @@ class PaySentinel_Admin_Settings_Handler {
 	/**
 	 * Render alert phone number field
 	 */
-	public function render_field_alert_phone_number() {
-		$settings  = get_option( 'paysentinel_settings', array() );
-		$phone     = isset( $settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ] ) ? sanitize_text_field( $settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ] ) : '';
-		$tier      = $this->license->get_license_tier();
-		$is_locked = ! in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
-		?>
-		<div style="position: relative;">
-			<input type="tel" name="paysentinel_options[alert_phone_number]" value="<?php echo esc_attr( $phone ); ?>"
-				class="regular-text" placeholder="+1234567890" <?php echo $is_locked ? 'disabled' : ''; ?> />
-			<?php if ( $is_locked ) : ?>
-				<span class="dashicons dashicons-lock" style="color: #d63638; position: absolute; right: -30px; top: 5px;"
-					title="<?php esc_attr_e( 'Starter plan or higher required', 'paysentinel' ); ?>"></span>
-			<?php else : ?>
-				<span class="dashicons dashicons-yes-alt" style="color: #46b450; position: absolute; right: -30px; top: 5px;"
-					title="<?php esc_attr_e( 'Feature available in your plan', 'paysentinel' ); ?>"></span>
-			<?php endif; ?>
-		</div>
-		<p class="description">
-			<?php
-			if ( $is_locked ) {
-				printf(
-					__( 'SMS alerts delivered via PaySentinel servers. <strong>Requires Starter plan or higher.</strong> <a href="%s" target="_blank">Upgrade Now</a>', 'paysentinel' ),
-					PaySentinel_License::SAAS_URL . '/plans'
-				);
-			} else {
-				$quota = $this->license->get_sms_quota();
-				if ( $quota && isset( $quota['sms_remaining'], $quota['sms_limit'] ) ) {
-					printf(
-						__( 'SMS alerts delivered via PaySentinel servers. Quota: %1$d/%2$d remaining this month.', 'paysentinel' ),
-						$quota['sms_remaining'],
-						$quota['sms_limit']
-					);
-				} else {
-					esc_html_e( 'SMS alerts delivered via PaySentinel servers. Enter your phone number with country code (e.g., +1234567890).', 'paysentinel' );
-				}
-			}
-			?>
-		</p>
-		<?php
-	}
-
 	/**
 	 * Render alert Slack workspace field
 	 */
@@ -1022,8 +973,6 @@ class PaySentinel_Admin_Settings_Handler {
 								<label style="margin-right: 10px;">
 									<input type="checkbox"
 										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
-										value="sms" <?php checked( in_array( 'sms', $channels ), true ); ?> 			<?php echo $is_locked ? 'disabled' : ''; ?> />
-									<?php esc_html_e( 'SMS', 'paysentinel' ); ?>
 								</label>
 								<label>
 									<input type="checkbox"
@@ -1242,7 +1191,7 @@ class PaySentinel_Admin_Settings_Handler {
 						<p style="margin: 0; color: #d63638; font-size: 13px;">
 							<span class="dashicons dashicons-warning"
 								style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;"></span>
-							<?php esc_html_e( 'Enter a valid license key to unlock real-time monitoring and SMS/Slack alerts.', 'paysentinel' ); ?>
+							<?php esc_html_e( 'Enter a valid license key to unlock real-time monitoring and Slack alerts.', 'paysentinel' ); ?>
 						</p>
 						<div style="margin-top: 15px;">
 							<a href="<?php echo esc_url( PaySentinel_License::SAAS_URL . '/plans' ); ?>" target="_blank"

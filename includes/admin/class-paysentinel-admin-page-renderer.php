@@ -94,7 +94,7 @@ class PaySentinel_Admin_Page_Renderer {
 	 * Render dashboard page
 	 *
 	 * Renders the main dashboard page for the Payment Monitor plugin with license info,
-	 * SMS quota display, and the React-based dashboard component.
+	 * React-based dashboard component.
 	 */
 	public function render_dashboard_page() {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -103,7 +103,6 @@ class PaySentinel_Admin_Page_Renderer {
 
 		// Get license info for header display
 		$tier        = $this->license->get_license_tier();
-		$quota       = $this->license->get_sms_quota();
 		$tier_labels = array(
 			'free'    => __( 'Free', 'paysentinel' ),
 			'starter' => __( 'Starter', 'paysentinel' ),
@@ -141,28 +140,6 @@ class PaySentinel_Admin_Page_Renderer {
 
 			<div class="dashboard-banner-area" style="margin-bottom: 15px;">
 				<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
-					<!-- SMS Quota Display -->
-					<?php if ( $quota && isset( $quota['sms_remaining'], $quota['sms_limit'] ) ) : ?>
-						<?php
-						$usage_percent = ( $quota['sms_limit'] > 0 ) ? ( ( $quota['sms_limit'] - $quota['sms_remaining'] ) / $quota['sms_limit'] ) * 100 : 0;
-						$quota_color   = '#46b450'; // green
-						if ( $usage_percent >= 80 ) {
-							$quota_color = '#dc3232'; // red
-						} elseif ( $usage_percent >= 60 ) {
-							$quota_color = '#f0b849'; // yellow
-						}
-						?>
-						<div
-							style="background: #fff; border: 1px solid #ccd0d4; padding: 6px 12px; border-radius: 4px; font-size: 13px; display: inline-flex; align-items: center;">
-							<span class="dashicons dashicons-smartphone"
-								style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px; color: #646970;"></span>
-							<span
-								style="color: #646970; margin-right: 5px;"><?php esc_html_e( 'SMS Quota:', 'paysentinel' ); ?></span>
-							<span style="font-weight: 600; color: <?php echo esc_attr( $quota_color ); ?>;">
-								<?php echo esc_html( $quota['sms_remaining'] ); ?>/<?php echo esc_html( $quota['sms_limit'] ); ?>
-							</span>
-						</div>
-					<?php endif; ?>
 
 					<!-- Quota Exceeded Warning -->
 					<?php
@@ -173,7 +150,7 @@ class PaySentinel_Admin_Page_Renderer {
 							style="background: #dc3232; color: white; padding: 6px 12px; border-radius: 4px; font-size: 13px; display: inline-flex; align-items: center;">
 							<span class="dashicons dashicons-warning"
 								style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px;"></span>
-							<?php esc_html_e( 'SMS Quota Exceeded', 'paysentinel' ); ?>
+							<?php esc_html_e( 'Alert Quota Exceeded', 'paysentinel' ); ?>
 							<a href="<?php echo esc_url( PaySentinel_License::SAAS_URL . '/upgrade' ); ?>" target="_blank"
 								style="color: white; text-decoration: underline; margin-left: 10px;">
 								<?php esc_html_e( 'Upgrade', 'paysentinel' ); ?>
@@ -436,7 +413,7 @@ class PaySentinel_Admin_Page_Renderer {
 					<div style="margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #ccd0d4; border-radius: 4px;">
 						<h3 style="margin-top: 0;"><?php esc_html_e( 'Subscription Benefits', 'paysentinel' ); ?></h3>
 						<ul style="list-style: disc; margin-left: 20px;">
-							<li><?php esc_html_e( 'Real-time monitoring and instant SMS alerts.', 'paysentinel' ); ?></li>
+							<li><?php esc_html_e( 'Real-time monitoring and instant Slack alerts.', 'paysentinel' ); ?></li>
 							<li><?php esc_html_e( 'Slack integration for team notifications.', 'paysentinel' ); ?></li>
 							<li><?php esc_html_e( 'Advanced gateway-specific performance thresholds.', 'paysentinel' ); ?></li>
 							<li><?php esc_html_e( 'Priority support and automatic updates.', 'paysentinel' ); ?></li>
@@ -497,7 +474,7 @@ class PaySentinel_Admin_Page_Renderer {
 					</p>
 					<p style="margin-bottom: 10px;">
 						<strong><?php esc_html_e( 'Alerts:', 'paysentinel' ); ?></strong>
-						<?php esc_html_e( 'Sends notifications via email, SMS, or Slack when payment issues are detected.', 'paysentinel' ); ?>
+						<?php esc_html_e( 'Sends notifications via email or Slack when payment issues are detected.', 'paysentinel' ); ?>
 					</p>
 					<p style="margin-bottom: 10px;">
 						<strong><?php esc_html_e( 'Auto-Retry:', 'paysentinel' ); ?></strong>
@@ -505,7 +482,7 @@ class PaySentinel_Admin_Page_Renderer {
 					</p>
 					<p style="margin-bottom: 0;">
 						<strong><?php esc_html_e( 'License:', 'paysentinel' ); ?></strong>
-						<?php esc_html_e( 'Required for premium features like SMS alerts, Slack integration, and advanced analytics.', 'paysentinel' ); ?>
+						<?php esc_html_e( 'Required for premium features like Slack integration and advanced analytics.', 'paysentinel' ); ?>
 					</p>
 				</div>
 			<?php endif; ?>

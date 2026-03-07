@@ -42,7 +42,7 @@ class PaySentinel_License {
 	 */
 	public const GATEWAY_LIMITS = array(
 		'free'    => 1,
-		'starter' => 5,
+		'starter' => 3,
 		'pro'     => 999,
 		'agency'  => 999,
 	);
@@ -505,7 +505,7 @@ class PaySentinel_License {
 	/**
 	 * Check if a specific feature is available in current license tier
 	 *
-	 * @param string $feature_name Feature name (e.g., 'sms_alerts', 'slack_alerts')
+	 * @param string $feature_name Feature name (e.g., 'slack_alerts')
 	 *
 	 * @return bool|int Feature available (true/false or numeric limit)
 	 */
@@ -525,25 +525,6 @@ class PaySentinel_License {
 		}
 
 		return $license_data['features'][ $feature_name ];
-	}
-
-	/**
-	 * Get SMS quota information
-	 *
-	 * @return array|null Quota info with 'limit', 'used', 'remaining', 'reset_date'
-	 */
-	public function get_sms_quota() {
-		if ( 'valid' !== $this->get_license_status() ) {
-			return null;
-		}
-
-		$license_data = $this->get_license_data();
-
-		if ( ! $license_data || ! isset( $license_data['quota'] ) ) {
-			return null;
-		}
-
-		return $license_data['quota'];
 	}
 
 	/**
@@ -639,6 +620,13 @@ class PaySentinel_License {
 				update_option( self::OPTION_LICENSE_STATUS, 'invalid' );
 			} else {
 				update_option( self::OPTION_LICENSE_STATUS, 'valid' );
+			}
+
+			// Handle integrations (currently just Slack workspace ID)
+			if ( isset( $data['integrations'] ) && is_array( $data['integrations'] ) ) {
+				if ( isset( $data['integrations']['slack']['id'] ) ) {
+					update_option( 'paysentinel_slack_workspace', $data['integrations']['slack']['id'] );
+				}
 			}
 
 			update_option( self::OPTION_LICENSE_DATA, $current_data );

@@ -339,7 +339,6 @@ class PaySentinel_Admin {
 			'license_key'           => '',
 			'enable_test_mode'      => 0, // Changed to int for test compatibility
 			'alert_email'           => '',
-			'alert_phone_number'    => '',
 			'alert_slack_workspace' => '',
 			'gateway_alert_config'  => array(),
 			'test_failure_rate'     => 0,
@@ -550,11 +549,6 @@ class PaySentinel_Admin {
 			'retry_delay',
 			'alert_email',
 			'slack_webhook_url',
-			'sms_enabled',
-			'twilio_sid',
-			'twilio_token',
-			'twilio_from_number',
-			'alert_phone_numbers',
 		);
 
 		foreach ( $settings as $key => $value ) {

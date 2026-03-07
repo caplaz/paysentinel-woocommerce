@@ -316,25 +316,6 @@ class PaySentinel_Config {
 	}
 
 	/**
-	 * Get alert phone number
-	 *
-	 * @return string Alert phone number.
-	 */
-	public function get_alert_phone() {
-		return $this->get( 'alert_phone', '' );
-	}
-
-	/**
-	 * Set alert phone number
-	 *
-	 * @param string $phone Phone number.
-	 * @return bool True on success, false on failure.
-	 */
-	public function set_alert_phone( $phone ) {
-		return $this->set( 'alert_phone', sanitize_text_field( $phone ) );
-	}
-
-	/**
 	 * Check if test mode is enabled
 	 *
 	 * @return bool True if test mode is enabled.

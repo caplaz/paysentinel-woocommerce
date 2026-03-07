@@ -318,28 +318,6 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test SMS quota retrieval.
-	 */
-	public function test_get_sms_quota() {
-		$this->assertNull( $this->license->get_sms_quota() );
-
-		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
-		update_option(
-			PaySentinel_License::OPTION_LICENSE_DATA,
-			array(
-				'quota' => array(
-					'limit' => 100,
-					'used'  => 10,
-				),
-			)
-		);
-
-		$quota = $this->license->get_sms_quota();
-		$this->assertEquals( 100, $quota['limit'] );
-		$this->assertEquals( 10, $quota['used'] );
-	}
-
-	/**
 	 * Test license admin notices.
 	 */
 	public function test_license_admin_notices() {

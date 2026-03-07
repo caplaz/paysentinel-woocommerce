@@ -162,9 +162,9 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 	public function test_low_volume_zero_success_severity() {
 		$gateway_id  = 'test_gateway';
 		$health_data = array(
-			'24h' => array(
+			'1hour' => array(
 				'gateway_id'              => $gateway_id,
-				'period'                  => '24h',
+				'period'                  => '1hour',
 				'total_transactions'      => 1,
 				'successful_transactions' => 0,
 				'failed_transactions'     => 1,
@@ -199,9 +199,9 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 	public function test_high_volume_zero_success_severity() {
 		$gateway_id  = 'test_gateway_high';
 		$health_data = array(
-			'24h' => array(
+			'1hour' => array(
 				'gateway_id'              => $gateway_id,
-				'period'                  => '24h',
+				'period'                  => '1hour',
 				'total_transactions'      => 15, // Sufficient volume
 				'successful_transactions' => 0,
 				'failed_transactions'     => 15,

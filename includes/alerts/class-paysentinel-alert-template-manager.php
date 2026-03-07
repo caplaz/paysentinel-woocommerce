@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * PaySentinel_Alert_Template_Manager class
  *
  * Responsible for creating formatted messages for various alert channels
- * including email, SMS, and Slack notifications.
+ * including email and Slack notifications.
  */
 class PaySentinel_Alert_Template_Manager {
 
@@ -209,29 +209,6 @@ class PaySentinel_Alert_Template_Manager {
 		</html>
 		<?php
 		return ob_get_clean();
-	}
-
-	/**
-	 * Create SMS message
-	 *
-	 * @param array $alert_data Alert data.
-	 * @return string SMS message.
-	 */
-	public function create_sms_message( $alert_data ) {
-		$gateway_name = $this->get_gateway_name( $alert_data['gateway_id'] );
-		$success_rate = number_format( $alert_data['success_rate'], 1 );
-		$severity     = strtoupper( $alert_data['severity'] );
-
-		$message = sprintf(
-			'%s ALERT: %s gateway success rate dropped to %s%% (%d/%d transactions failed). Check your dashboard immediately.',
-			$severity,
-			$gateway_name,
-			$success_rate,
-			$alert_data['failed_transactions'],
-			$alert_data['total_transactions']
-		);
-
-		return $message;
 	}
 
 	/**
