@@ -630,40 +630,8 @@ class PaySentinel_License {
 				$current_data['quota']      = isset( $data['quota'] ) ? $data['quota'] : null;
 				$current_data['expires_at'] = isset( $data['expires_at'] ) ? $data['expires_at'] : ( isset( $current_data['expiration_ts'] ) ? $current_data['expiration_ts'] : null );
 				$current_data['valid']      = isset( $data['valid'] ) ? $data['valid'] : true;
-
-				// Ensure integrations are cached in license data too
-				if ( isset( $data['integrations'] ) ) {
-					$current_data['integrations'] = $data['integrations'];
-				}
 			} else {
 				$current_data = $data;
-			}
-
-			// Sync integrations (Standalone options)
-			if ( isset( $data['integrations']['slack']['id'] ) ) {
-				update_option( 'paysentinel_slack_workspace', $data['integrations']['slack']['id'] );
-
-				// Also update main options for compatibility
-				$options = get_option( 'paysentinel_options', array() );
-				$options[ PaySentinel_Settings_Constants::ALERT_SLACK_WORKSPACE ] = $data['integrations']['slack']['id'];
-				update_option( 'paysentinel_options', $options );
-			}
-
-			// Update license status
-			if ( isset( $data['valid'] ) && $data['valid'] ) {
-				update_option( self::OPTION_LICENSE_STATUS, 'valid' );
-			}
-
-			update_option( self::OPTION_LICENSE_DATA, $current_data );
-			update_option( self::OPTION_LAST_CHECK, current_time( 'timestamp' ) );
-
-			// Sync active integrations
-			if ( isset( $data['integrations'] ) && is_array( $data['integrations'] ) ) {
-				if ( isset( $data['integrations']['slack']['id'] ) ) {
-					update_option( self::OPTION_SLACK_WORKSPACE, sanitize_text_field( $data['integrations']['slack']['id'] ) );
-				} else {
-					delete_option( self::OPTION_SLACK_WORKSPACE );
-				}
 			}
 
 			// Update license status based on sync data
@@ -672,6 +640,9 @@ class PaySentinel_License {
 			} else {
 				update_option( self::OPTION_LICENSE_STATUS, 'valid' );
 			}
+
+			update_option( self::OPTION_LICENSE_DATA, $current_data );
+			update_option( self::OPTION_LAST_CHECK, current_time( 'timestamp' ) );
 
 			return array(
 				'success' => true,

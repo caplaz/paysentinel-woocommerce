@@ -98,7 +98,6 @@ class PaySentinel_Alert_Notifier {
 		$payload = array(
 			'license_key' => $license_key,
 			'site_url'    => get_site_url(),
-			'alert_type'  => isset( $alert_data['alert_type'] ) ? $alert_data['alert_type'] : 'general_alert',
 			'message'     => $message,
 			'data'        => array(
 				'gateway'      => $alert_data['gateway_id'],
@@ -110,12 +109,10 @@ class PaySentinel_Alert_Notifier {
 			),
 		);
 
-		// Add recipients back for explicit test configurations
-		if ( isset( $alert_data['recipient'] ) ) {
-			$payload['recipient'] = $alert_data['recipient'];
-		}
-		if ( isset( $alert_data['integration_id'] ) ) {
-			$payload['integration_id'] = $alert_data['integration_id'];
+		// If specific channels are requested, pass them. Valid values: SLACK, EMAIL, DISCORD, TEAMS.
+		// Omitting channels causes the SaaS to deliver to all enabled channels for the account.
+		if ( ! empty( $alert_data['channels'] ) && is_array( $alert_data['channels'] ) ) {
+			$payload['channels'] = $alert_data['channels'];
 		}
 
 		// Send to API
@@ -155,18 +152,14 @@ class PaySentinel_Alert_Notifier {
 			error_log( 'PaySentinel: ' . $error_msg );
 			update_option( 'paysentinel_quota_exceeded', true );
 			return false;
-		} elseif ( 404 === $response_code ) {
-			// Integration not found
-			error_log( 'PaySentinel: Integration not found' );
-			return false;
 		} elseif ( 429 === $response_code ) {
 			// Rate limit exceeded
 			$retry_after = wp_remote_retrieve_header( $response, 'Retry-After' );
 			error_log( 'PaySentinel: Rate limit exceeded. Retry after: ' . ( $retry_after ? $retry_after . ' seconds' : 'unknown' ) );
 			return false;
 		} elseif ( 502 === $response_code ) {
-			// Integration service error (Slack/SMS provider failure)
-			error_log( 'PaySentinel: Integration service error (Slack/SMS provider failure)' );
+			// Integration service error (Slack/Email provider failure)
+			error_log( 'PaySentinel: Integration service error (Slack/Email provider failure)' );
 			return false;
 		} else {
 			// Other error
@@ -184,11 +177,10 @@ class PaySentinel_Alert_Notifier {
 	 * @return bool Success.
 	 */
 	private function send_sms_notification( $alert_data, $phone_number ) {
-		$settings = get_option( 'paysentinel_settings', array() );
-		$settings[ PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER ] = $phone_number;
-		$alert_data['alert_type']                                       = 'SMS'; // Explicitly set alert_type for API
-		$alert_data['recipient']                                        = $phone_number; // Add recipient for API
-		return $this->send_to_api( $alert_data, $settings );
+		// SMS is no longer a supported notification channel. Channels supported by the SaaS API
+		// are: SLACK, EMAIL, DISCORD, TEAMS.
+		error_log( 'PaySentinel: SMS notifications are no longer supported. Use email or Slack alerts instead.' );
+		return false;
 	}
 
 	/**
@@ -200,10 +192,9 @@ class PaySentinel_Alert_Notifier {
 	 * @return bool Success.
 	 */
 	private function send_slack_notification( $alert_data, $webhook_url ) {
-		$settings = get_option( 'paysentinel_settings', array() );
+		$settings                                                          = get_option( 'paysentinel_settings', array() );
 		$settings[ PaySentinel_Settings_Constants::ALERT_SLACK_WORKSPACE ] = $webhook_url;
-		$alert_data['alert_type']     = 'SLACK'; // Explicitly set alert_type for API
-		$alert_data['integration_id'] = $webhook_url; // Add integration_id for API
+		$alert_data['channels']                                            = array( 'SLACK' );
 		return $this->send_to_api( $alert_data, $settings );
 	}
 
@@ -261,32 +252,9 @@ class PaySentinel_Alert_Notifier {
 	 * @return array Test result.
 	 */
 	public function test_sms_configuration( $phone_number ) {
-		if ( ! $this->is_premium_feature_available() ) {
-			return array(
-				'success' => false,
-				'message' => __( 'Premium license required for SMS notifications', 'paysentinel' ),
-			);
-		}
-
-		// Create test alert data
-		$test_alert_data = array(
-			'alert_type'          => 'test',
-			'gateway_id'          => 'test_gateway',
-			'severity'            => 'info',
-			'success_rate'        => 75.5,
-			'period'              => '24hour',
-			'total_transactions'  => 100,
-			'failed_transactions' => 25,
-			'calculated_at'       => current_time( 'mysql' ),
-		);
-
-		$result = $this->send_sms_notification( $test_alert_data, $phone_number );
-
 		return array(
-			'success' => $result,
-			'message' => $result
-				? __( 'Test SMS sent successfully', 'paysentinel' )
-				: __( 'Failed to send test SMS. Please check your configuration.', 'paysentinel' ),
+			'success' => false,
+			'message' => __( 'SMS notifications are no longer supported. Please use email or Slack alerts instead.', 'paysentinel' ),
 		);
 	}
 
