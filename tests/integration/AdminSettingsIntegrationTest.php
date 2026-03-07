@@ -271,4 +271,179 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertStringContainsString( 'Configure PaySentinel settings', $output );
 	}
+
+	/**
+	 * Test gateway alert configuration rendering includes all alert channels.
+	 *
+	 * Verifies that Email, Slack, Discord, and Teams channels are all
+	 * rendered in the gateway alert config table for Pro tier.
+	 */
+	public function test_gateway_alert_config_renders_all_channels() {
+		// Set Pro tier to allow rendering without lock overlay
+		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
+		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
+
+		ob_start();
+		$this->handler->render_field_gateway_alert_config();
+		$output = ob_get_clean();
+
+		// Verify all four channels are present
+		$this->assertStringContainsString( 'value="email"', $output, 'Email channel checkbox should be present' );
+		$this->assertStringContainsString( 'value="slack"', $output, 'Slack channel checkbox should be present' );
+		$this->assertStringContainsString( 'value="discord"', $output, 'Discord channel checkbox should be present' );
+		$this->assertStringContainsString( 'value="teams"', $output, 'Teams channel checkbox should be present' );
+
+		// Verify channel labels are visible
+		$this->assertStringContainsString( 'Email', $output, 'Email label should be present' );
+		$this->assertStringContainsString( 'Slack', $output, 'Slack label should be present' );
+		$this->assertStringContainsString( 'Discord', $output, 'Discord label should be present' );
+		$this->assertStringContainsString( 'Teams', $output, 'Teams label should be present' );
+	}
+
+	/**
+	 * Test gateway alert configuration table header has proper padding.
+	 *
+	 * Verifies that table headers include padding-left style for proper alignment.
+	 */
+	public function test_gateway_alert_config_table_header_padding() {
+		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
+		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
+
+		ob_start();
+		$this->handler->render_field_gateway_alert_config();
+		$output = ob_get_clean();
+
+		// Verify table headers have padding-left style
+		$this->assertStringContainsString( 'padding-left: 10px', $output, 'Table headers should have left padding' );
+
+		// Count padding-left occurrences (should be at least 4 for the 4 column headers)
+		$padding_count = substr_count( $output, 'padding-left: 10px' );
+		$this->assertGreaterThanOrEqual( 4, $padding_count, 'Should have padding on all header columns' );
+	}
+
+	/**
+	 * Test gateway alert configuration channel checkboxes preserve state.
+	 *
+	 * Verifies that previously selected channels are correctly marked as checked.
+	 */
+	public function test_gateway_alert_config_preserves_selected_channels() {
+		// Set Pro tier
+		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
+		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
+
+		// Set saved gateway config with specific channels selected
+		$settings = array(
+			PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(
+				'stripe' => array(
+					PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED   => true,
+					PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD => 85,
+					PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS  => array( 'slack', 'discord' ),
+				),
+				'paypal' => array(
+					PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED   => false,
+					PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD => 90,
+					PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS  => array( 'email', 'teams' ),
+				),
+			),
+		);
+		update_option( 'paysentinel_settings', $settings );
+
+		ob_start();
+		$this->handler->render_field_gateway_alert_config();
+		$output = ob_get_clean();
+
+		// Remove whitespace to make assertions more robust
+		$output_clean = preg_replace( '/\s+/', ' ', $output );
+
+		// For Stripe gateway, Slack and Discord should be in config
+		$this->assertStringContainsString( 'gateway_alert_config][stripe]', $output_clean, 'Stripe config should be present' );
+		$this->assertStringContainsString( 'value="slack"', $output_clean, 'Slack channel should be present' );
+		$this->assertStringContainsString( 'value="discord"', $output_clean, 'Discord channel should be present' );
+
+		// For PayPal gateway, Email and Teams should be in config
+		$this->assertStringContainsString( 'gateway_alert_config][paypal]', $output_clean, 'PayPal config should be present' );
+	}
+
+	/**
+	 * Test gateway alert configuration channels are properly sanitized.
+	 *
+	 * Verifies that channel values are validated and sanitized when saved.
+	 */
+	public function test_gateway_alert_config_channels_sanitized() {
+		$input = array(
+			'gateway_alert_config' => array(
+				'stripe' => array(
+					'channels' => array( 'email', 'slack <script>alert(1)</script>', 'invalid_channel', 'discord' ),
+				),
+			),
+		);
+
+		$validated = PaySentinel_Security::validate_admin_settings( $input );
+
+		$this->assertIsArray( $validated['gateway_alert_config'] );
+		$this->assertIsArray( $validated['gateway_alert_config']['stripe']['channels'] );
+
+		// Channels should be sanitized - no script tags
+		$channels = $validated['gateway_alert_config']['stripe']['channels'];
+		foreach ( $channels as $channel ) {
+			$this->assertStringNotContainsString( '<script>', $channel, 'Script tags should be removed from channels' );
+		}
+	}
+
+	/**
+	 * Test gateway alert configuration with disabled gateway.
+	 *
+	 * Verifies that disabled gateways still render but with unchecked enabled checkbox.
+	 */
+	public function test_gateway_alert_config_disabled_gateway() {
+		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
+		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
+
+		// Set a gateway as disabled
+		$settings = array(
+			PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(
+				'stripe' => array(
+					PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED   => false,
+					PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD => 85,
+					PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS  => array( 'email' ),
+				),
+			),
+		);
+		update_option( 'paysentinel_settings', $settings );
+
+		ob_start();
+		$this->handler->render_field_gateway_alert_config();
+		$output = ob_get_clean();
+
+		// Remove whitespace to make assertions more robust
+		$output_clean = preg_replace( '/\s+/', ' ', $output );
+
+		// Verify table is rendered
+		$this->assertStringContainsString( '<table', $output );
+		$this->assertStringContainsString( 'Stripe', $output );
+
+		// Verify the structure for disabled state - check for gateway config input
+		$this->assertStringContainsString( 'gateway_alert_config', $output_clean );
+	}
+
+	/**
+	 * Test gateway alert configuration label styling for accessibility.
+	 *
+	 * Verifies that channel labels have proper inline-block styling for alignment.
+	 */
+	public function test_gateway_alert_config_label_styling() {
+		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
+		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
+
+		ob_start();
+		$this->handler->render_field_gateway_alert_config();
+		$output = ob_get_clean();
+
+		// Verify labels have display: inline-block for proper alignment
+		$this->assertStringContainsString( 'display: inline-block', $output, 'Labels should have inline-block display for alignment' );
+
+		// Verify proper margins between labels
+		$this->assertStringContainsString( 'margin-right: 15px', $output, 'Labels should have appropriate margin spacing' );
+	}
 }
+

@@ -676,10 +676,10 @@ class PaySentinel_Admin_Settings_Handler {
 			<table class="widefat" style="<?php echo $is_locked ? 'opacity: 0.5; pointer-events: none;' : ''; ?>">
 				<thead>
 					<tr>
-						<th style="width: 30%;"><?php esc_html_e( 'Gateway', 'paysentinel' ); ?></th>
-						<th style="width: 15%;"><?php esc_html_e( 'Enabled', 'paysentinel' ); ?></th>
-						<th style="width: 20%;"><?php esc_html_e( 'Threshold (%)', 'paysentinel' ); ?></th>
-						<th style="width: 35%;"><?php esc_html_e( 'Alert Channels', 'paysentinel' ); ?></th>
+						<th style="width: 30%; padding-left: 10px;"><?php esc_html_e( 'Gateway', 'paysentinel' ); ?></th>
+						<th style="width: 15%; padding-left: 10px;"><?php esc_html_e( 'Enabled', 'paysentinel' ); ?></th>
+						<th style="width: 20%; padding-left: 10px;"><?php esc_html_e( 'Threshold (%)', 'paysentinel' ); ?></th>
+						<th style="width: 35%; padding-left: 10px;"><?php esc_html_e( 'Alert Channels', 'paysentinel' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -705,21 +705,29 @@ class PaySentinel_Admin_Settings_Handler {
 									step="0.1" style="width: 80px;" <?php echo $is_locked ? 'disabled' : ''; ?> />
 							</td>
 							<td>
-								<label style="margin-right: 10px;">
+								<label style="margin-right: 15px; display: inline-block;">
 									<input type="checkbox"
 										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
-										value="email" <?php checked( in_array( 'email', $channels ), true ); ?> 			<?php echo $is_locked ? 'disabled' : ''; ?> />
+										value="email" <?php checked( in_array( 'email', $channels ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
 									<?php esc_html_e( 'Email', 'paysentinel' ); ?>
 								</label>
-								<label style="margin-right: 10px;">
+								<label style="margin-right: 15px; display: inline-block;">
 									<input type="checkbox"
 										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
-								</label>
-								<label>
-									<input type="checkbox"
-										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
-										value="slack" <?php checked( in_array( 'slack', $channels ), true ); ?> 			<?php echo $is_locked ? 'disabled' : ''; ?> />
+										value="slack" <?php checked( in_array( 'slack', $channels ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
 									<?php esc_html_e( 'Slack', 'paysentinel' ); ?>
+								</label>
+								<label style="margin-right: 15px; display: inline-block;">
+									<input type="checkbox"
+										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
+										value="discord" <?php checked( in_array( 'discord', $channels ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
+									<?php esc_html_e( 'Discord', 'paysentinel' ); ?>
+								</label>
+								<label style="display: inline-block;">
+									<input type="checkbox"
+										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
+										value="teams" <?php checked( in_array( 'teams', $channels ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
+									<?php esc_html_e( 'Teams', 'paysentinel' ); ?>
 								</label>
 							</td>
 						</tr>
