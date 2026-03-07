@@ -95,11 +95,7 @@ class PaySentinel_Admin {
 		// Scripts and styles
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 
-		// Slack OAuth callback
-		add_action( 'admin_init', array( $this->ajax_handler, 'handle_slack_callback' ) );
-
 		// AJAX handlers
-		add_action( 'wp_ajax_paysentinel_slack_test', array( $this->ajax_handler, 'handle_slack_test' ) );
 		add_action( 'wp_ajax_paysentinel_sync_integrations', array( $this->ajax_handler, 'handle_sync_integrations' ) );
 		add_action( 'wp_ajax_paysentinel_validate_license', array( $this->ajax_handler, 'handle_validate_license_ajax' ) );
 
@@ -338,8 +334,6 @@ class PaySentinel_Admin {
 			'max_retry_attempts'    => 3,
 			'license_key'           => '',
 			'enable_test_mode'      => 0, // Changed to int for test compatibility
-			'alert_email'           => '',
-			'alert_slack_workspace' => '',
 			'gateway_alert_config'  => array(),
 			'test_failure_rate'     => 0,
 		);

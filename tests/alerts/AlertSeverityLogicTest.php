@@ -17,6 +17,11 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		// Ensure tables exist
 		$this->database_instance->create_tables();
 
+		// Clean up alerts table from previous tests
+		global $wpdb;
+		$alerts_table = $this->database_instance->get_alerts_table();
+		$wpdb->query( "TRUNCATE TABLE $alerts_table" );
+
 		// Enable alerts for testing BEFORE creating alert instances
 		update_option(
 			'paysentinel_options',

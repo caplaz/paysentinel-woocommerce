@@ -294,28 +294,6 @@ class PaySentinel_Config {
 	}
 
 	/**
-	 * Get alert email address
-	 *
-	 * @return string Alert email address.
-	 */
-	public function get_alert_email() {
-		return $this->get( 'alert_email', get_option( 'admin_email' ) );
-	}
-
-	/**
-	 * Set alert email address
-	 *
-	 * @param string $email Email address.
-	 * @return bool True on success, false on failure.
-	 */
-	public function set_alert_email( $email ) {
-		if ( ! is_email( $email ) ) {
-			return false;
-		}
-		return $this->set( 'alert_email', sanitize_email( $email ) );
-	}
-
-	/**
 	 * Check if test mode is enabled
 	 *
 	 * @return bool True if test mode is enabled.
@@ -362,37 +340,6 @@ class PaySentinel_Config {
 	}
 
 	/**
-	 * Get Slack workspace ID
-	 *
-	 * @return string Slack workspace ID.
-	 */
-	public function get_slack_workspace() {
-		return $this->cache['slack_workspace'];
-	}
-
-	/**
-	 * Set Slack workspace ID
-	 *
-	 * @param string $workspace_id Slack workspace ID.
-	 * @return bool True on success, false on failure.
-	 */
-	public function set_slack_workspace( $workspace_id ) {
-		$workspace_id                   = sanitize_text_field( $workspace_id );
-		$this->cache['slack_workspace'] = $workspace_id;
-		return update_option( self::OPTION_SLACK_WORKSPACE, $workspace_id );
-	}
-
-	/**
-	 * Clear Slack workspace ID
-	 *
-	 * @return bool True on success, false on failure.
-	 */
-	public function clear_slack_workspace() {
-		$this->cache['slack_workspace'] = '';
-		return delete_option( self::OPTION_SLACK_WORKSPACE );
-	}
-
-	/**
 	 * Check if quota is exceeded
 	 *
 	 * @return bool True if quota is exceeded.
@@ -433,69 +380,6 @@ class PaySentinel_Config {
 		}
 		$this->cache['retry_stats'] = $stats;
 		return update_option( self::OPTION_RETRY_STATS, $stats );
-	}
-
-	/**
-	 * Get notification frequency
-	 *
-	 * @return string Notification frequency ('immediate', 'daily', 'hourly').
-	 */
-	public function get_notification_frequency() {
-		return $this->get( 'notification_frequency', 'immediate' );
-	}
-
-	/**
-	 * Set notification frequency
-	 *
-	 * @param string $frequency Notification frequency.
-	 * @return bool True on success, false on failure.
-	 */
-	public function set_notification_frequency( $frequency ) {
-		$valid_frequencies = array( 'immediate', 'hourly', 'daily' );
-		if ( ! in_array( $frequency, $valid_frequencies, true ) ) {
-			return false;
-		}
-		return $this->set( 'notification_frequency', $frequency );
-	}
-
-	/**
-	 * Check if email notifications are enabled
-	 *
-	 * @return bool True if email notifications are enabled.
-	 */
-	public function is_email_notifications_enabled() {
-		$enabled = $this->get( 'enable_email_notifications', true );
-		return (bool) $enabled;
-	}
-
-	/**
-	 * Set email notifications enabled status
-	 *
-	 * @param bool $enabled Whether email notifications are enabled.
-	 * @return bool True on success, false on failure.
-	 */
-	public function set_email_notifications_enabled( $enabled ) {
-		return $this->set( 'enable_email_notifications', (bool) $enabled );
-	}
-
-	/**
-	 * Check if Slack notifications are enabled
-	 *
-	 * @return bool True if Slack notifications are enabled.
-	 */
-	public function is_slack_notifications_enabled() {
-		$enabled = $this->get( 'enable_slack_notifications', false );
-		return (bool) $enabled;
-	}
-
-	/**
-	 * Set Slack notifications enabled status
-	 *
-	 * @param bool $enabled Whether Slack notifications are enabled.
-	 * @return bool True on success, false on failure.
-	 */
-	public function set_slack_notifications_enabled( $enabled ) {
-		return $this->set( 'enable_slack_notifications', (bool) $enabled );
 	}
 
 	/**

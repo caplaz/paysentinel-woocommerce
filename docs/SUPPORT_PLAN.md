@@ -333,10 +333,10 @@ PaySentinel Support Team
 **Symptoms:** Issues detected but no notifications
 **Solutions:**
 
-1. Verify notification channels configured (Email/SMS/Slack)
+1. Verify notification channels configured via PaySentinel SaaS
 2. Test email: Go to Settings > Email, Send Test Email
 3. Check SMTP configuration if using external service
-4. Verify WhatsApp/SMS/Slack API keys if applicable
+4. Verify PaySentinel SaaS integration and credentials
 5. Check alert threshold settings (may be too high)
 6. Review error logs
 

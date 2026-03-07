@@ -72,48 +72,9 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( '9 out of 20', $message );
 	}
 
-	/**
-	 * Test HTML email template generation.
-	 */
-	public function test_template_manager_create_email_template() {
-		$alert_data = array(
-			'gateway_id'          => 'paypal',
-			'severity'            => 'critical',
-			'success_rate'        => 10.0,
-			'period'              => '24hour',
-			'failed_transactions' => 90,
-			'total_transactions'  => 100,
-			'calculated_at'       => '2026-02-23 18:00:00',
-		);
-
-		$html = $this->template_manager->create_email_template( $alert_data );
-		$this->assertStringContainsString( '<!DOCTYPE html>', $html );
-		$this->assertStringContainsString( '#dc3232', $html ); // Critical color
-		$this->assertStringContainsString( 'PayPal', $html );
-		$this->assertStringContainsString( 'View Dashboard', $html );
-	}
 
 
 
-	/**
-	 * Test Slack payload creation.
-	 */
-	public function test_template_manager_create_slack_payload() {
-		$alert_data = array(
-			'gateway_id'          => 'stripe',
-			'severity'            => 'warning',
-			'success_rate'        => 80.0,
-			'period'              => '7day',
-			'failed_transactions' => 20,
-			'total_transactions'  => 100,
-			'calculated_at'       => '2026-02-23 18:00:00',
-		);
-
-		$payload = $this->template_manager->create_slack_payload( $alert_data );
-		$this->assertEquals( ':warning:', $payload['icon_emoji'] );
-		$this->assertEquals( '#ffb900', $payload['attachments'][0]['color'] );
-		$this->assertCount( 6, $payload['attachments'][0]['fields'] );
-	}
 
 	/**
 	 * Test that notifier fails when site is not registered.
@@ -174,13 +135,6 @@ class AlertSystemTest extends WP_UnitTestCase {
 		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'PA-PRO-TEST-KEY' );
 		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'starter' ) );
-
-		update_option(
-			'paysentinel_settings',
-			array(
-				'alert_phone_number' => '+1234567890',
-			)
-		);
 
 		add_filter(
 			'pre_http_request',
@@ -246,34 +200,6 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 			remove_all_filters( 'pre_http_request' );
 		}
-	}
-
-	/**
-	 * Test legacy test methods.
-	 */
-	public function test_legacy_diagnostic_methods() {
-		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
-		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
-		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'PA-PRO-TEST-KEY' );
-		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret' );
-		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
-
-		add_filter(
-			'pre_http_request',
-			function ( $pre, $args, $url ) {
-				return array(
-					'response' => array( 'code' => 200 ),
-					'body'     => wp_json_encode( array( 'success' => true ) ),
-				);
-			},
-			10,
-			3
-		);
-
-		$slack_result = $this->notifier->test_slack_configuration( 'SLACK-ID' );
-		$this->assertTrue( $slack_result['success'] );
-
-		remove_all_filters( 'pre_http_request' );
 	}
 
 	/**
@@ -601,50 +527,6 @@ class AlertSystemTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test Notifier legacy Slack notification.
-	 */
-	public function test_notifier_send_slack_notification_legacy() {
-		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
-		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
-		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
-
-		add_filter(
-			'pre_http_request',
-			function ( $pre, $args, $url ) {
-				if ( strpos( $url, 'slack.com' ) !== false ) {
-					return array(
-						'response' => array( 'code' => 200 ),
-						'body'     => 'ok',
-					);
-				}
-				return $pre;
-			},
-			10,
-			3
-		);
-
-		$send_slack_notification_legacy = new ReflectionMethod( 'PaySentinel_Alert_Notifier', 'send_slack_notification_legacy' );
-		$send_slack_notification_legacy->setAccessible( true );
-
-		$result = $send_slack_notification_legacy->invoke(
-			$this->notifier,
-			array(
-				'gateway_id'          => 'stripe',
-				'severity'            => 'critical',
-				'success_rate'        => 0,
-				'period'              => '1hour',
-				'failed_transactions' => 10,
-				'total_transactions'  => 10,
-				'calculated_at'       => '2026-02-23 18:00:00',
-			),
-			'https://hooks.slack.com/services/TXXX/BXXX/XXXX'
-		);
-
-		$this->assertTrue( $result );
-		remove_all_filters( 'pre_http_request' );
-	}
-
-	/**
 	 * Test Notifier different API payload branches.
 	 */
 	public function test_notifier_api_payload_branches() {
@@ -674,33 +556,32 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$send_to_api = new ReflectionMethod( 'PaySentinel_Alert_Notifier', 'send_to_api' );
 		$send_to_api->setAccessible( true );
 
-		// 1. Slack payload with channels array
-		update_option( 'paysentinel_slack_workspace', 'SLACK-ID' );
+		// 1. Payload with channels array
 		$send_to_api->invoke(
 			$this->notifier,
 			array(
-				'gateway_id'  => 'stripe',
-				'severity'    => 'high',
-				'alert_type'  => 'low_success_rate',
-				'channels'    => array( 'SLACK' ),
-				'message'     => 'Test alert',
+				'gateway_id' => 'stripe',
+				'severity'   => 'high',
+				'alert_type' => 'low_success_rate',
+				'channels'   => array( 'api' ),
+				'message'    => 'Test alert',
 			),
 			array()
 		);
 		// Verify the payload contains channels array instead of alert_type
 		$this->assertArrayHasKey( 'channels', $last_payload );
-		$this->assertContains( 'SLACK', $last_payload['channels'] );
+		$this->assertContains( 'api', $last_payload['channels'] );
 
-		// 2. Email payload (default with no channels specified)
+		// 2. Payload without channels specified
 		$send_to_api->invoke(
 			$this->notifier,
 			array(
-				'gateway_id'  => 'stripe',
-				'severity'    => 'high',
-				'alert_type'  => 'low_success_rate',
-				'message'     => 'Test alert',
+				'gateway_id' => 'stripe',
+				'severity'   => 'high',
+				'alert_type' => 'low_success_rate',
+				'message'    => 'Test alert',
 			),
-			array( PaySentinel_Settings_Constants::ALERT_EMAIL => 'admin@test.com' )
+			array()
 		);
 		// When no channels are specified, the payload should not include channels field
 		// and the API will deliver to all enabled channels

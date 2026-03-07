@@ -622,13 +622,6 @@ class PaySentinel_License {
 				update_option( self::OPTION_LICENSE_STATUS, 'valid' );
 			}
 
-			// Handle integrations (currently just Slack workspace ID)
-			if ( isset( $data['integrations'] ) && is_array( $data['integrations'] ) ) {
-				if ( isset( $data['integrations']['slack']['id'] ) ) {
-					update_option( 'paysentinel_slack_workspace', $data['integrations']['slack']['id'] );
-				}
-			}
-
 			update_option( self::OPTION_LICENSE_DATA, $current_data );
 			update_option( self::OPTION_LAST_CHECK, current_time( 'timestamp' ) );
 

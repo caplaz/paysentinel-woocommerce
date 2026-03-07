@@ -545,9 +545,7 @@ class PaySentinel {
 	private function set_default_options() {
 		$default_settings = array(
 			PaySentinel_Settings_Constants::ENABLED_GATEWAYS => array(),
-			PaySentinel_Settings_Constants::ALERT_EMAIL => get_option( 'admin_email' ),
-			PaySentinel_Settings_Constants::ALERT_PHONE_NUMBER => '',
-			PaySentinel_Settings_Constants::ALERT_SLACK_WORKSPACE => '',
+
 			PaySentinel_Settings_Constants::ALERT_THRESHOLD => 85,
 			PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(), // Per-gateway configuration (Pro+ feature)
 		);

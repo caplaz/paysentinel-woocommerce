@@ -91,7 +91,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 								'plan'          => 'pro',
 								'expiration_ts' => date( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ),
 								'features'      => array(
-									'sms_alerts'   => true,
+
 									'slack_alerts' => true,
 								),
 							)
@@ -205,7 +205,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	 */
 	public function test_has_feature() {
 		// No license
-		$this->assertFalse( $this->license->has_feature( 'sms_alerts' ) );
+		$this->assertFalse( $this->license->has_feature( 'slack_alerts' ) );
 
 		// Valid license with features
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
@@ -213,14 +213,12 @@ class LicenseManagementTest extends WP_UnitTestCase {
 			PaySentinel_License::OPTION_LICENSE_DATA,
 			array(
 				'features' => array(
-					'sms_alerts'   => true,
-					'slack_alerts' => false,
+					'slack_alerts' => true,
 				),
 			)
 		);
 
-		$this->assertTrue( $this->license->has_feature( 'sms_alerts' ) );
-		$this->assertFalse( $this->license->has_feature( 'slack_alerts' ) );
+		$this->assertTrue( $this->license->has_feature( 'slack_alerts' ) );
 		$this->assertFalse( $this->license->has_feature( 'non_existent_feature' ) );
 	}
 
@@ -257,7 +255,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 								'valid'    => true,
 								'plan'     => 'agency',
 								'features' => array( 'white_label' => true ),
-								'quota'    => array( 'sms' => 1000 ),
+								'quota'    => array(),
 							)
 						),
 					);
@@ -588,7 +586,6 @@ class LicenseManagementTest extends WP_UnitTestCase {
 
 		$this->assertEquals( 'pro', $data['plan'] );
 		$this->assertEquals( 'should_keep', $data['old_artifact'] );
-		$this->assertEquals( 'T12345', get_option( 'paysentinel_slack_workspace' ) );
 	}
 
 	/**
@@ -697,7 +694,6 @@ class LicenseManagementTest extends WP_UnitTestCase {
 				'custom_logo' => true,
 			),
 			'quota'        => array(
-				'sms'       => 500,
 				'remaining' => 450,
 			),
 			'expires_at'   => '2026-12-31 23:59:59',
@@ -722,7 +718,6 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$this->assertEquals( 'agency', $data['plan'] );
 		$this->assertEquals( '#ff0000', $data['plan_color'] );
 		$this->assertEquals( 450, $data['quota']['remaining'] );
-		$this->assertEquals( 'T99999', get_option( PaySentinel_License::OPTION_SLACK_WORKSPACE ) );
 	}
 
 	/**

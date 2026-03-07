@@ -1018,11 +1018,10 @@ class PaySentinel_Admin_Page_Renderer {
 	 */
 	private function get_settings_tabs() {
 		return array(
-			'general'       => __( 'General', 'paysentinel' ),
-			'notifications' => __( 'Notifications', 'paysentinel' ),
-			'gateways'      => __( 'Gateways', 'paysentinel' ),
-			'advanced'      => __( 'Advanced', 'paysentinel' ),
-			'license'       => __( 'License', 'paysentinel' ),
+			'general'  => __( 'General', 'paysentinel' ),
+			'gateways' => __( 'Gateways', 'paysentinel' ),
+			'advanced' => __( 'Advanced', 'paysentinel' ),
+			'license'  => __( 'License', 'paysentinel' ),
 		);
 	}
 }

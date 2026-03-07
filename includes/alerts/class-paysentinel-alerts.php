@@ -411,16 +411,4 @@ class PaySentinel_Alerts {
 			'premium_available' => $this->is_premium_feature_available(),
 		);
 	}
-
-	/**
-	 * Test Slack configuration
-	 *
-	 * Delegates to notifier class.
-	 *
-	 * @param string $webhook_url Slack webhook URL.
-	 * @return array Test result.
-	 */
-	public function test_slack_configuration( $webhook_url ) {
-		return $this->notifier->test_slack_configuration( $webhook_url );
-	}
 }

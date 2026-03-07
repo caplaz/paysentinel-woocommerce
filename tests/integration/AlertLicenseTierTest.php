@@ -59,7 +59,6 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 
 		// Setup settings in paysentinel_options (this is what get_all() reads from).
 		$settings = array(
-			PaySentinel_Settings_Constants::ALERT_EMAIL => 'admin@example.com',
 			PaySentinel_Settings_Constants::ALERT_THRESHOLD => 85,  // Global default.
 		);
 

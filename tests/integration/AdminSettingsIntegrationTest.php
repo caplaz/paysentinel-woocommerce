@@ -48,7 +48,6 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'paysentinel_settings', $wp_settings_sections );
 		$sections = $wp_settings_sections['paysentinel_settings'];
 		$this->assertArrayHasKey( 'paysentinel_general', $sections );
-		$this->assertArrayHasKey( 'paysentinel_notifications', $sections );
 		$this->assertArrayHasKey( 'paysentinel_gateways', $sections );
 		$this->assertArrayHasKey( 'paysentinel_advanced', $sections );
 
@@ -60,10 +59,6 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'paysentinel_general', $fields );
 		$this->assertArrayHasKey( 'enable_monitoring', $fields['paysentinel_general'] );
 		$this->assertArrayHasKey( 'health_check_interval', $fields['paysentinel_general'] );
-
-		// Notification fields
-		$this->assertArrayHasKey( 'paysentinel_notifications', $fields );
-		$this->assertArrayHasKey( 'alert_email', $fields['paysentinel_notifications'] );
 
 		// Advanced fields
 		$this->assertArrayHasKey( 'paysentinel_advanced', $fields );
@@ -82,18 +77,13 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 
 		$new_settings = array(
 			'alert_threshold' => 90,
-			'alert_email'     => 'test@example.com <script>alert(1)</script>',
 			'unknown_key'     => 'value',
 		);
 
 		$validated = PaySentinel_Security::validate_admin_settings( $new_settings );
 
-		// alert_threshold should be updated and cast to int (or left as is if sanitize_text_field)
-		// Code says: } elseif ( is_numeric( $value ) ) { $validated[ $clean_key ] = intval( $value ); }
+		// alert_threshold should be updated and cast to int
 		$this->assertEquals( 90, $validated['alert_threshold'] );
-
-		// alert_email should be sanitized (script removed by sanitize_text_field)
-		$this->assertEquals( 'test@example.com', $validated['alert_email'] );
 
 		// enable_monitoring should be preserved from old_settings
 		$this->assertEquals( 1, $validated['enable_monitoring'] );
@@ -149,7 +139,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 			'gateway_alert_config' => array(
 				'stripe' => array(
 					'threshold' => '90',
-					'channels'  => array( 'email', 'sms <script>' ),
+					'channels'  => array( 'email', 'api <script>' ),
 				),
 			),
 		);
@@ -158,7 +148,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 
 		$this->assertIsArray( $validated['gateway_alert_config'] );
 		$this->assertIsArray( $validated['gateway_alert_config']['stripe'] );
-		$this->assertEquals( 'sms', trim( $validated['gateway_alert_config']['stripe']['channels'][1] ) );
+		$this->assertEquals( 'api', trim( $validated['gateway_alert_config']['stripe']['channels'][1] ) );
 	}
 
 	/**
@@ -183,23 +173,19 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		// Sections
 		ob_start();
 		$this->handler->render_general_section();
-		$this->handler->render_notifications_section();
 		$this->handler->render_gateways_section();
 		$this->handler->render_advanced_section();
 		$output = ob_get_clean();
 		$this->assertStringContainsString( 'Core monitoring', $output );
-		$this->assertStringContainsString( 'Configure how you receive alerts', $output );
 
 		// More fields
 		ob_start();
 		$this->handler->render_field_retry_enabled();
 		$this->handler->render_field_max_retry_attempts();
 		$this->handler->render_field_enable_test_mode();
-		$this->handler->render_field_alert_email();
 		$output = ob_get_clean();
 		$this->assertStringContainsString( 'retry_enabled', $output );
 		$this->assertStringContainsString( 'max_retry_attempts', $output );
-		$this->assertStringContainsString( 'alert_email', $output );
 
 		// License & Plan fields
 		ob_start();
@@ -211,11 +197,9 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 
 		// Config fields
 		ob_start();
-		$this->handler->render_field_alert_slack_workspace();
 		$this->handler->render_field_gateway_alert_config();
 		$this->handler->render_field_test_failure_rate();
 		$output = ob_get_clean();
-		$this->assertStringContainsString( 'slack-integration-container', $output );
 		$this->assertStringContainsString( 'gateway_alert_config', $output );
 
 		// ensure the paper-plane icon, if present, uses vertical-align instead of
@@ -253,69 +237,6 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		// Should see lock icon and Pro Feature message
 		$this->assertStringContainsString( 'dashicons-lock', $output );
 		$this->assertStringContainsString( 'Pro Feature', $output );
-	}
-
-	/**
-	 * Test Slack field rendering with different connection states.
-	 */
-	public function test_slack_field_connection_states() {
-		// 1. Mock connection error
-		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
-		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
-		update_option( 'paysentinel_slack_workspace', 'some-id' );
-		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret' );
-		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'test_key' );
-
-		add_filter(
-			'pre_http_request',
-			function ( $pre, $args, $url ) {
-				if ( strpos( $url, '/api/integrations/slack/status' ) !== false ) {
-					return array(
-						'response' => array( 'code' => 401 ),
-						'body'     => wp_json_encode( array( 'error' => 'not_authorized' ) ),
-					);
-				}
-				return $pre;
-			},
-			10,
-			3
-		);
-
-		ob_start();
-		$this->handler->render_field_alert_slack_workspace();
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'Connection Issue', $output );
-		$this->assertStringContainsString( 'Authentication failed', $output );
-
-		// 2. Mock successful connection
-		remove_all_filters( 'pre_http_request' );
-		add_filter(
-			'pre_http_request',
-			function ( $pre, $args, $url ) {
-				if ( strpos( $url, '/api/integrations/slack/status' ) !== false ) {
-					return array(
-						'response' => array( 'code' => 200 ),
-						'body'     => wp_json_encode(
-							array(
-								'status'       => 'ok',
-								'channel_name' => '#alerts',
-							)
-						),
-					);
-				}
-				return $pre;
-			},
-			10,
-			3
-		);
-
-		ob_start();
-		$this->handler->render_field_alert_slack_workspace();
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'Connected', $output );
-		$this->assertStringContainsString( '#alerts', $output );
 	}
 
 	/**
