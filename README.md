@@ -4,7 +4,7 @@
 ![WordPress](https://img.shields.io/badge/WordPress-6.8+-blue.svg)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-9.0+-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-7.4+-blue.svg)
-![Tests](https://img.shields.io/badge/tests-297%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-325%20passing-brightgreen.svg)
 
 **PaySentinel** is an advanced WooCommerce plugin that provides real-time monitoring and alerting for your payment gateways. Never lose a sale due to an unnoticed payment gateway failure again.
 
@@ -178,6 +178,6 @@ PaySentinel is developed and maintained with care for the WooCommerce community.
 
 ---
 
-**Version:** 1.0.2  
-**Last Updated:** March 7, 2026  
+**Version:** 1.1.0  
+**Last Updated:** March 9, 2026  
 **Status:** Production Ready

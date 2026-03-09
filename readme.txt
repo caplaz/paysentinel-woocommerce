@@ -1,5 +1,5 @@
 === PaySentinel - Payment Monitor for WooCommerce ===
-Stable tag: 1.0.2
+Stable tag: 1.1.0
 Requires at least: 6.5
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -66,7 +66,7 @@ Offline payment methods (Cash on Delivery, Bank Transfer, Cheque) are automatica
 
 = Testing & Quality =
 
-* 297 comprehensive unit tests covering core functionality
+* 325 comprehensive unit tests covering core functionality
 * PHPUnit test suite with WordPress integration
 * Automated CI/CD pipeline via GitHub Actions
 * PHPCS WordPress coding standards compliance
@@ -176,6 +176,19 @@ Yes! Check the Developer Guide in the plugin package for APIs, hooks, filters, a
 * PaySentinel excludes Cash on Delivery, Bank Transfer, Cheque automatically
 
 == Changelog ==
+
+= 1.1.0 - March 9, 2026 =
+* Added comprehensive Auto-Retry Engine for soft declines (Starter+ feature)
+* Added Smart Decline Detection: automatic hard vs soft decline classification
+* Added Recovery Email notifications for hard declines when retry not possible
+* Added PRO Analytics Dashboard with ROI tracking and recovery flow visualization
+* Added recovery metrics: transaction counts, success rates per gateway, email tracking
+* Added License tier validation: Auto-retry enforces Starter+ requirement
+* Added 'retry_outcome' to database alert types for retry recovery tracking
+* Added 10 new comprehensive tests for retry logic (325 total tests now)
+* Fixed order note retrieval in unit tests using WordPress standard get_comments()
+* Fixed license tier mocking in retry tests for proper test isolation
+* Improved test isolation with proper license option cleanup
 
 = 1.0.2 - March 3, 2026 =
 * Added comprehensive gateway detection filtering

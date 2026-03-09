@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-03-09
+
+### Added
+
+- **Auto-Retry Engine**: Comprehensive automatic payment retry system for soft declines with configurable backoff schedule (default: 1 hour, 6 hours). Starter+ feature.
+- **Smart Decline Detection**: Automatic classification of hard declines (fraud, invalid card, expired, etc.) vs soft declines (timeout, insufficient funds) with no retry on permanent failures.
+- **Recovery Email**: Automated recovery notifications sent to customers on hard declines when no retry is possible.
+- **Analytics Dashboard (PRO)**: New analytics page with ROI tracking, recovery flow visualization, revenue breakdown by gateway, and CSV export for recovery metrics.
+- Recovery metrics: transaction counts, success rates per gateway, and recovery email delivery tracking.
+- License tier validation: Auto-retry feature enforces Starter+ license requirement; free tier falls back to recovery email only.
+- Database schema: Added 'retry_outcome' to alert types for tracking retry recovery notifications.
+- Comprehensive test suite: 10 new tests covering license tier enforcement, payment method validation, hard/soft decline detection variations, backoff schedule timing, and recovery flow.
+
+### Changed
+
+- Payment failure handling now delegates to smart retry logic based on license tier and stored payment methods.
+- Alert recovery notifications now use database-persisted alert system for better tracking and audit trails.
+
+### Fixed
+
+- Fixed order note retrieval in unit tests to use WordPress standard `get_comments()` with comment_type filter instead of non-existent WooCommerce method.
+- Fixed license tier mocking in retry tests to properly enable/disable retry feature based on license status.
+- Improved test isolation by properly cleaning up license options in test teardown.
+
+### Docs & Tests
+
+- Added 10 new comprehensive tests for retry logic:
+  - License tier validation (free vs pro)
+  - Payment method edge cases (no stored token)
+  - Failure reason variations (7 hard decline + 5 soft decline keywords + unknown)
+  - Backoff schedule timing validation
+  - Recovery email flag tracking
+  - Retry action scheduling and transaction ID tracking
+- Total test coverage now: 325 tests (up from 315), all passing.
+
 ## [1.0.2] - 2026-03-07
 
 ### Added
