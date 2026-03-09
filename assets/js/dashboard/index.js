@@ -458,7 +458,7 @@
             React.createElement(
               "a",
               {
-                href: "admin.php?page=paysentinel-settings&tab=license",
+                href: "/wp-admin/admin.php?page=paysentinel-settings&tab=license",
                 className: "button button-primary",
                 style: { display: "inline-flex", alignItems: "center" },
               },
@@ -1170,8 +1170,7 @@
           React.createElement(
             "a",
             {
-              href: `${window.wcPaymentMonitor?.saasUrl}/upgrade`,
-              target: "_blank",
+              href: "/wp-admin/admin.php?page=paysentinel-settings&tab=license",
               className: "button button-primary",
             },
             "Upgrade to PRO",
