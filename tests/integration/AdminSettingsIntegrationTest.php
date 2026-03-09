@@ -446,4 +446,3 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'margin-right: 15px', $output, 'Labels should have appropriate margin spacing' );
 	}
 }
-

@@ -66,6 +66,13 @@ class PaySentinel_Alerts {
 	private $template_manager;
 
 	/**
+	 * Recovery handler instance
+	 *
+	 * @var PaySentinel_Alert_Recovery_Handler
+	 */
+	private $recovery_handler;
+
+	/**
 	 * Alert severity thresholds
 	 */
 	public const SEVERITY_THRESHOLDS = array(
@@ -96,6 +103,9 @@ class PaySentinel_Alerts {
 			$this->gateway_manager,
 			$this->notifier
 		);
+
+		// Initialize recovery handler for retry outcome alerts
+		$this->recovery_handler = new PaySentinel_Alert_Recovery_Handler( $this->checker );
 
 		$this->init_hooks();
 	}
@@ -206,6 +216,15 @@ class PaySentinel_Alerts {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Get the alert checker instance
+	 *
+	 * @return PaySentinel_Alert_Checker Alert checker instance.
+	 */
+	public function get_checker() {
+		return $this->checker;
 	}
 
 	/**

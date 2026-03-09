@@ -249,9 +249,9 @@ class PaySentinel_Analytics_Pro {
 		$gateways_to_monitor = array_slice( $enabled_gateways, 0, $limit );
 
 		$summary = array(
-			'total_gateways'    => count( $gateways_to_monitor ),
-			'gateway_metrics'   => array(),
-			'revenue_summary'   => array(
+			'total_gateways'  => count( $gateways_to_monitor ),
+			'gateway_metrics' => array(),
+			'revenue_summary' => array(
 				'total_lost'      => 0,
 				'total_recovered' => 0,
 			),
@@ -261,7 +261,7 @@ class PaySentinel_Analytics_Pro {
 			$comparative = $this->get_comparative_analytics( $gateway_id );
 			if ( ! isset( $comparative['error'] ) ) {
 				$summary[ PaySentinel_Settings_Constants::GATEWAY_METRICS ][ $gateway_id ] = $comparative;
-				
+
 				// Added revenue metrics to summary
 				$trends = $this->get_daily_trends( $gateway_id, 30 );
 				foreach ( $trends as $day ) {

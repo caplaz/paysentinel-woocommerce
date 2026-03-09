@@ -53,8 +53,8 @@ class RetryLicenseGatingTest extends WP_UnitTestCase {
 		update_option(
 			'paysentinel_options',
 			array(
-				'retry_enabled'       => 1,
-				'max_retry_attempts'  => 3,
+				'retry_enabled'      => 1,
+				'max_retry_attempts' => 3,
 			)
 		);
 	}
@@ -258,7 +258,7 @@ class RetryLicenseGatingTest extends WP_UnitTestCase {
 					'status' => 'pending',
 				)
 			);
-			$initial_count = count( $scheduled_before );
+			$initial_count    = count( $scheduled_before );
 		}
 
 		// Upgrade to Starter
@@ -344,9 +344,9 @@ class RetryLicenseGatingTest extends WP_UnitTestCase {
 		global $GLOBALS;
 		$GLOBALS['test_payment_tokens'] = array(
 			array(
-				'get_id'        => 1,
-				'get_token'     => 'tok_test',
-				'get_type'      => 'CC',
+				'get_id'         => 1,
+				'get_token'      => 'tok_test',
+				'get_type'       => 'CC',
 				'get_gateway_id' => 'stripe',
 			),
 		);
