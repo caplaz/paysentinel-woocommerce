@@ -62,6 +62,11 @@ class PaySentinel_Retry {
 			return;
 		}
 
+		// Auto-retry is a Starter+ feature
+		if ( ! $this->is_retry_feature_available() ) {
+			return;
+		}
+
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return;
@@ -1024,6 +1029,14 @@ class PaySentinel_Retry {
 	 * @return array Result
 	 */
 	public function manual_retry( $order_id ) {
+		// Auto-retry is a Starter+ feature
+		if ( ! $this->is_retry_feature_available() ) {
+			return array(
+				'success' => false,
+				'message' => __( 'Payment retry is not available in your plan. Please upgrade to Starter or higher.', 'paysentinel' ),
+			);
+		}
+
 		$transaction = $this->logger->get_transaction_by_order_id( $order_id );
 
 		if ( ! $transaction ) {
@@ -1060,6 +1073,19 @@ class PaySentinel_Retry {
 				? __( 'Manual retry successful', 'paysentinel' )
 				: __( 'Manual retry failed', 'paysentinel' ),
 		);
+	}
+
+	/**
+	 * Check if retry feature is available based on license tier
+	 *
+	 * @return bool Feature available for current license tier
+	 */
+	private function is_retry_feature_available() {
+		$license = new PaySentinel_License();
+		$tier    = $license->get_license_tier();
+
+		// Auto-retry is available for Starter, Pro, and Agency tiers
+		return in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
 	}
 
 	/**
