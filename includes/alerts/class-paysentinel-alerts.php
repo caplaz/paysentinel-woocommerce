@@ -105,7 +105,7 @@ class PaySentinel_Alerts {
 		);
 
 		// Initialize recovery handler for retry outcome alerts
-		$this->recovery_handler = new PaySentinel_Alert_Recovery_Handler( $this->checker );
+		$this->recovery_handler = new PaySentinel_Alert_Recovery_Handler( $this->checker, null, $this->database );
 
 		$this->init_hooks();
 	}

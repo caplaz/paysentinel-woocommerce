@@ -47,7 +47,7 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 		$this->alert_checker = $alerts_instance->get_checker();
 
 		// Create recovery handler (it will register its hooks)
-		$this->recovery_handler = new PaySentinel_Alert_Recovery_Handler( $this->alert_checker, $this->logger );
+		$this->recovery_handler = new PaySentinel_Alert_Recovery_Handler( $this->alert_checker, $this->logger, $this->database );
 	}
 
 	/**

@@ -37,6 +37,13 @@ class PaySentinel_Alert_Recovery_Handler {
 	private $logger;
 
 	/**
+	 * Database instance
+	 *
+	 * @var PaySentinel_Database
+	 */
+	private $database;
+
+	/**
 	 * Rate limiting window in seconds (5 minutes)
 	 */
 	private const RATE_LIMIT_WINDOW = 300;
@@ -44,12 +51,14 @@ class PaySentinel_Alert_Recovery_Handler {
 	/**
 	 * Constructor
 	 *
-	 * @param PaySentinel_Alert_Checker $checker Initialized alert checker instance.
-	 * @param PaySentinel_Logger        $logger  Initialized logger instance.
+	 * @param PaySentinel_Alert_Checker $checker   Initialized alert checker instance.
+	 * @param PaySentinel_Logger        $logger    Initialized logger instance.
+	 * @param PaySentinel_Database      $database  Initialized database instance.
 	 */
-	public function __construct( $checker, $logger = null ) {
-		$this->checker = $checker;
-		$this->logger  = $logger ?? new PaySentinel_Logger();
+	public function __construct( $checker, $logger = null, $database = null ) {
+		$this->checker   = $checker;
+		$this->logger    = $logger ?? new PaySentinel_Logger();
+		$this->database  = $database ?? new PaySentinel_Database();
 
 		$this->register_hooks();
 	}
@@ -200,7 +209,7 @@ class PaySentinel_Alert_Recovery_Handler {
 	private function is_rate_limited( $gateway_id, $alert_type ) {
 		global $wpdb;
 
-		$table_name       = $wpdb->prefix . 'paysentinel_alerts';
+		$table_name = $this->database->get_alerts_table();
 		$time_limit       = time() - self::RATE_LIMIT_WINDOW;
 		$time_limit_mysql = date( 'Y-m-d H:i:s', $time_limit );
 

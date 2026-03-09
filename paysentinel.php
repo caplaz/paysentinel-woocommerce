@@ -133,6 +133,7 @@ class PaySentinel {
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/alerts/class-paysentinel-alert-notifier.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/alerts/class-paysentinel-alert-checker.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/alerts/class-paysentinel-alerts.php';
+		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/alerts/class-paysentinel-alert-recovery-handler.php';
 
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-retry.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-security.php';
