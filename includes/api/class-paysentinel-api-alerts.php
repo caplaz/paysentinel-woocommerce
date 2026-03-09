@@ -261,6 +261,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 			'low_success_rate'   => 'Low Success Rate',
 			'high_failure_count' => 'High Failure Count',
 			'gateway_error'      => 'Gateway Error',
+			'retry_outcome'      => 'Payment Recovery',
 		);
 
 		$title = isset( $alert_type_titles[ $alert['alert_type'] ] )
