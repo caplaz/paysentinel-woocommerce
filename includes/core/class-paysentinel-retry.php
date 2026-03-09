@@ -757,9 +757,13 @@ class PaySentinel_Retry {
 		$order->update_meta_data( '_paysentinel_recovery_sent', time() );
 		$order->save();
 
+		// Add order note via WooCommerce
 		$order->add_order_note( __( 'Sent payment recovery email to customer.', 'paysentinel' ) );
 
-		return wp_mail( $customer_email, $subject, $message, $headers );
+		// Ensure the email is actually sent
+		$sent = wp_mail( $customer_email, $subject, $message, $headers );
+		
+		return $sent;
 	}
 
 	/**

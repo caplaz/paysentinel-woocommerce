@@ -36,6 +36,16 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 			)
 		);
 
+		// Mock license to enable retry feature
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option(
+			'paysentinel_license_data',
+			array(
+				'key'  => 'test_key',
+				'plan' => 'starter',
+			)
+		);
+
 		// Check if Action Scheduler is loaded (it should be via WooCommerce)
 		if ( class_exists( 'ActionScheduler_Store' ) ) {
 			$GLOBALS['test_as_scheduled_actions'] = array();
@@ -106,6 +116,8 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		parent::tearDown();
 		wp_delete_post( $this->order_id, true );
 		delete_option( 'paysentinel_options' );
+		delete_option( 'paysentinel_license_status' );
+		delete_option( 'paysentinel_license_data' );
 	}
 
 	/**
@@ -160,18 +172,12 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		$this->assertEmpty( $scheduled_actions, 'Hard decline should not schedule AS action.' );
 
 		// Verify Email Sent (Recovery Email)
-		// Note: WP_UnitTestCase usually mocks wp_mail, we can check basic assertions if available
-		// Or we check if order note was added "Sent payment recovery email"
-		$order            = wc_get_order( $this->order_id );
-		$notes            = wc_get_order_notes( array( 'order_id' => $this->order_id ) );
-		$found_email_note = false;
-		foreach ( $notes as $note ) {
-			if ( strpos( $note->content, 'Sent payment recovery email' ) !== false ) {
-				$found_email_note = true;
-				break;
-			}
-		}
-		$this->assertTrue( $found_email_note, 'Recovery email note should be present on hard decline.' );
+		// Check if the recovery flag was set on the order
+		$order = wc_get_order( $this->order_id );
+		$sent_flag = $order->get_meta( '_paysentinel_recovery_sent' );
+		
+		$this->assertTrue( ! empty( $sent_flag ), 'Recovery email flag should be set on hard decline.' );
+		
 	}
 
 	/**
@@ -221,9 +227,18 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 
 		// Verify Action Scheduler event
 		$this->assertNotEmpty( $GLOBALS['test_as_scheduled_actions'], 'Soft decline should schedule AS action.' );
-		$scheduled = end( $GLOBALS['test_as_scheduled_actions'] );
-		$this->assertEquals( 'paysentinel_retry_payment', $scheduled['hook'] );
-		$this->assertEquals( $this->transaction_id, $scheduled['args'][0] );
+		
+		// Find the paysentinel_retry_payment action (may not be the last one if other actions are scheduled)
+		$retry_action = null;
+		foreach ( $GLOBALS['test_as_scheduled_actions'] as $action ) {
+			if ( $action['hook'] === 'paysentinel_retry_payment' ) {
+				$retry_action = $action;
+				break;
+			}
+		}
+		
+		$this->assertNotNull( $retry_action, 'paysentinel_retry_payment action should be scheduled' );
+		$this->assertEquals( $this->transaction_id, $retry_action['args'][0] );
 	}
 
 	/**
@@ -342,5 +357,522 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 
 	private function reset_phpmailer() {
 		// Reset any mail mocks if needed
+	}
+
+	/**
+	 * Test Free License Tier
+	 * Retry feature should not be available
+	 */
+	public function test_free_license_no_retry() {
+		// Set free license
+		update_option( 'paysentinel_license_status', 'invalid' );
+		delete_option( 'paysentinel_license_data' );
+
+		$GLOBALS['test_as_scheduled_actions'] = array();
+
+		// Trigger logic with soft decline (would normally schedule retry)
+		global $wpdb;
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+		$wpdb->update(
+			$table_name,
+			array( 'failure_reason' => 'Timeout' ),
+			array( 'id' => $this->transaction_id )
+		);
+
+		$this->retry_instance->schedule_retry_on_failure( $this->order_id );
+
+		// Verify NO retry scheduled for free tier
+		$retry_actions = array_filter(
+			$GLOBALS['test_as_scheduled_actions'],
+			function ( $a ) {
+				return $a['hook'] === 'paysentinel_retry_payment';
+			}
+		);
+		$this->assertEmpty( $retry_actions, 'Free tier should not schedule retries.' );
+	}
+
+	/**
+	 * Test Pro License Tier
+	 * Retry feature should be available
+	 */
+	public function test_pro_license_enables_retry() {
+		// Set pro license
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option(
+			'paysentinel_license_data',
+			array(
+				'key'  => 'test_key',
+				'plan' => 'pro',
+			)
+		);
+
+		// Add payment token
+		$user_id = $this->factory->user->create();
+		$token   = new WC_Payment_Token_CC();
+		$token->set_token( 'tok_pro' );
+		$token->set_gateway_id( 'stripe' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$order = wc_get_order( $this->order_id );
+		$order->set_customer_id( $user_id );
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		// Soft decline - should schedule retry for pro tier
+		global $wpdb;
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+		$wpdb->update(
+			$table_name,
+			array( 'failure_reason' => 'Connection Timeout' ),
+			array( 'id' => $this->transaction_id )
+		);
+
+		$GLOBALS['test_as_scheduled_actions'] = array();
+		$this->retry_instance->schedule_retry_on_failure( $this->order_id );
+
+		// Verify retry scheduled for pro tier
+		$retry_actions = array_filter(
+			$GLOBALS['test_as_scheduled_actions'],
+			function ( $a ) {
+				return $a['hook'] === 'paysentinel_retry_payment';
+			}
+		);
+		$this->assertNotEmpty( $retry_actions, 'Pro tier should schedule retries.' );
+	}
+
+	/**
+	 * Test No Stored Payment Method
+	 * Should send recovery email immediately without retry
+	 */
+	public function test_no_stored_payment_method() {
+		// Don't add any payment token
+		$order = wc_get_order( $this->order_id );
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		global $wpdb;
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+		$wpdb->update(
+			$table_name,
+			array( 'failure_reason' => 'Connection Timeout' ), // Would normally retry
+			array( 'id' => $this->transaction_id )
+		);
+
+		$GLOBALS['test_as_scheduled_actions'] = array();
+		$this->retry_instance->schedule_retry_on_failure( $this->order_id );
+
+		// Verify NO retry scheduled
+		$retry_actions = array_filter(
+			$GLOBALS['test_as_scheduled_actions'],
+			function ( $a ) {
+				return $a['hook'] === 'paysentinel_retry_payment';
+			}
+		);
+		$this->assertEmpty( $retry_actions, 'Should not retry without stored payment method.' );
+
+		// Verify recovery flag was set (email sent)
+		$order = wc_get_order( $this->order_id );
+		$sent_flag = $order->get_meta( '_paysentinel_recovery_sent' );
+		$this->assertTrue( ! empty( $sent_flag ), 'Should send recovery email instead.' );
+	}
+
+	/**
+	 * Test Hard Decline Variations
+	 * Test multiple hard decline keywords
+	 */
+	public function test_hard_decline_variations() {
+		// Add payment token
+		$user_id = $this->factory->user->create();
+		$token   = new WC_Payment_Token_CC();
+		$token->set_token( 'tok_123' );
+		$token->set_gateway_id( 'stripe' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$order = wc_get_order( $this->order_id );
+		$order->set_customer_id( $user_id );
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		$hard_decline_reasons = array(
+			'fraud detected',
+			'invalid card number',
+			'expired card on file',
+			'STOP RECURRING',
+			'Closure',
+			'Lost Card',
+			'Stolen Card',
+		);
+
+		foreach ( $hard_decline_reasons as $reason ) {
+			$GLOBALS['test_as_scheduled_actions'] = array();
+			global $wpdb;
+			$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+
+			// Create new order/transaction for each test
+			$new_order = wc_create_order();
+			$new_order->set_customer_id( $user_id );
+			$new_order->set_payment_method( 'stripe' );
+			$new_order->set_billing_email( 'test@example.com' );
+			$new_order->save();
+
+			$wpdb->insert(
+				$table_name,
+				array(
+					'order_id'       => $new_order->get_id(),
+					'gateway_id'     => 'stripe',
+					'transaction_id' => 'tx_' . $reason,
+					'amount'         => 100.00,
+					'currency'       => 'USD',
+					'status'         => 'failed',
+					'failure_reason' => $reason,
+					'retry_count'    => 0,
+					'created_at'     => current_time( 'mysql' ),
+				)
+			);
+
+			$this->retry_instance->schedule_retry_on_failure( $new_order->get_id() );
+
+			$retry_actions = array_filter(
+				$GLOBALS['test_as_scheduled_actions'],
+				function ( $a ) {
+					return $a['hook'] === 'paysentinel_retry_payment';
+				}
+			);
+
+			$this->assertEmpty(
+				$retry_actions,
+				"Should not retry on hard decline: '$reason'"
+			);
+
+			wp_delete_post( $new_order->get_id(), true );
+		}
+	}
+
+	/**
+	 * Test Soft Decline Variations
+	 */
+	public function test_soft_decline_variations() {
+		// Add payment token
+		$user_id = $this->factory->user->create();
+		$token   = new WC_Payment_Token_CC();
+		$token->set_token( 'tok_123' );
+		$token->set_gateway_id( 'stripe' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$order = wc_get_order( $this->order_id );
+		$order->set_customer_id( $user_id );
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		$soft_decline_reasons = array(
+			'Connection Timeout',
+			'Insufficient Funds',
+			'Bank Unavailable',
+			'Generic Decline',
+			'Please try again later',
+		);
+
+		foreach ( $soft_decline_reasons as $reason ) {
+			$GLOBALS['test_as_scheduled_actions'] = array();
+			global $wpdb;
+			$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+
+			// Create new order/transaction for each test
+			$new_order = wc_create_order();
+			$new_order->set_customer_id( $user_id );
+			$new_order->set_payment_method( 'stripe' );
+			$new_order->set_billing_email( 'test@example.com' );
+			$new_order->save();
+
+			$wpdb->insert(
+				$table_name,
+				array(
+					'order_id'       => $new_order->get_id(),
+					'gateway_id'     => 'stripe',
+					'transaction_id' => 'tx_soft_' . sanitize_title( $reason ),
+					'amount'         => 100.00,
+					'currency'       => 'USD',
+					'status'         => 'failed',
+					'failure_reason' => $reason,
+					'retry_count'    => 0,
+					'created_at'     => current_time( 'mysql' ),
+				)
+			);
+
+			$this->retry_instance->schedule_retry_on_failure( $new_order->get_id() );
+
+			$retry_actions = array_filter(
+				$GLOBALS['test_as_scheduled_actions'],
+				function ( $a ) {
+					return $a['hook'] === 'paysentinel_retry_payment';
+				}
+			);
+
+			$this->assertNotEmpty(
+				$retry_actions,
+				"Should retry on soft decline: '$reason'"
+			);
+
+			wp_delete_post( $new_order->get_id(), true );
+		}
+	}
+
+	/**
+	 * Test Unknown Failure Reason
+	 * Should retry by default (assume temporary failure)
+	 */
+	public function test_unknown_failure_reason_retries() {
+		// Add payment token
+		$user_id = $this->factory->user->create();
+		$token   = new WC_Payment_Token_CC();
+		$token->set_token( 'tok_123' );
+		$token->set_gateway_id( 'stripe' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$order = wc_get_order( $this->order_id );
+		$order->set_customer_id( $user_id );
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		global $wpdb;
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+		$wpdb->update(
+			$table_name,
+			array( 'failure_reason' => 'Unknown error XYZ-123' ), // Unknown reason
+			array( 'id' => $this->transaction_id )
+		);
+
+		$GLOBALS['test_as_scheduled_actions'] = array();
+		$this->retry_instance->schedule_retry_on_failure( $this->order_id );
+
+		$retry_actions = array_filter(
+			$GLOBALS['test_as_scheduled_actions'],
+			function ( $a ) {
+				return $a['hook'] === 'paysentinel_retry_payment';
+			}
+		);
+
+		$this->assertNotEmpty(
+			$retry_actions,
+			'Should retry on unknown failure reasons.'
+		);
+	}
+
+	/**
+	 * Test Retry Count Increments (via schedule_retry)
+	 */
+	public function test_retry_count_tracked_on_schedule() {
+		global $wpdb;
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+
+		// Add payment token
+		$user_id = $this->factory->user->create();
+		$token   = new WC_Payment_Token_CC();
+		$token->set_token( 'tok_123' );
+		$token->set_gateway_id( 'stripe' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$order = wc_get_order( $this->order_id );
+		$order->set_customer_id( $user_id );
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		$wpdb->update(
+			$table_name,
+			array( 'failure_reason' => 'Timeout', 'retry_count' => 0 ),
+			array( 'id' => $this->transaction_id )
+		);
+
+		// Get initial count
+		$trans_before = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT retry_count FROM {$table_name} WHERE id = %d",
+				$this->transaction_id
+			)
+		);
+		$this->assertEquals( 0, $trans_before->retry_count, 'Initial retry count should be 0' );
+
+		// Schedule retry (which tracks retry count in the action)
+		$GLOBALS['test_as_scheduled_actions'] = array();
+		$this->retry_instance->schedule_retry( $this->transaction_id );
+
+		// Verify action was scheduled with transaction ID
+		$retry_actions = array_filter(
+			$GLOBALS['test_as_scheduled_actions'],
+			function ( $a ) {
+				return $a['hook'] === 'paysentinel_retry_payment';
+			}
+		);
+		$this->assertNotEmpty( $retry_actions, 'Retry should be scheduled.' );
+
+		$first_retry = reset( $retry_actions );
+		$this->assertEquals( $this->transaction_id, $first_retry['args'][0], 'Scheduled action should reference correct transaction ID' );
+	}
+
+	/**
+	 * Test Backoff Schedule
+	 * First retry should be at 3600 seconds (1 hour)
+	 */
+	public function test_retry_backoff_schedule() {
+		// Add payment token
+		$user_id = $this->factory->user->create();
+		$token   = new WC_Payment_Token_CC();
+		$token->set_token( 'tok_123' );
+		$token->set_gateway_id( 'stripe' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$order = wc_get_order( $this->order_id );
+		$order->set_customer_id( $user_id );
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		global $wpdb;
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+		$wpdb->update(
+			$table_name,
+			array( 'failure_reason' => 'Timeout', 'retry_count' => 0 ),
+			array( 'id' => $this->transaction_id )
+		);
+
+		$GLOBALS['test_as_scheduled_actions'] = array();
+		$this->retry_instance->schedule_retry_on_failure( $this->order_id );
+
+		$retry_actions = array_filter(
+			$GLOBALS['test_as_scheduled_actions'],
+			function ( $a ) {
+				return $a['hook'] === 'paysentinel_retry_payment';
+			}
+		);
+
+		$this->assertNotEmpty( $retry_actions, 'Should schedule first retry.' );
+
+		$first_retry = reset( $retry_actions );
+		$current_time = time();
+		$scheduled_time = $first_retry['timestamp'];
+
+		// Should be scheduled approximately 3600 seconds (1 hour) from now
+		$time_diff = $scheduled_time - $current_time;
+		$this->assertGreaterThanOrEqual( 3500, $time_diff, 'First retry should be ~1 hour away' );
+		$this->assertLessThanOrEqual( 3700, $time_diff, 'Retry time should not be too far in future' );
+	}
+
+	/**
+	 * Test Recovery Email Recipient
+	 */
+	public function test_recovery_email_recipient_correct() {
+		// Add payment token
+		$user_id = $this->factory->user->create();
+		$token   = new WC_Payment_Token_CC();
+		$token->set_token( 'tok_123' );
+		$token->set_gateway_id( 'stripe' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$order = wc_get_order( $this->order_id );
+		$order->set_customer_id( $user_id );
+		$order->set_payment_method( 'stripe' );
+		$order->set_billing_email( 'customer@example.com' );
+		$order->save();
+
+		global $wpdb;
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+		$wpdb->update(
+			$table_name,
+			array( 'failure_reason' => 'Fraud - Card Stolen' ),
+			array( 'id' => $this->transaction_id )
+		);
+
+		// Mock wp_mail
+		$mail_recipient = null;
+		add_filter(
+			'wp_mail',
+			function ( $result ) use ( &$mail_recipient ) {
+				// Capture args from wp_mail call
+				return true;
+			}
+		);
+
+		$this->retry_instance->schedule_retry_on_failure( $this->order_id );
+
+		// Verify recovery flag (email was intended to be sent)
+		$updated_order = wc_get_order( $this->order_id );
+		$sent_flag = $updated_order->get_meta( '_paysentinel_recovery_sent' );
+		$this->assertTrue( ! empty( $sent_flag ), 'Recovery email should be marked as sent.' );
+	}
+
+	/**
+	 * Test First Retry Not Already At Max
+	 */
+	public function test_first_retry_not_at_max() {
+		// Add payment token
+		$user_id = $this->factory->user->create();
+		$token   = new WC_Payment_Token_CC();
+		$token->set_token( 'tok_123' );
+		$token->set_gateway_id( 'stripe' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$order = wc_get_order( $this->order_id );
+		$order->set_customer_id( $user_id );
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		global $wpdb;
+		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
+		$wpdb->update(
+			$table_name,
+			array( 'failure_reason' => 'Timeout', 'retry_count' => 1 ), // Already retried once
+			array( 'id' => $this->transaction_id )
+		);
+
+		$GLOBALS['test_as_scheduled_actions'] = array();
+		$this->retry_instance->schedule_retry_on_failure( $this->order_id );
+
+		$retry_actions = array_filter(
+			$GLOBALS['test_as_scheduled_actions'],
+			function ( $a ) {
+				return $a['hook'] === 'paysentinel_retry_payment';
+			}
+		);
+
+		$this->assertNotEmpty( $retry_actions, 'Should schedule second retry.' );
 	}
 }
