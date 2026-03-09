@@ -224,6 +224,7 @@
     const [healthData, setHealthData] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [alerts, setAlerts] = useState([]);
+    const [revenueSummary, setRevenueSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -245,6 +246,26 @@
 
         if (nonce) {
           headers["X-WP-Nonce"] = nonce;
+        }
+
+        // Load metrics summary (includes potential revenue stats in PRO)
+        const summaryResponse = await fetch(
+          `${window.wcPaymentMonitor.apiUrl}/analytics/metrics-summary`,
+          {
+            method: "GET",
+            headers,
+            credentials: "same-origin",
+          },
+        );
+
+        if (summaryResponse.ok) {
+          const summaryData = await summaryResponse.json();
+          if (
+            summaryData.success !== false &&
+            summaryData.data?.revenue_summary
+          ) {
+            setRevenueSummary(summaryData.data.revenue_summary);
+          }
         }
 
         // Load gateway health data
@@ -462,6 +483,136 @@
           ),
         ),
       ),
+
+      // Revenue Recovery Stats (PRO ONLY)
+      revenueSummary &&
+        React.createElement(
+          "div",
+          {
+            className: "revenue-stats-grid",
+            style: {
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "20px",
+              marginBottom: "30px",
+            },
+          },
+          React.createElement(
+            "div",
+            {
+              className: "stat-card lost-revenue",
+              style: {
+                background: "#fff",
+                padding: "20px",
+                borderRadius: "8px",
+                borderLeft: "4px solid #d63638",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              },
+            },
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "12px",
+                  textTransform: "uppercase",
+                  color: "#646970",
+                  marginBottom: "5px",
+                },
+              },
+              "Potential Revenue Lost (30d)",
+            ),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "#d63638",
+                },
+              },
+              "$" + revenueSummary.total_lost.toLocaleString(),
+            ),
+          ),
+          React.createElement(
+            "div",
+            {
+              className: "stat-card recovered-revenue",
+              style: {
+                background: "#fff",
+                padding: "20px",
+                borderRadius: "8px",
+                borderLeft: "4px solid #00a32a",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              },
+            },
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "12px",
+                  textTransform: "uppercase",
+                  color: "#646970",
+                  marginBottom: "5px",
+                },
+              },
+              "Recovered Revenue (30d)",
+            ),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "#00a32a",
+                },
+              },
+              "$" + revenueSummary.total_recovered.toLocaleString(),
+            ),
+          ),
+          React.createElement(
+            "div",
+            {
+              className: "stat-card recovery-rate",
+              style: {
+                background: "#fff",
+                padding: "20px",
+                borderRadius: "8px",
+                borderLeft: "4px solid #2271b1",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              },
+            },
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "12px",
+                  textTransform: "uppercase",
+                  color: "#646970",
+                  marginBottom: "5px",
+                },
+              },
+              "Recovery Success Rate",
+            ),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "#2271b1",
+                },
+              },
+              revenueSummary.total_lost > 0
+                ? Math.round(
+                    (revenueSummary.total_recovered /
+                      (revenueSummary.total_lost +
+                        revenueSummary.total_recovered)) *
+                      100,
+                  ) + "%"
+                : "100%",
+            ),
+          ),
+        ),
 
       // Gateway Health Cards
       React.createElement(

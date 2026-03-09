@@ -130,6 +130,39 @@ class PaySentinel_Analytics_Pro {
 	}
 
 	/**
+	 * Get daily failure trends
+	 *
+	 * @param string $gateway_id Gateway ID
+	 * @param int    $days       Number of days
+	 *
+	 * @return array Daily trends
+	 */
+	public function get_daily_trends( $gateway_id, $days = 30 ) {
+		global $wpdb;
+		$table_name  = $this->database->get_transactions_table();
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days", current_time( 'timestamp' ) ) );
+
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT DATE(created_at) as date, 
+				COUNT(*) as total_transactions,
+				SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_transactions,
+				SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_transactions,
+				SUM(CASE WHEN status = 'failed' THEN amount ELSE 0 END) as lost_revenue,
+				SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END) as recovered_revenue
+				FROM `{$table_name}` 
+				WHERE gateway_id = %s 
+				AND created_at >= %s 
+				GROUP BY DATE(created_at) 
+				ORDER BY date ASC",
+				$gateway_id,
+				$cutoff_date
+			),
+			ARRAY_A
+		);
+	}
+
+	/**
 	 * Get failure pattern analysis (PRO feature)
 	 *
 	 * @param string $gateway_id Gateway ID
@@ -184,22 +217,7 @@ class PaySentinel_Analytics_Pro {
 		);
 
 		// Get daily failure trends
-		$daily_trends = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT DATE(created_at) as date, 
-				COUNT(*) as total_transactions,
-				SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_transactions,
-				SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_transactions
-				FROM `{$table_name}` 
-				WHERE gateway_id = %s 
-				AND created_at >= %s 
-				GROUP BY DATE(created_at) 
-				ORDER BY date ASC",
-				$gateway_id,
-				$cutoff_date
-			),
-			ARRAY_A
-		);
+		$daily_trends = $this->get_daily_trends( $gateway_id, $days );
 
 		return array(
 			'gateway_id'          => $gateway_id,
@@ -231,14 +249,25 @@ class PaySentinel_Analytics_Pro {
 		$gateways_to_monitor = array_slice( $enabled_gateways, 0, $limit );
 
 		$summary = array(
-			'total_gateways'  => count( $gateways_to_monitor ),
-			'gateway_metrics' => array(),
+			'total_gateways'    => count( $gateways_to_monitor ),
+			'gateway_metrics'   => array(),
+			'revenue_summary'   => array(
+				'total_lost'      => 0,
+				'total_recovered' => 0,
+			),
 		);
 
 		foreach ( $gateways_to_monitor as $gateway_id ) {
 			$comparative = $this->get_comparative_analytics( $gateway_id );
 			if ( ! isset( $comparative['error'] ) ) {
 				$summary[ PaySentinel_Settings_Constants::GATEWAY_METRICS ][ $gateway_id ] = $comparative;
+				
+				// Added revenue metrics to summary
+				$trends = $this->get_daily_trends( $gateway_id, 30 );
+				foreach ( $trends as $day ) {
+					$summary['revenue_summary']['total_lost']      += floatval( $day['lost_revenue'] );
+					$summary['revenue_summary']['total_recovered'] += floatval( $day['recovered_revenue'] );
+				}
 			}
 		}
 
