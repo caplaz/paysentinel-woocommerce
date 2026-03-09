@@ -99,6 +99,16 @@ class PaySentinel_Admin_Menu_Handler {
 			array( $this->page_renderer, 'render_transactions_page' )
 		);
 
+		// Add analytics submenu
+		add_submenu_page(
+			'paysentinel',
+			__( 'Analytics', 'paysentinel' ),
+			__( 'Analytics', 'paysentinel' ),
+			'manage_woocommerce',
+			'paysentinel-analytics',
+			array( $this->page_renderer, 'render_analytics_page' )
+		);
+
 		// Add alerts submenu
 		add_submenu_page(
 			'paysentinel',

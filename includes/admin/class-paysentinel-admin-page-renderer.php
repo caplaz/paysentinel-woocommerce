@@ -357,6 +357,24 @@ class PaySentinel_Admin_Page_Renderer {
 	}
 
 	/**
+	 * Render analytics page
+	 */
+	public function render_analytics_page() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'paysentinel' ) );
+		}
+
+		?>
+		<div class="wrap">
+			<?php $this->render_page_header( __( 'Analytics', 'paysentinel' ) ); ?>
+			<p><?php esc_html_e( 'Deep insights into your payment performance and recovery ROI.', 'paysentinel' ); ?></p>
+
+			<div id="paysentinel-analytics-container"></div>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Render alerts page
 	 */
 	public function render_alerts_page() {

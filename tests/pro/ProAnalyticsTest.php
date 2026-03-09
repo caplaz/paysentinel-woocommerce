@@ -90,6 +90,95 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test daily trends includes recovery ROI and recovered count
+	 */
+	public function test_get_daily_trends_includes_recovery_roi() {
+		global $wpdb;
+
+		// Mock transaction data
+		$table_name = $this->database->get_transactions_table();
+
+		// Success without retry
+		$wpdb->insert( $table_name, array(
+			'gateway_id'  => 'stripe',
+			'order_id'    => '101',
+			'amount'      => 100.00,
+			'status'      => 'success',
+			'retry_count' => 0,
+			'created_at'  => current_time( 'mysql' ),
+		) );
+
+		// Success WITH retry (Recovered)
+		$wpdb->insert( $table_name, array(
+			'gateway_id'  => 'stripe',
+			'order_id'    => '102',
+			'amount'      => 50.00,
+			'status'      => 'success',
+			'retry_count' => 1,
+			'created_at'  => current_time( 'mysql' ),
+		) );
+
+		// Failure
+		$wpdb->insert( $table_name, array(
+			'gateway_id'  => 'stripe',
+			'order_id'    => '103',
+			'amount'      => 75.00,
+			'status'      => 'failed',
+			'retry_count' => 3,
+			'created_at'  => current_time( 'mysql' ),
+		) );
+
+		$trends = $this->analytics->get_daily_trends( 'stripe', 30 );
+
+		$this->assertNotEmpty( $trends );
+		$today = $trends[ count( $trends ) - 1 ];
+
+		// Lost Revenue: 75.00 (from failed 103)
+		$this->assertEquals( 75.00, $today['lost_revenue'] );
+
+		// Recovered Revenue: 150.00 (all success: 100 + 50)
+		$this->assertEquals( 150.00, $today['recovered_revenue'] );
+
+		// Recovered Transactions: 1 (only 102 had retry_count > 0)
+		$this->assertEquals( 1, $today['recovered_transactions'] );
+
+		// Recovery ROI: 50.00 (only 102 amount)
+		$this->assertEquals( 50.00, $today['recovery_roi'] );
+	}
+
+	/**
+	 * Test advanced metrics summary includes revenue summary
+	 */
+	public function test_get_advanced_metrics_summary_revenue() {
+		update_option( 'paysentinel_license_status', 'valid' );
+		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
+
+		// Enable stripe
+		update_option( 'paysentinel_settings', array(
+			'enabled_gateways' => array( 'stripe' ),
+		) );
+
+		global $wpdb;
+		$table_name = $this->database->get_transactions_table();
+
+		// Insert one recovered transaction for stripe
+		$wpdb->insert( $table_name, array(
+			'gateway_id'  => 'stripe',
+			'order_id'    => '201',
+			'amount'      => 200.00,
+			'status'      => 'success',
+			'retry_count' => 2,
+			'created_at'  => current_time( 'mysql' ),
+		) );
+
+		$summary = $this->analytics->get_advanced_metrics_summary();
+
+		$this->assertArrayHasKey( 'revenue_summary', $summary );
+		$this->assertGreaterThan( 0, $summary['revenue_summary']['total_recovered'] );
+		$this->assertEquals( 200.00, $summary['revenue_summary']['total_recovered'] );
+	}
+
+	/**
 	 * Test extended history respects tier limits
 	 */
 	public function test_extended_history_respects_tier_limits() {

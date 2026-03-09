@@ -149,7 +149,9 @@ class PaySentinel_Analytics_Pro {
 				SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_transactions,
 				SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_transactions,
 				SUM(CASE WHEN status = 'failed' THEN amount ELSE 0 END) as lost_revenue,
-				SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END) as recovered_revenue
+				SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END) as recovered_revenue,
+				SUM(CASE WHEN retry_count > 0 AND status = 'success' THEN 1 ELSE 0 END) as recovered_transactions,
+				SUM(CASE WHEN retry_count > 0 AND status = 'success' THEN amount ELSE 0 END) as recovery_roi
 				FROM `{$table_name}` 
 				WHERE gateway_id = %s 
 				AND created_at >= %s 

@@ -883,7 +883,582 @@
       const root = ReactDOM.createRoot(alertsContainer);
       root.render(React.createElement(Alerts));
     }
+
+    // Mount Analytics component if on analytics page
+    const analyticsContainer = document.getElementById(
+      "paysentinel-analytics-container",
+    );
+    if (analyticsContainer && React && ReactDOM) {
+      const root = ReactDOM.createRoot(analyticsContainer);
+      if (document.getElementById("paysentinel-root")) {
+        // Fix: If both exist, the root component is the main dashboard,
+        // we'll let it handle routing if needed, but for now we render separately
+        root.render(React.createElement(Analytics));
+      } else {
+        root.render(React.createElement(Analytics));
+      }
+    }
   });
+
+  /**
+   * Trend Chart Component using Chart.js
+   */
+  function RecoveryTrendChart({ data, isDemo }) {
+    const chartRef = React.useRef(null);
+    const chartInstance = React.useRef(null);
+
+    React.useEffect(() => {
+      if (!chartRef.current || !window.Chart) return;
+
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+
+      const ctx = chartRef.current.getContext("2d");
+      const labels = Object.keys(data).map((date) =>
+        new Date(date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+      );
+      const values = Object.values(data).map((d) => d.recovered_amount || 0);
+      const counts = Object.values(data).map((d) => d.recovered_count || 0);
+
+      chartInstance.current = new window.Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Amount Recovered ($)",
+              data: values,
+              borderColor: "#46b450",
+              backgroundColor: "rgba(70, 180, 80, 0.1)",
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4,
+              yAxisID: "y",
+            },
+            {
+              label: "Orders Recovered",
+              data: counts,
+              borderColor: "#0073aa",
+              backgroundColor: "transparent",
+              borderWidth: 2,
+              borderDash: [5, 5],
+              fill: false,
+              tension: 0.4,
+              yAxisID: "y1",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: "index",
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              position: "top",
+              labels: {
+                usePointStyle: true,
+                padding: 20,
+              },
+            },
+            tooltip: {
+              padding: 12,
+              backgroundColor: "rgba(0,0,0,0.8)",
+            },
+          },
+          scales: {
+            y: {
+              type: "linear",
+              display: true,
+              position: "left",
+              beginAtZero: true,
+              grid: {
+                drawBorder: false,
+                color: "rgba(0,0,0,0.05)",
+              },
+              title: {
+                display: true,
+                text: "Amount ($)",
+              },
+            },
+            y1: {
+              type: "linear",
+              display: true,
+              position: "right",
+              beginAtZero: true,
+              grid: {
+                drawOnChartArea: false,
+              },
+              title: {
+                display: true,
+                text: "Order Count",
+              },
+            },
+            x: {
+              grid: {
+                display: false,
+              },
+            },
+          },
+        },
+      });
+
+      return () => {
+        if (chartInstance.current) {
+          chartInstance.current.destroy();
+        }
+      };
+    }, [data]);
+
+    return React.createElement(
+      "div",
+      { className: "paysentinel-chart-container", style: { height: "300px" } },
+      React.createElement("canvas", { ref: chartRef }),
+    );
+  }
+
+  /**
+   * Analytics Component
+   * Displays advanced payment performance and recovery ROI metrics
+   */
+  function Analytics() {
+    const [summary, setSummary] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [isDemo, setIsDemo] = useState(false);
+
+    useEffect(() => {
+      async function fetchAnalytics() {
+        try {
+          const nonce = window.wcPaymentMonitor?.nonce || "";
+          const headers = { "Content-Type": "application/json" };
+          if (nonce) headers["X-WP-Nonce"] = nonce;
+
+          const response = await fetch(
+            `${window.wcPaymentMonitor.apiUrl}/analytics/metrics-summary`,
+            { method: "GET", headers, credentials: "same-origin" },
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success !== false) {
+              setSummary(result.data);
+            } else {
+              setError(result.message || "Failed to load analytics");
+            }
+          } else if (response.status === 403 || response.status === 401) {
+            // Demo mode for unlicensed users
+            setIsDemo(true);
+            const demoTrends = {};
+            const now = new Date();
+            for (let i = 14; i >= 0; i--) {
+              const d = new Date(now);
+              d.setDate(d.getDate() - i);
+              const dateStr = d.toISOString().split("T")[0];
+              demoTrends[dateStr] = {
+                recovered_count: Math.floor(Math.random() * 10) + 2,
+                recovered_amount: Math.floor(Math.random() * 500) + 100,
+              };
+            }
+
+            setSummary({
+              revenue_summary: { total_recovered: 12482, total_lost: 1420 },
+              daily_trends: demoTrends,
+              gateway_metrics: {
+                stripe: { periods: { "24hour": { success_rate: 94.2 } } },
+                paypal: { periods: { "24hour": { success_rate: 89.5 } } },
+              },
+            });
+          } else {
+            setError("Failed to fetch analytics data");
+          }
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      fetchAnalytics();
+    }, []);
+
+    if (isLoading)
+      return React.createElement(
+        "div",
+        { className: "paysentinel-loading" },
+        "Loading analytics...",
+      );
+    if (error)
+      return React.createElement(
+        "div",
+        { className: "notice notice-error" },
+        React.createElement("p", null, error),
+      );
+    if (!summary) return null;
+
+    const { revenue_summary, gateway_metrics, daily_trends } = summary;
+
+    const handleExport = () => {
+      if (isDemo) return;
+      const csvRows = [
+        [
+          "Gateway",
+          "Period",
+          "Success Rate",
+          "Transactions",
+          "Successful",
+          "Failed",
+        ],
+      ];
+
+      Object.entries(gateway_metrics).forEach(([id, data]) => {
+        Object.entries(data.periods || {}).forEach(([period, stats]) => {
+          csvRows.push([
+            id,
+            period,
+            `${stats.success_rate.toFixed(2)}%`,
+            stats.total_transactions,
+            stats.successful_transactions,
+            stats.failed_transactions,
+          ]);
+        });
+      });
+
+      const csvContent =
+        "data:text/csv;charset=utf-8," +
+        csvRows.map((e) => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute(
+        "download",
+        `paysentinel-analytics-${new Date().toISOString().split("T")[0]}.csv`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    return React.createElement(
+      "div",
+      {
+        className: `paysentinel-analytics-dashboard ${isDemo ? "demo-mode" : ""}`,
+      },
+      isDemo &&
+        React.createElement(
+          "div",
+          {
+            className: "notice notice-info",
+            style: {
+              marginBottom: "20px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "10px 20px",
+            },
+          },
+          React.createElement(
+            "p",
+            { style: { margin: 0 } },
+            "Showing demo data. A PRO license is required to see your actual store analytics.",
+          ),
+          React.createElement(
+            "a",
+            {
+              href: `${window.wcPaymentMonitor?.saasUrl}/upgrade`,
+              target: "_blank",
+              className: "button button-primary",
+            },
+            "Upgrade to PRO",
+          ),
+        ),
+      // ROI Cards Row
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "flex",
+            gap: "20px",
+            marginBottom: "30px",
+            opacity: isDemo ? 0.8 : 1,
+          },
+        },
+        React.createElement(AnalyticsCard, {
+          title: "Recovery ROI",
+          value: `$${(revenue_summary.total_recovered || 0).toLocaleString()}`,
+          subtitle: "Revenue rescued via retries",
+          color: "#46b450",
+          onExport: isDemo ? null : handleExport,
+        }),
+        React.createElement(AnalyticsCard, {
+          title: "Lost Revenue",
+          value: `$${(revenue_summary.total_lost || 0).toLocaleString()}`,
+          subtitle: "Failed transactions (last 30d)",
+          color: "#dc3232",
+        }),
+      ),
+
+      // Trend Chart
+      React.createElement(
+        "div",
+        {
+          className: "paysentinel-card",
+          style: { marginBottom: "30px", opacity: isDemo ? 0.8 : 1 },
+        },
+        React.createElement("h2", null, "Recovery Performance Trends"),
+        daily_trends &&
+          React.createElement(RecoveryTrendChart, {
+            data: daily_trends,
+            isDemo: isDemo,
+          }),
+      ),
+
+      // Recovery Intelligence Flow
+      React.createElement(
+        "div",
+        {
+          className: "paysentinel-card",
+          style: {
+            marginBottom: "30px",
+            opacity: isDemo ? 0.8 : 1,
+            padding: "20px",
+          },
+        },
+        React.createElement(
+          "h2",
+          { style: { marginTop: 0, marginBottom: "25px" } },
+          "Recovery Intelligence Flow",
+        ),
+        React.createElement(RecoveryFlow, { summary }),
+      ),
+
+      // Gateway Comparison Table
+      React.createElement(
+        "div",
+        { className: "paysentinel-card", style: { opacity: isDemo ? 0.8 : 1 } },
+        React.createElement("h2", null, "Gateway Performance Comparison"),
+        React.createElement(
+          "table",
+          { className: "wp-list-table widefat fixed striped" },
+          React.createElement(
+            "thead",
+            null,
+            React.createElement(
+              "tr",
+              null,
+              React.createElement("th", null, "Gateway"),
+              React.createElement("th", null, "Success Rate (24h)"),
+              React.createElement("th", null, "Recovery ROI"),
+              React.createElement("th", null, "Recovered Orders"),
+            ),
+          ),
+          React.createElement(
+            "tbody",
+            null,
+            Object.entries(gateway_metrics || {}).map(([id, data]) => {
+              // Calculate recovery ROI from trends if possible (for demo)
+              let recoveryAmount = 0;
+              let recoveredCount = 0;
+
+              if (isDemo && daily_trends) {
+                // Approximate for demo
+                recoveryAmount = Math.floor(
+                  revenue_summary.total_recovered /
+                    Object.keys(gateway_metrics).length,
+                );
+                recoveredCount = Math.floor(Math.random() * 50) + 10;
+              }
+
+              return React.createElement(
+                "tr",
+                { key: id },
+                React.createElement(
+                  "td",
+                  { style: { textTransform: "capitalize", fontWeight: "600" } },
+                  id,
+                ),
+                React.createElement(
+                  "td",
+                  null,
+                  React.createElement(
+                    "span",
+                    {
+                      style: {
+                        color:
+                          data.periods?.["24hour"]?.success_rate > 90
+                            ? "#46b450"
+                            : "#f39c12",
+                        fontWeight: "bold",
+                      },
+                    },
+                    `${(data.periods?.["24hour"]?.success_rate || 0).toFixed(1)}%`,
+                  ),
+                ),
+                React.createElement(
+                  "td",
+                  null,
+                  recoveryAmount > 0
+                    ? `$${recoveryAmount.toLocaleString()}`
+                    : "Analyzing...",
+                ),
+                React.createElement(
+                  "td",
+                  null,
+                  recoveredCount > 0 ? recoveredCount : "PRO Tier",
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  function RecoveryFlow({ summary }) {
+    return React.createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "20px",
+        },
+      },
+      React.createElement(FlowStep, {
+        label: "Initial Failure",
+        count: "100%",
+        color: "#666",
+      }),
+      React.createElement("span", {
+        className: "dashicons dashicons-arrow-right-alt2",
+        style: { color: "#ccc" },
+      }),
+      React.createElement(FlowStep, {
+        label: "Local Heuristics",
+        count: "Analyze",
+        color: "#0073aa",
+      }),
+      React.createElement("span", {
+        className: "dashicons dashicons-arrow-right-alt2",
+        style: { color: "#ccc" },
+      }),
+      React.createElement(FlowStep, {
+        label: "Smart Retry",
+        count: "Execute",
+        color: "#f39c12",
+      }),
+      React.createElement("span", {
+        className: "dashicons dashicons-arrow-right-alt2",
+        style: { color: "#ccc" },
+      }),
+      React.createElement(FlowStep, {
+        label: "Recovered",
+        count: `${((summary.revenue_summary.total_recovered / (summary.revenue_summary.total_recovered + summary.revenue_summary.total_lost)) * 100 || 0).toFixed(1)}%`,
+        color: "#46b450",
+      }),
+    );
+  }
+
+  function FlowStep({ label, count, color }) {
+    return React.createElement(
+      "div",
+      { style: { textAlign: "center", flex: 1 } },
+      React.createElement(
+        "div",
+        {
+          style: {
+            width: "60px",
+            height: "60px",
+            borderRadius: "50%",
+            background: color,
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 10px",
+            fontWeight: "bold",
+          },
+        },
+        count,
+      ),
+      React.createElement(
+        "div",
+        { style: { fontSize: "12px", fontWeight: "500" } },
+        label,
+      ),
+    );
+  }
+
+  function AnalyticsCard({ title, value, subtitle, color, onExport }) {
+    return React.createElement(
+      "div",
+      {
+        className: "paysentinel-card analytics-stat-card",
+        style: {
+          flex: 1,
+          borderLeft: `5px solid ${color}`,
+          position: "relative",
+          padding: "20px 20px 20px 30px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          minHeight: "120px",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+        },
+      },
+      onExport &&
+        React.createElement(
+          "button",
+          {
+            onClick: onExport,
+            className: "button button-small",
+            style: { position: "absolute", top: "10px", right: "10px" },
+            title: "Export Data",
+          },
+          React.createElement("span", {
+            className: "dashicons dashicons-download",
+          }),
+        ),
+      React.createElement(
+        "div",
+        {
+          style: {
+            fontSize: "14px",
+            color: "#666",
+            fontWeight: "600",
+            marginBottom: "8px",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          },
+        },
+        title,
+      ),
+      React.createElement(
+        "div",
+        {
+          style: {
+            fontSize: "32px",
+            fontWeight: "bold",
+            color: "#23282d",
+            marginBottom: "5px",
+            lineHeight: "1.2",
+          },
+        },
+        value,
+      ),
+      React.createElement(
+        "div",
+        { style: { fontSize: "13px", color: "#888", fontStyle: "italic" } },
+        subtitle,
+      ),
+    );
+  }
 
   /**
    * Gateway Health Component
