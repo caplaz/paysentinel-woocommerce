@@ -602,14 +602,14 @@
                   color: "#2271b1",
                 },
               },
-              revenueSummary.total_lost > 0
+              revenueSummary.total_lost + revenueSummary.total_recovered > 0
                 ? Math.round(
                     (revenueSummary.total_recovered /
                       (revenueSummary.total_lost +
                         revenueSummary.total_recovered)) *
                       100,
                   ) + "%"
-                : "100%",
+                : "N/A",
             ),
           ),
         ),

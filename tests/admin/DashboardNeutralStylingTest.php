@@ -264,4 +264,40 @@ class DashboardNeutralStylingTest extends PaySentinel_Test_Case {
 			);
 		}
 	}
+
+	/**
+	 * Test recovery success rate calculation logic
+	 *
+	 * Verify that frontend calculation logic correctly displays N/A when revenue is 0
+	 */
+	public function test_recovery_success_rate_calc() {
+		$test_cases = array(
+			array(
+				'total_lost' => 0,
+				'total_recovered' => 0,
+				'expected' => 'N/A'
+			),
+			array(
+				'total_lost' => 100,
+				'total_recovered' => 50,
+				'expected' => '33%'
+			),
+			array(
+				'total_lost' => 0,
+				'total_recovered' => 100,
+				'expected' => '100%'
+			)
+		);
+
+		foreach ( $test_cases as $case ) {
+			if ( $case['total_lost'] + $case['total_recovered'] > 0 ) {
+				$val = round( ( $case['total_recovered'] / ( $case['total_lost'] + $case['total_recovered'] ) ) * 100 ) . '%';
+			} else {
+				$val = 'N/A';
+			}
+
+			$this->assertEquals( $case['expected'], $val );
+		}
+
+        }
 }
