@@ -173,11 +173,10 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 
 		// Verify Email Sent (Recovery Email)
 		// Check if the recovery flag was set on the order
-		$order = wc_get_order( $this->order_id );
+		$order     = wc_get_order( $this->order_id );
 		$sent_flag = $order->get_meta( '_paysentinel_recovery_sent' );
-		
+
 		$this->assertTrue( ! empty( $sent_flag ), 'Recovery email flag should be set on hard decline.' );
-		
 	}
 
 	/**
@@ -227,7 +226,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 
 		// Verify Action Scheduler event
 		$this->assertNotEmpty( $GLOBALS['test_as_scheduled_actions'], 'Soft decline should schedule AS action.' );
-		
+
 		// Find the paysentinel_retry_payment action (may not be the last one if other actions are scheduled)
 		$retry_action = null;
 		foreach ( $GLOBALS['test_as_scheduled_actions'] as $action ) {
@@ -236,7 +235,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 				break;
 			}
 		}
-		
+
 		$this->assertNotNull( $retry_action, 'paysentinel_retry_payment action should be scheduled' );
 		$this->assertEquals( $this->transaction_id, $retry_action['args'][0] );
 	}
@@ -476,7 +475,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		$this->assertEmpty( $retry_actions, 'Should not retry without stored payment method.' );
 
 		// Verify recovery flag was set (email sent)
-		$order = wc_get_order( $this->order_id );
+		$order     = wc_get_order( $this->order_id );
 		$sent_flag = $order->get_meta( '_paysentinel_recovery_sent' );
 		$this->assertTrue( ! empty( $sent_flag ), 'Should send recovery email instead.' );
 	}
@@ -704,7 +703,10 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 
 		$wpdb->update(
 			$table_name,
-			array( 'failure_reason' => 'Timeout', 'retry_count' => 0 ),
+			array(
+				'failure_reason' => 'Timeout',
+				'retry_count'    => 0,
+			),
 			array( 'id' => $this->transaction_id )
 		);
 
@@ -760,7 +762,10 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
 		$wpdb->update(
 			$table_name,
-			array( 'failure_reason' => 'Timeout', 'retry_count' => 0 ),
+			array(
+				'failure_reason' => 'Timeout',
+				'retry_count'    => 0,
+			),
 			array( 'id' => $this->transaction_id )
 		);
 
@@ -776,8 +781,8 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 
 		$this->assertNotEmpty( $retry_actions, 'Should schedule first retry.' );
 
-		$first_retry = reset( $retry_actions );
-		$current_time = time();
+		$first_retry    = reset( $retry_actions );
+		$current_time   = time();
 		$scheduled_time = $first_retry['timestamp'];
 
 		// Should be scheduled approximately 3600 seconds (1 hour) from now
@@ -830,7 +835,7 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 
 		// Verify recovery flag (email was intended to be sent)
 		$updated_order = wc_get_order( $this->order_id );
-		$sent_flag = $updated_order->get_meta( '_paysentinel_recovery_sent' );
+		$sent_flag     = $updated_order->get_meta( '_paysentinel_recovery_sent' );
 		$this->assertTrue( ! empty( $sent_flag ), 'Recovery email should be marked as sent.' );
 	}
 
@@ -859,7 +864,10 @@ class SmartRetryLogicTest extends WP_UnitTestCase {
 		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
 		$wpdb->update(
 			$table_name,
-			array( 'failure_reason' => 'Timeout', 'retry_count' => 1 ), // Already retried once
+			array(
+				'failure_reason' => 'Timeout',
+				'retry_count'    => 1,
+			), // Already retried once
 			array( 'id' => $this->transaction_id )
 		);
 

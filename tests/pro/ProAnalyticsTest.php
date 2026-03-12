@@ -99,34 +99,43 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		$table_name = $this->database->get_transactions_table();
 
 		// Success without retry
-		$wpdb->insert( $table_name, array(
-			'gateway_id'  => 'stripe',
-			'order_id'    => '101',
-			'amount'      => 100.00,
-			'status'      => 'success',
-			'retry_count' => 0,
-			'created_at'  => current_time( 'mysql' ),
-		) );
+		$wpdb->insert(
+			$table_name,
+			array(
+				'gateway_id'  => 'stripe',
+				'order_id'    => '101',
+				'amount'      => 100.00,
+				'status'      => 'success',
+				'retry_count' => 0,
+				'created_at'  => current_time( 'mysql' ),
+			)
+		);
 
 		// Success WITH retry (Recovered)
-		$wpdb->insert( $table_name, array(
-			'gateway_id'  => 'stripe',
-			'order_id'    => '102',
-			'amount'      => 50.00,
-			'status'      => 'success',
-			'retry_count' => 1,
-			'created_at'  => current_time( 'mysql' ),
-		) );
+		$wpdb->insert(
+			$table_name,
+			array(
+				'gateway_id'  => 'stripe',
+				'order_id'    => '102',
+				'amount'      => 50.00,
+				'status'      => 'success',
+				'retry_count' => 1,
+				'created_at'  => current_time( 'mysql' ),
+			)
+		);
 
 		// Failure
-		$wpdb->insert( $table_name, array(
-			'gateway_id'  => 'stripe',
-			'order_id'    => '103',
-			'amount'      => 75.00,
-			'status'      => 'failed',
-			'retry_count' => 3,
-			'created_at'  => current_time( 'mysql' ),
-		) );
+		$wpdb->insert(
+			$table_name,
+			array(
+				'gateway_id'  => 'stripe',
+				'order_id'    => '103',
+				'amount'      => 75.00,
+				'status'      => 'failed',
+				'retry_count' => 3,
+				'created_at'  => current_time( 'mysql' ),
+			)
+		);
 
 		$trends = $this->analytics->get_daily_trends( 'stripe', 30 );
 
@@ -154,22 +163,28 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
 		// Enable stripe
-		update_option( 'paysentinel_settings', array(
-			'enabled_gateways' => array( 'stripe' ),
-		) );
+		update_option(
+			'paysentinel_settings',
+			array(
+				'enabled_gateways' => array( 'stripe' ),
+			)
+		);
 
 		global $wpdb;
 		$table_name = $this->database->get_transactions_table();
 
 		// Insert one recovered transaction for stripe
-		$wpdb->insert( $table_name, array(
-			'gateway_id'  => 'stripe',
-			'order_id'    => '201',
-			'amount'      => 200.00,
-			'status'      => 'success',
-			'retry_count' => 2,
-			'created_at'  => current_time( 'mysql' ),
-		) );
+		$wpdb->insert(
+			$table_name,
+			array(
+				'gateway_id'  => 'stripe',
+				'order_id'    => '201',
+				'amount'      => 200.00,
+				'status'      => 'success',
+				'retry_count' => 2,
+				'created_at'  => current_time( 'mysql' ),
+			)
+		);
 
 		$summary = $this->analytics->get_advanced_metrics_summary();
 

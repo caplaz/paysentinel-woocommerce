@@ -273,20 +273,20 @@ class DashboardNeutralStylingTest extends PaySentinel_Test_Case {
 	public function test_recovery_success_rate_calc() {
 		$test_cases = array(
 			array(
-				'total_lost' => 0,
+				'total_lost'      => 0,
 				'total_recovered' => 0,
-				'expected' => 'N/A'
+				'expected'        => 'N/A',
 			),
 			array(
-				'total_lost' => 100,
+				'total_lost'      => 100,
 				'total_recovered' => 50,
-				'expected' => '33%'
+				'expected'        => '33%',
 			),
 			array(
-				'total_lost' => 0,
+				'total_lost'      => 0,
 				'total_recovered' => 100,
-				'expected' => '100%'
-			)
+				'expected'        => '100%',
+			),
 		);
 
 		foreach ( $test_cases as $case ) {
@@ -298,6 +298,5 @@ class DashboardNeutralStylingTest extends PaySentinel_Test_Case {
 
 			$this->assertEquals( $case['expected'], $val );
 		}
-
-        }
+	}
 }

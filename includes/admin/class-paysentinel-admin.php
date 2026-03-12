@@ -159,19 +159,24 @@ class PaySentinel_Admin {
 		);
 
 		// Prepare license tier data
-		$tier        = $this->license->get_license_tier();
-		$tier_labels = array(
+		$tier         = $this->license->get_license_tier();
+		$license_data = $this->license->get_license_data();
+		$tier_labels  = array(
 			'free'    => __( 'Free', 'paysentinel' ),
 			'starter' => __( 'Starter', 'paysentinel' ),
 			'pro'     => __( 'Pro', 'paysentinel' ),
 			'agency'  => __( 'Agency', 'paysentinel' ),
 		);
-		$tier_colors = array(
+		$tier_colors  = array(
 			'free'    => '#6c757d',
 			'starter' => '#0073aa',
 			'pro'     => '#46b450',
 			'agency'  => '#9b51e0',
 		);
+
+		$plan_color = is_array( $license_data ) && ! empty( $license_data['plan_color'] )
+			? $license_data['plan_color']
+			: ( isset( $tier_colors[ $tier ] ) ? $tier_colors[ $tier ] : '#0073aa' );
 
 		// Localize script with admin data
 		wp_localize_script(
@@ -190,7 +195,7 @@ class PaySentinel_Admin {
 				'license'     => array(
 					'tier'  => $tier,
 					'label' => isset( $tier_labels[ $tier ] ) ? $tier_labels[ $tier ] : ucfirst( $tier ),
-					'color' => isset( $tier_colors[ $tier ] ) ? $tier_colors[ $tier ] : '#0073aa',
+					'color' => $plan_color,
 				),
 			)
 		);

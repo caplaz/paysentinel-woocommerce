@@ -762,7 +762,7 @@ class PaySentinel_Retry {
 
 		// Ensure the email is actually sent
 		$sent = wp_mail( $customer_email, $subject, $message, $headers );
-		
+
 		return $sent;
 	}
 
