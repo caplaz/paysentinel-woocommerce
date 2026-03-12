@@ -1411,14 +1411,43 @@
   }
 
   function RecoveryFlow({ summary }) {
+    const FlowArrow = React.createElement(
+      "div",
+      {
+        style: {
+          flex: "1",
+          height: "4px",
+          backgroundColor: "#cbd5dd",
+          marginTop: "28px", // Aligns perfectly with the center of the 60px circle
+          marginRight: "10px",
+          marginLeft: "10px",
+          position: "relative",
+          minWidth: "40px",
+          borderRadius: "2px",
+        },
+      },
+      React.createElement("div", {
+        style: {
+          position: "absolute",
+          right: "-4px",
+          top: "-5px",
+          width: 0,
+          height: 0,
+          borderTop: "7px solid transparent",
+          borderBottom: "7px solid transparent",
+          borderLeft: "12px solid #cbd5dd",
+        },
+      }),
+    );
+
     return React.createElement(
       "div",
       {
         style: {
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           justifyContent: "space-between",
-          padding: "20px",
+          padding: "20px 0px",
         },
       },
       React.createElement(FlowStep, {
@@ -1426,28 +1455,25 @@
         count: "100%",
         color: "#666",
       }),
-      React.createElement("span", {
-        className: "dashicons dashicons-arrow-right-alt2",
-        style: { color: "#ccc" },
-      }),
+      FlowArrow,
       React.createElement(FlowStep, {
         label: "Local Heuristics",
-        count: "Analyze",
+        count: React.createElement("span", {
+          className: "dashicons dashicons-filter",
+          style: { fontSize: "28px", width: "28px", height: "28px" },
+        }),
         color: "#0073aa",
       }),
-      React.createElement("span", {
-        className: "dashicons dashicons-arrow-right-alt2",
-        style: { color: "#ccc" },
-      }),
+      FlowArrow,
       React.createElement(FlowStep, {
         label: "Smart Retry",
-        count: "Execute",
+        count: React.createElement("span", {
+          className: "dashicons dashicons-update",
+          style: { fontSize: "28px", width: "28px", height: "28px" },
+        }),
         color: "#f39c12",
       }),
-      React.createElement("span", {
-        className: "dashicons dashicons-arrow-right-alt2",
-        style: { color: "#ccc" },
-      }),
+      FlowArrow,
       React.createElement(FlowStep, {
         label: "Recovered",
         count: `${((summary.revenue_summary.total_recovered / (summary.revenue_summary.total_recovered + summary.revenue_summary.total_lost)) * 100 || 0).toFixed(1)}%`,
