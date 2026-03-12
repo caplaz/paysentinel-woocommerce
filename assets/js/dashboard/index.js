@@ -1149,57 +1149,149 @@
       {
         className: `paysentinel-analytics-dashboard ${isDemo ? "demo-mode" : ""}`,
       },
-      isDemo &&
-        React.createElement(
-          "div",
-          {
-            className: "notice notice-info",
-            style: {
-              marginBottom: "20px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "10px 20px",
-            },
-          },
-          React.createElement(
-            "p",
-            { style: { margin: 0 } },
-            "Showing demo data. A PRO license is required to see your actual store analytics.",
-          ),
-          React.createElement(
-            "a",
-            {
-              href: "/wp-admin/admin.php?page=paysentinel-settings&tab=license",
-              className: "button button-primary",
-            },
-            "Upgrade to PRO",
-          ),
-        ),
-      // ROI Cards Row
+      // Analytics Header with KPIs
       React.createElement(
         "div",
         {
+          className: "section-header",
           style: {
             display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
             gap: "20px",
-            marginBottom: "30px",
             opacity: isDemo ? 0.8 : 1,
           },
         },
-        React.createElement(AnalyticsCard, {
-          title: "Recovery ROI",
-          value: `$${(revenue_summary.total_recovered || 0).toLocaleString()}`,
-          subtitle: "Revenue rescued via retries",
-          color: "#46b450",
-          onExport: isDemo ? null : handleExport,
-        }),
-        React.createElement(AnalyticsCard, {
-          title: "Lost Revenue",
-          value: `$${(revenue_summary.total_lost || 0).toLocaleString()}`,
-          subtitle: "Failed transactions (last 30d)",
-          color: "#dc3232",
-        }),
+
+        // Left column (Titles)
+        React.createElement(
+          "div",
+          { style: { flex: "1", minWidth: "300px" } },
+          React.createElement("h2", null, "Analytics"),
+          React.createElement(
+            "p",
+            {
+              className: "section-subtitle",
+              style: { color: isDemo ? "#d63638" : "", marginTop: "5px" },
+            },
+            isDemo
+              ? "Showing demo data. A PRO license is required to see your actual store analytics."
+              : "Deep insights into your payment performance and recovery ROI.",
+          ),
+        ),
+
+        // Middle column (Stats)
+        React.createElement(
+          "div",
+          {
+            className: "analytics-header-stats",
+            style: {
+              display: "flex",
+              gap: "40px",
+              alignItems: "center",
+              borderLeft: "1px solid #ccd0d4",
+              paddingLeft: "30px",
+              borderRight: "1px solid #ccd0d4",
+              paddingRight: "30px",
+            },
+          },
+          // Recovery ROI Stat
+          React.createElement(
+            "div",
+            null,
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: "#646970",
+                  fontWeight: "600",
+                  marginBottom: "8px",
+                },
+              },
+              "Recovery ROI",
+            ),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "28px",
+                  fontWeight: "600",
+                  color: "#46b450",
+                  lineHeight: "1",
+                },
+              },
+              `$${(revenue_summary.total_recovered || 0).toLocaleString()}`,
+            ),
+          ),
+          // Lost Revenue Stat
+          React.createElement(
+            "div",
+            null,
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "11px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: "#646970",
+                  fontWeight: "600",
+                  marginBottom: "8px",
+                },
+              },
+              "Lost Revenue",
+            ),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  fontSize: "28px",
+                  fontWeight: "600",
+                  color: "#dc3232",
+                  lineHeight: "1",
+                },
+              },
+              `$${(revenue_summary.total_lost || 0).toLocaleString()}`,
+            ),
+          ),
+        ),
+
+        // Right column (Actions)
+        React.createElement(
+          "div",
+          { className: "header-actions" },
+          isDemo
+            ? React.createElement(
+                "a",
+                {
+                  href: "/wp-admin/admin.php?page=paysentinel-settings&tab=license",
+                  className: "button button-primary",
+                },
+                "Upgrade to PRO",
+              )
+            : React.createElement(
+                "button",
+                {
+                  className: "button button-secondary",
+                  onClick: handleExport,
+                  style: {
+                    height: "32px",
+                    padding: "0 12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                  },
+                },
+                React.createElement("span", {
+                  className: "dashicons dashicons-download",
+                }),
+                "Export CSV",
+              ),
+        ),
       ),
 
       // Trend Chart
@@ -1390,71 +1482,6 @@
         "div",
         { style: { fontSize: "12px", fontWeight: "500" } },
         label,
-      ),
-    );
-  }
-
-  function AnalyticsCard({ title, value, subtitle, color, onExport }) {
-    return React.createElement(
-      "div",
-      {
-        className: "paysentinel-card analytics-stat-card",
-        style: {
-          flex: 1,
-          borderLeft: `5px solid ${color}`,
-          position: "relative",
-          padding: "20px 20px 20px 30px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          minHeight: "120px",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-        },
-      },
-      onExport &&
-        React.createElement(
-          "button",
-          {
-            onClick: onExport,
-            className: "button button-small",
-            style: { position: "absolute", top: "10px", right: "10px" },
-            title: "Export Data",
-          },
-          React.createElement("span", {
-            className: "dashicons dashicons-download",
-          }),
-        ),
-      React.createElement(
-        "div",
-        {
-          style: {
-            fontSize: "14px",
-            color: "#666",
-            fontWeight: "600",
-            marginBottom: "8px",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          },
-        },
-        title,
-      ),
-      React.createElement(
-        "div",
-        {
-          style: {
-            fontSize: "32px",
-            fontWeight: "bold",
-            color: "#23282d",
-            marginBottom: "5px",
-            lineHeight: "1.2",
-          },
-        },
-        value,
-      ),
-      React.createElement(
-        "div",
-        { style: { fontSize: "13px", color: "#888", fontStyle: "italic" } },
-        subtitle,
       ),
     );
   }

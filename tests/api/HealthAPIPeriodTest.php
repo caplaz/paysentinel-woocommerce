@@ -2,12 +2,12 @@
 
 class Testable_PaySentinel_API_Health extends PaySentinel_API_Health {
 	protected function get_wc_gateways_all() {
-		$gateway = new \stdClass();
+		$gateway     = new \stdClass();
 		$gateway->id = 'bacs';
 		return array( 'bacs' => $gateway );
 	}
 	protected function get_wc_gateways_enabled() {
-		$gateway = new \stdClass();
+		$gateway     = new \stdClass();
 		$gateway->id = 'bacs';
 		return array( 'bacs' => $gateway );
 	}
@@ -44,7 +44,7 @@ class HealthAPIPeriodTest extends WP_UnitTestCase {
 	public function tearDown(): void {
 		global $wpdb;
 		$database = new PaySentinel_Database();
-		$tables = array(
+		$tables   = array(
 			$database->get_transactions_table(),
 			$database->get_gateway_health_table(),
 		);
@@ -61,14 +61,14 @@ class HealthAPIPeriodTest extends WP_UnitTestCase {
 	 */
 	public function test_get_gateway_health_uses_correct_backend_period_mapping() {
 		global $wpdb;
-		
+
 		$gateway_id     = 'bacs';
 		$frontend_param = '24h';
 		$backend_period = '24hour';
 
-		// Seed a health status for '24hour' 
-		$database = new PaySentinel_Database();
-		$table_name  = $database->get_gateway_health_table();
+		// Seed a health status for '24hour'
+		$database   = new PaySentinel_Database();
+		$table_name = $database->get_gateway_health_table();
 		$wpdb->insert(
 			$table_name,
 			array(
@@ -88,14 +88,13 @@ class HealthAPIPeriodTest extends WP_UnitTestCase {
 		$request->set_param( 'gateway_id', $gateway_id );
 		$request->set_param( 'period', $frontend_param );
 		$request->set_param( 'scope', 'all' );
-        
+
 		$response = $this->api->get_gateway_health( $request );
 
 		$this->assertNotWPError( $response, 'Response should not be a WP_Error' );
-		
+
 		$data = $response->get_data();
 
-		
 		// Ensure it fetched the 24hour data record we manually injected
 		$this->assertEquals( $frontend_param, $data['data']['period'], 'Response should mirror requested period' );
 		$this->assertEquals( 50, $data['data']['failed_transactions'], 'It should retrieve the correct failed transactions amount for the mapped period' );

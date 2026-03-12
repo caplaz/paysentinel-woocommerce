@@ -366,9 +366,6 @@ class PaySentinel_Admin_Page_Renderer {
 
 		?>
 		<div class="wrap">
-			<?php $this->render_page_header( __( 'Analytics', 'paysentinel' ) ); ?>
-			<p><?php esc_html_e( 'Deep insights into your payment performance and recovery ROI.', 'paysentinel' ); ?></p>
-
 			<div id="paysentinel-analytics-container"></div>
 		</div>
 		<?php
