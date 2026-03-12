@@ -307,7 +307,7 @@ class PaySentinel_Alerts {
 		global $wpdb;
 
 		$table_name = $this->database->get_alerts_table();
-		$start_date = date( 'Y-m-d H:i:s', time() - ( $days * 86400 ) );
+		$start_date = date_create( current_time( 'mysql' ) )->modify( "-{$days} days" )->format( 'Y-m-d H:i:s' );
 
 		$stats = $wpdb->get_row(
 			$wpdb->prepare(

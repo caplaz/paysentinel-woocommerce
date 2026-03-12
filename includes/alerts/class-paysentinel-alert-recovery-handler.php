@@ -210,8 +210,7 @@ class PaySentinel_Alert_Recovery_Handler {
 		global $wpdb;
 
 		$table_name       = $this->database->get_alerts_table();
-		$time_limit       = time() - self::RATE_LIMIT_WINDOW;
-		$time_limit_mysql = date( 'Y-m-d H:i:s', $time_limit );
+		$time_limit_mysql = date_create( current_time( 'mysql' ) )->modify( '-' . self::RATE_LIMIT_WINDOW . ' seconds' )->format( 'Y-m-d H:i:s' );
 
 		$recent_alert = $wpdb->get_var(
 			$wpdb->prepare(

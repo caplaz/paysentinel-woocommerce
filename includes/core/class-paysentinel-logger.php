@@ -454,7 +454,7 @@ class PaySentinel_Logger {
 		global $wpdb;
 
 		$table_name = $this->database->get_transactions_table();
-		$start_time = date( 'Y-m-d H:i:s', time() - $period_seconds );
+		$start_time = date_create( current_time( 'mysql' ) )->modify( "-{$period_seconds} seconds" )->format( 'Y-m-d H:i:s' );
 
 		$stats = $wpdb->get_row(
 			$wpdb->prepare(
@@ -467,8 +467,9 @@ class PaySentinel_Logger {
                 SUM(amount) as total_amount,
                 AVG(amount) as avg_amount
             FROM {$table_name} 
-            WHERE gateway_id = %s AND created_at >= %s AND status != 'pending'",
+            WHERE gateway_id = %s AND (created_at >= %s OR updated_at >= %s) AND status != 'pending'",
 				$gateway_id,
+				$start_time,
 				$start_time
 			),
 			ARRAY_A

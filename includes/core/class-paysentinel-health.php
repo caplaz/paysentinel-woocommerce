@@ -376,14 +376,15 @@ class PaySentinel_Health {
 		global $wpdb;
 
 		$table_name = $this->database->get_transactions_table();
-		$start_time = date( 'Y-m-d H:i:s', time() - $period_seconds );
+		$start_time = date_create( current_time( 'mysql' ) )->modify( "-{$period_seconds} seconds" )->format( 'Y-m-d H:i:s' );
 
 		$last_failure = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT created_at FROM {$table_name} 
-             WHERE gateway_id = %s AND status = 'failed' AND created_at >= %s 
-             ORDER BY created_at DESC LIMIT 1",
+				"SELECT COALESCE(updated_at, created_at) as failure_time FROM {$table_name} 
+             WHERE gateway_id = %s AND status = 'failed' AND (created_at >= %s OR updated_at >= %s) 
+             ORDER BY failure_time DESC LIMIT 1",
 				$gateway_id,
+				$start_time,
 				$start_time
 			)
 		);
@@ -404,7 +405,7 @@ class PaySentinel_Health {
 		global $wpdb;
 
 		$table_name = $this->database->get_gateway_health_table();
-		$start_date = date( 'Y-m-d H:i:s', time() - ( $days * 86400 ) );
+		$start_date = date_create( current_time( 'mysql' ) )->modify( "-{$days} days" )->format( 'Y-m-d H:i:s' );
 
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -430,7 +431,7 @@ class PaySentinel_Health {
 		global $wpdb;
 
 		$table_name  = $this->database->get_gateway_health_table();
-		$cutoff_date = date( 'Y-m-d H:i:s', time() - ( $days * 86400 ) );
+		$cutoff_date = date_create( current_time( 'mysql' ) )->modify( "-{$days} days" )->format( 'Y-m-d H:i:s' );
 
 		return $wpdb->query(
 			$wpdb->prepare(

@@ -228,7 +228,7 @@ class PaySentinel_Alert_Checker {
 		// Get the first transaction date for this gateway to prevent premature alerts
 		// for large time windows when the gateway was just recently added.
 		$first_tx_date       = $this->database->get_first_transaction_date_for_gateway( $gateway_id );
-		$gateway_age_seconds = $first_tx_date ? ( time() - strtotime( $first_tx_date ) ) : 0;
+		$gateway_age_seconds = $first_tx_date ? ( current_time( 'timestamp' ) - strtotime( $first_tx_date ) ) : 0;
 		$period_seconds_map  = PaySentinel_Health::PERIODS;
 
 		// Check each period that has health data
@@ -415,7 +415,7 @@ class PaySentinel_Alert_Checker {
 		global $wpdb;
 
 		$table_name = $this->database->get_alerts_table();
-		$time_limit = date( 'Y-m-d H:i:s', time() - self::RATE_LIMIT_WINDOW );
+		$time_limit = date_create( current_time( 'mysql' ) )->modify( '-' . self::RATE_LIMIT_WINDOW . ' seconds' )->format( 'Y-m-d H:i:s' );
 
 		$recent_alert = $wpdb->get_var(
 			$wpdb->prepare(

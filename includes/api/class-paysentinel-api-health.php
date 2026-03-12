@@ -52,9 +52,9 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				'args'                => array(
 					'period'     => array(
 						'type'        => 'string',
-						'description' => 'Health calculation period (1hour, 24hour, 7day)',
-						'enum'        => array( '1hour', '24hour', '7day' ),
-						'default'     => '24hour',
+						'description' => 'Health calculation period (24h, 7d, 30d)',
+						'enum'        => array( '24h', '7d', '30d' ),
+						'default'     => '24h',
 					),
 					'gateway_id' => array(
 						'type'        => 'string',
@@ -378,9 +378,9 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			$is_locked     = ( $index !== false && $index >= $gateway_limit );
 
 			// Get health metrics
-			$health = $this->get_gateway_health_data( $gateway_id, $period );
+			$health = $this->get_gateway_health_data( $gateway_id, $backend_period );
 			if ( ! $health ) {
-				$health = $this->ensure_health_row( $gateway_id, $period );
+				$health = $this->ensure_health_row( $gateway_id, $backend_period );
 			}
 
 			if ( ! $health ) {
@@ -407,8 +407,8 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				'failed_transactions'     => intval( $health->failed_transactions ),
 				'failed_count_24h'        => intval( $health->failed_transactions ),
 				'avg_response_time'       => intval( $health->avg_response_time ),
-				'last_checked'            => $health->calculated_at,
-				'last_updated'            => $health->calculated_at,
+				'last_checked'            => $health->last_updated,
+				'last_updated'            => $health->last_updated,
 				'last_failure'            => null,
 				'trend_data'              => $this->get_gateway_trend_data( $gateway_id, '24h' ),
 			);
