@@ -1295,19 +1295,20 @@
       ),
 
       // Trend Chart
-      React.createElement(
-        "div",
-        {
-          className: "paysentinel-card",
-          style: { marginBottom: "30px", opacity: isDemo ? 0.8 : 1 },
-        },
-        React.createElement("h2", null, "Recovery Performance Trends"),
-        daily_trends &&
-          React.createElement(RecoveryTrendChart, {
-            data: daily_trends,
-            isDemo: isDemo,
-          }),
-      ),
+      daily_trends && Object.keys(daily_trends).length > 0
+        ? React.createElement(
+            "div",
+            {
+              className: "paysentinel-card",
+              style: { marginBottom: "30px", opacity: isDemo ? 0.8 : 1 },
+            },
+            React.createElement("h2", null, "Recovery Performance Trends"),
+            React.createElement(RecoveryTrendChart, {
+              data: daily_trends,
+              isDemo: isDemo,
+            }),
+          )
+        : null,
 
       // Recovery Intelligence Flow
       React.createElement(
