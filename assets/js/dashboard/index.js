@@ -1325,7 +1325,40 @@
           { style: { marginTop: 0, marginBottom: "25px" } },
           "Recovery Intelligence Flow",
         ),
-        React.createElement(RecoveryFlow, { summary }),
+        summary.revenue_summary.total_recovered === 0 &&
+          summary.revenue_summary.total_lost === 0
+          ? React.createElement(
+              "div",
+              {
+                style: {
+                  textAlign: "center",
+                  padding: "40px 20px",
+                  color: "#646970",
+                },
+              },
+              React.createElement("span", {
+                className: "dashicons dashicons-chart-area",
+                style: {
+                  fontSize: "40px",
+                  width: "40px",
+                  height: "40px",
+                  color: "#dcdcde",
+                  marginBottom: "15px",
+                  display: "inline-block",
+                },
+              }),
+              React.createElement(
+                "p",
+                { style: { fontSize: "16px", fontWeight: "600", margin: 0 } },
+                "Not enough data yet",
+              ),
+              React.createElement(
+                "p",
+                { style: { fontSize: "14px", margin: "5px 0 0 0" } },
+                "As transactions are processed, your recovery flow visual will appear here.",
+              ),
+            )
+          : React.createElement(RecoveryFlow, { summary }),
       ),
 
       // Gateway Comparison Table
@@ -1351,59 +1384,81 @@
           React.createElement(
             "tbody",
             null,
-            Object.entries(gateway_metrics || {}).map(([id, data]) => {
-              // Calculate recovery ROI from trends if possible (for demo)
-              let recoveryAmount = 0;
-              let recoveredCount = 0;
-
-              if (isDemo && daily_trends) {
-                // Approximate for demo
-                recoveryAmount = Math.floor(
-                  revenue_summary.total_recovered /
-                    Object.keys(gateway_metrics).length,
-                );
-                recoveredCount = Math.floor(Math.random() * 50) + 10;
-              }
-
-              return React.createElement(
-                "tr",
-                { key: id },
-                React.createElement(
-                  "td",
-                  { style: { textTransform: "capitalize", fontWeight: "600" } },
-                  id,
-                ),
-                React.createElement(
-                  "td",
+            !gateway_metrics || Object.keys(gateway_metrics).length === 0
+              ? React.createElement(
+                  "tr",
                   null,
                   React.createElement(
-                    "span",
+                    "td",
                     {
+                      colSpan: "4",
                       style: {
-                        color:
-                          data.periods?.["24hour"]?.success_rate > 90
-                            ? "#46b450"
-                            : "#f39c12",
-                        fontWeight: "bold",
+                        textAlign: "center",
+                        padding: "30px",
+                        color: "#646970",
                       },
                     },
-                    `${(data.periods?.["24hour"]?.success_rate || 0).toFixed(1)}%`,
+                    "No gateway activity recorded yet.",
                   ),
-                ),
-                React.createElement(
-                  "td",
-                  null,
-                  recoveryAmount > 0
-                    ? `$${recoveryAmount.toLocaleString()}`
-                    : "Analyzing...",
-                ),
-                React.createElement(
-                  "td",
-                  null,
-                  recoveredCount > 0 ? recoveredCount : "PRO Tier",
-                ),
-              );
-            }),
+                )
+              : Object.entries(gateway_metrics).map(([id, data]) => {
+                  // Calculate recovery ROI from trends if possible (for demo)
+                  let recoveryAmount = 0;
+                  let recoveredCount = 0;
+
+                  if (isDemo && daily_trends) {
+                    // Approximate for demo
+                    recoveryAmount = Math.floor(
+                      revenue_summary.total_recovered /
+                        Object.keys(gateway_metrics).length,
+                    );
+                    recoveredCount = Math.floor(Math.random() * 50) + 10;
+                  }
+
+                  return React.createElement(
+                    "tr",
+                    { key: id },
+                    React.createElement(
+                      "td",
+                      {
+                        style: {
+                          textTransform: "capitalize",
+                          fontWeight: "600",
+                        },
+                      },
+                      id,
+                    ),
+                    React.createElement(
+                      "td",
+                      null,
+                      React.createElement(
+                        "span",
+                        {
+                          style: {
+                            color:
+                              data.periods?.["24hour"]?.success_rate > 90
+                                ? "#46b450"
+                                : "#f39c12",
+                            fontWeight: "bold",
+                          },
+                        },
+                        `${(data.periods?.["24hour"]?.success_rate || 0).toFixed(1)}%`,
+                      ),
+                    ),
+                    React.createElement(
+                      "td",
+                      null,
+                      recoveryAmount > 0
+                        ? `$${recoveryAmount.toLocaleString()}`
+                        : "Analyzing...",
+                    ),
+                    React.createElement(
+                      "td",
+                      null,
+                      recoveredCount > 0 ? recoveredCount : "PRO Tier",
+                    ),
+                  );
+                }),
           ),
         ),
       ),
