@@ -20,10 +20,11 @@ class PaySentinel_License {
 	/**
 	 * License API endpoints
 	 */
-	public const API_ENDPOINT_ACTIVATE = self::SAAS_URL . '/api/activate-license';
-	public const API_ENDPOINT_VALIDATE = self::SAAS_URL . '/api/validate-license';
-	public const API_ENDPOINT_SYNC     = self::SAAS_URL . '/api/sync';
-	public const API_ENDPOINT_ALERTS   = self::SAAS_URL . '/api/alerts';
+	public const API_ENDPOINT_ACTIVATE  = self::SAAS_URL . '/api/activate-license';
+	public const API_ENDPOINT_VALIDATE  = self::SAAS_URL . '/api/validate-license';
+	public const API_ENDPOINT_SYNC      = self::SAAS_URL . '/api/sync';
+	public const API_ENDPOINT_ALERTS    = self::SAAS_URL . '/api/alerts';
+	public const API_ENDPOINT_TELEMETRY = self::SAAS_URL . '/api/telemetry/transactions';
 
 	/**
 	 * Option names
@@ -813,7 +814,7 @@ class PaySentinel_License {
 	 *
 	 * @return array|WP_Error Response data or WP_Error
 	 */
-	public function make_authenticated_request( $endpoint, $method = 'POST', $body = array(), $include_site_url = true ) {
+	public function make_authenticated_request( $endpoint, $method = 'POST', $body = array(), $include_site_url = true, $blocking = true ) {
 		// Ensure we have a license key and site secret
 		$license_key = $this->get_license_key();
 		$site_secret = $this->get_site_secret();
@@ -825,7 +826,7 @@ class PaySentinel_License {
 			);
 		}
 
-		return $this->make_authenticated_request_with_secret( $endpoint, $method, $body, $site_secret, $license_key, $include_site_url );
+		return $this->make_authenticated_request_with_secret( $endpoint, $method, $body, $site_secret, $license_key, $include_site_url, $blocking );
 	}
 
 	/**
@@ -840,7 +841,7 @@ class PaySentinel_License {
 	 *
 	 * @return array|WP_Error Response data or WP_Error
 	 */
-	private function make_authenticated_request_with_secret( $endpoint, $method, $body, $site_secret, $license_key, $include_site_url = true ) {
+	private function make_authenticated_request_with_secret( $endpoint, $method, $body, $site_secret, $license_key, $include_site_url = true, $blocking = true ) {
 		$timestamp = time();
 		$method    = strtoupper( $method );
 
@@ -876,7 +877,8 @@ class PaySentinel_License {
 		$args = array(
 			'method'      => $method,
 			'headers'     => $headers,
-			'timeout'     => 15,
+			'timeout'     => $blocking ? 15 : 5,
+			'blocking'    => $blocking,
 			'httpversion' => '1.1',
 			'sslverify'   => true,
 		);

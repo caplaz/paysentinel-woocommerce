@@ -58,6 +58,9 @@ class PaySentinel_Logger {
 
 		$transaction_data = $this->extract_transaction_data( $order, 'success' );
 		$this->save_transaction( $transaction_data );
+
+		// Fire action for other components (like Telemetry)
+		do_action( 'paysentinel_payment_success', $order_id, $order );
 	}
 
 	/**
@@ -177,7 +180,7 @@ class PaySentinel_Logger {
 	 *
 	 * @return array Failure information
 	 */
-	private function extract_failure_info( $order ) {
+	public function extract_failure_info( $order ) {
 		$failure_info = array(
 			'reason' => null,
 			'code'   => null,

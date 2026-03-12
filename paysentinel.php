@@ -126,6 +126,7 @@ class PaySentinel {
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-license.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/gateways/class-paysentinel-gateway-manager.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-logger.php';
+		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-telemetry.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-health.php';
 
 		// Load alert system classes (order matters - dependencies first)
@@ -239,6 +240,11 @@ class PaySentinel {
 	public $alerts;
 
 	/**
+	 * @var PaySentinel_Telemetry $telemetry Telemetry system instance.
+	 */
+	public $telemetry;
+
+	/**
 	 * @var PaySentinel_Retry $retry Retry engine instance.
 	 */
 	public $retry;
@@ -267,6 +273,9 @@ class PaySentinel {
 
 		// Initialize retry engine.
 		$this->retry = new PaySentinel_Retry();
+
+		// Initialize telemetry engine.
+		$this->telemetry = new PaySentinel_Telemetry();
 
 		// Initialize license system and hooks.
 		$license = new PaySentinel_License();
