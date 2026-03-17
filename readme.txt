@@ -176,7 +176,7 @@ Yes! Check the Developer Guide in the plugin package for APIs, hooks, filters, a
 
 == Changelog ==
 
-= 1.1.0 - March 9, 2026 =
+= 1.1.0 - March 17, 2026 =
 * Added comprehensive Auto-Retry Engine for soft declines (Starter+ feature)
 * Added Smart Decline Detection: automatic hard vs soft decline classification
 * Added Recovery Email notifications for hard declines when retry not possible
