@@ -17,7 +17,7 @@ Monitor WooCommerce payment gateways in real-time, get instant alerts, and autom
 = Core Features =
 
 * **Real-Time Gateway Monitoring** - Continuously tracks health and success rates of all payment gateways
-* **Instant Alerts** - Get notified via Email, SMS, or Slack when success rates drop below thresholds
+* **Instant Alerts** - Get notified via Email, Slack, Discord, or Teams when success rates drop below thresholds
 * **Smart Automatic Retries** - Automatically retries failed payments for recoverable errors (temporary gateway downtime, timeouts, etc.)
 * **Volume-Aware Intelligence** - Alert severity considers transaction volume, not just success percentages
 * **Smart Error Filtering** - Automatically excludes user errors (declined cards, insufficient funds) from alerts
@@ -51,7 +51,7 @@ Offline payment methods (Cash on Delivery, Bank Transfer, Cheque) are automatica
 
 * Custom success rate thresholds per gateway
 * Multiple alert severity levels (Info, Warning, Critical)
-* Choose notification channels: Email, SMS, Slack, or webhooks
+* Choose notification channels: Email, Slack, Discord, Teams, or webhooks
 * Alert cooldown periods to prevent notification fatigue
 * Immediate escalation for critical failures
 
@@ -129,7 +129,7 @@ Yes! Check the Developer Guide in the plugin package for APIs, hooks, filters, a
 
 1. Navigate to **WooCommerce > PaySentinel** in your dashboard
 2. Configure **General Settings**: Set health check interval and alert thresholds
-3. Configure **Notification Settings**: Choose alert channels (Email, SMS, Slack)
+3. Configure **Notification Settings**: Choose preferred alert channels (Email, Slack, Discord, Teams)
 4. Enable monitoring for your payment gateways
 5. Save and you're monitoring!
 
@@ -142,8 +142,7 @@ Yes! Check the Developer Guide in the plugin package for APIs, hooks, filters, a
 
 = Notification Configuration =
 * Email Alerts - Configure email addresses for notifications
-* SMS Alerts - Set up SMS notification via Twilio or similar service
-* Slack Alerts - Connect to your Slack workspace for instant notifications
+* Slack/Discord/Teams - Connect your favorite communication tools
 * Webhooks - Send alert data to custom endpoints
 
 = Gateway Monitoring =

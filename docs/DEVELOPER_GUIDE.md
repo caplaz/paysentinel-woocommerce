@@ -7,6 +7,7 @@ Welcome to the technical documentation for **PaySentinel (PaySentinel - Payment 
 - [Plugin Architecture](#plugin-architecture)
 - [Directory Structure](#directory-structure)
 - [Extending the Plugin](#extending-the-plugin)
+- [Feature Technical Docs](#feature-technical-docs)
 - [Available Hooks & Filters](#available-hooks--filters)
 - [Code Style](#code-style)
 - [Running Tests](#running-tests)
@@ -40,6 +41,17 @@ Here's an overview of the key folders within the `includes` directory:
 The plugin integrates tightly with the WooCommerce ecosystem and adds its own custom tables for precise activity tracking (`wp_payment_monitor_transactions`).
 
 If you're integrating an unlisted payment gateway or a custom notification service, search for action and filter hooks that the system emits during successful or failed transaction captures.
+
+---
+
+## Feature Technical Docs
+
+For deep dives into specific system features, refer to:
+
+- **[Auto-Retry Technical Specs](features/auto-retry.md)** - Logic flow, license gates, and retry strategies.
+- **[Failure Simulator Documentation](features/failure-simulator.md)** - How the simulation engine works and technical implementation details.
+
+---
 
 ## Available Hooks & Filters
 

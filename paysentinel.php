@@ -195,7 +195,7 @@ class PaySentinel {
 	public function init() {
 		// Check WordPress version.
 		global $wp_version;
-		if ( version_compare( $wp_version, '5.0', '<' ) ) {
+		if ( version_compare( $wp_version, '6.5', '<' ) ) {
 			add_action( 'admin_notices', array( $this, 'wordpress_version_notice' ) );
 			deactivate_plugins( plugin_basename( __FILE__ ) );
 			return;
@@ -209,7 +209,7 @@ class PaySentinel {
 		}
 
 		// Check WooCommerce version.
-		if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '5.0', '<' ) ) {
+		if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '8.5', '<' ) ) {
 			add_action( 'admin_notices', array( $this, 'woocommerce_version_notice' ) );
 			deactivate_plugins( plugin_basename( __FILE__ ) );
 			return;
@@ -592,7 +592,7 @@ class PaySentinel {
 		echo '<div class="error"><p><strong>' .
 			__( 'PaySentinel - Payment Monitor for WooCommerce', 'paysentinel' ) .
 			'</strong> ' .
-			__( 'requires WordPress 5.0 or higher.', 'paysentinel' ) .
+			__( 'requires WordPress 6.5 or higher.', 'paysentinel' ) .
 			'</p></div>';
 	}
 
@@ -603,7 +603,7 @@ class PaySentinel {
 		echo '<div class="error"><p><strong>' .
 			__( 'PaySentinel - Payment Monitor for WooCommerce', 'paysentinel' ) .
 			'</strong> ' .
-			__( 'requires WooCommerce 5.0 or higher.', 'paysentinel' ) .
+			__( 'requires WooCommerce 8.5 or higher.', 'paysentinel' ) .
 			'</p></div>';
 	}
 }

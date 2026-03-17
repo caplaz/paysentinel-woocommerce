@@ -13,7 +13,7 @@
 ## Features
 
 - **Real-Time Monitoring:** Continuously tracks gateway health and success rates.
-- **Instant Alerts:** Get notified via Email, SMS, or Slack when success rates drop below your threshold.
+- **Instant Alerts:** Get notified via Email, Slack, Discord, or Teams when success rates drop below your threshold.
 - **Smart Retries:** Automatically retries failed payments for recoverable errors (e.g., temporary gateway downtime).
 - **Proactive Protection:** Analyzes recent transactions to provide real-time status indicators in your dashboard.
 - **Developer Friendly:** Built with extensibility in mind, featuring clear APIs and hooks.
@@ -48,8 +48,8 @@ composer install
 
 1. Go to **WooCommerce > PaySentinel** in your WordPress dashboard.
 2. In the **General Settings**, configure your `Health Check Interval` and `Alert Threshold`.
-3. In the **Notification Settings**, configure where you would like to receive alerts (Email, SMS, Slack).
-4. Enable monitoring for your payment gateways.
+3. In the **Notification Settings**, configure your preferred alert channels (Email, Slack, Discord, Teams).
+4. Enable monitoring for your specific payment gateways.
 5. Save your changes and you're good to go!
 
 ## Configuration
@@ -67,7 +67,7 @@ The PaySentinel dashboard displays:
 
 - Set custom success rate thresholds per gateway
 - Choose alert severity levels: Info, Warning, Critical
-- Configure notification channels (Email, SMS, Slack)
+- Configure notification channels (Email, Slack, Discord, Teams)
 - Set alert cooldown periods to avoid spam
 
 ### Retry Configuration
@@ -122,23 +122,26 @@ A: Yes! The admin interface allows you to manually retry individual failed trans
 
 ## Documentation
 
-- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Architecture, APIs, and extension points
-- **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute and set up development environment
-- **[Failure Simulator](docs/FAILURE_SIMULATOR.md)** - Testing guide for payment failure scenarios
-- **[Changelog](CHANGELOG.md)** - Version history and updates
+For comprehensive information about PaySentinel, please see our:
+
+- **[Documentation Index](docs/INDEX.md)** - The central hub for all project documentation.
+- **[User Guide](docs/USER_GUIDE.md)** - Detailed guide for store owners and administrators.
+- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Technical documentation for extending the plugin.
+- **[Troubleshooting Guide](docs/features/failure-simulator.md)** - How to test and debug payment failures.
 
 ## Support
 
-- **GitHub Issues:** [Report bugs](https://github.com/caplaz/paysentinel-woocommerce/issues)
-- **GitHub Discussions:** [Ask questions](https://github.com/caplaz/paysentinel-woocommerce/discussions)
-- **Documentation:** Check [docs/](docs/) folder for detailed guides
+- **Community Support**: [GitHub Discussions](https://github.com/caplaz/paysentinel-woocommerce/discussions)
+- **Bug Reports**: [GitHub Issues](https://github.com/caplaz/paysentinel-woocommerce/issues)
+- **Contribution Guide**: See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Testing
 
 PaySentinel includes comprehensive test coverage:
 
-- **297 unit tests** covering core functionality, alerts, APIs, and gateways
+- **325 automated tests** covering core functionality, alerts, APIs, and gateways
 - **PHPUnit** framework with WordPress test suite
+- **Full HPOS Integration** testing with 100% pass rate
 - **Automated CI/CD** via GitHub Actions
 - **Code quality tools** including PHPCS, PHPStan, and PHPMD
 
