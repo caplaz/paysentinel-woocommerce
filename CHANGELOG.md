@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-03-24
+
+### Added
+- **Compliance Audit**: Systematic resolution of findings from the WooCommerce.org plugin review team.
+- **Improved Database Handling**: Enhanced table existence verification and migration consistency for smoother upgrades.
+
+### Changed
+- Replaced discouraged functions (`parse_url`, `strip_tags`, `date`) with WordPress-recommended alternatives (`wp_parse_url`, `wp_strip_all_tags`, `gmdate`).
+- Standardized all `$_GET` and `$_POST` input handling using `wp_unslash()` and appropriate sanitization functions.
+- Updated all translatable strings with placeholders to include mandatory `/* translators: ... */` comments.
+
+### Fixed
+- **XSS Prevention**: Implemented strict output escaping using `esc_html()`, `esc_attr()`, and `wp_kses()` in all admin templates and emails.
+- **CSRF Protection**: Strengthened critical administrative actions with robust nonce verification.
+- **Interpolated SQL**: Resolved warnings for safe dynamic table name interpolation in database query helpers.
+
 ## [1.1.0] - 2026-03-17
 
 ### Added

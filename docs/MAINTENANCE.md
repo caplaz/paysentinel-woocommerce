@@ -1,7 +1,7 @@
 # PaySentinel Plugin Maintenance Plan
 
-**Date:** March 17, 2026  
-**Plugin:** PaySentinel v1.1.0  
+**Date:** March 24, 2026  
+**Plugin:** PaySentinel v1.1.1  
 **Maintained By:** PaySentinel Team
 
 ---
@@ -582,6 +582,6 @@ This document should be reviewed and updated quarterly as the project evolves.
 ---
 
 **Current Status:** ✅ Maintenance plan established  
-**Last Updated:** March 17, 2026  
-**Next Review:** June 3, 2026  
+**Last Updated:** March 24, 2026  
+**Next Review:** June 24, 2026  
 **Maintained By:** PaySentinel Team

@@ -1,5 +1,5 @@
 === PaySentinel - Payment Monitor for WooCommerce ===
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 Requires at least: 6.5
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -175,6 +175,16 @@ Yes! Check the Developer Guide in the plugin package for APIs, hooks, filters, a
 * PaySentinel excludes Cash on Delivery, Bank Transfer, Cheque automatically
 
 == Changelog ==
+
+= 1.1.1 - March 24, 2026 =
+* Added systematic resolution of findings from the WooCommerce.org plugin review team
+* Added improved database table existence verification for smoother upgrades
+* Changed discouraged functions (parse_url, strip_tags, date) to WordPress alternatives
+* Standardized all $_GET and $_POST input handling with wp_unslash() and sanitization
+* Fixed XSS vulnerabilities with strict output escaping (esc_html, esc_attr, wp_kses)
+* Fixed CSRF protection with robust nonce verification in admin/AJAX handlers
+* Fixed SQL warnings for safe dynamic table name interpolation
+* Fixed missing translator comments for all placeholders in i18n strings
 
 = 1.1.0 - March 17, 2026 =
 * Added comprehensive Auto-Retry Engine for soft declines (Starter+ feature)

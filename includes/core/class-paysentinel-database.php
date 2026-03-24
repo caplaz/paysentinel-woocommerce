@@ -16,7 +16,7 @@ class PaySentinel_Database {
 	/**
 	 * Database version
 	 */
-	public const DB_VERSION = '1.1.0';
+	public const DB_VERSION = '1.1.1';
 
 	/**
 	 * Table names
