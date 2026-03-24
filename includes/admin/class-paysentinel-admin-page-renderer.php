@@ -191,7 +191,7 @@ class PaySentinel_Admin_Page_Renderer {
 		}
 
 		global $wpdb;
-		$table_name   = $this->database->get_transactions_table();
+		$table_name = $this->database->get_transactions_table();
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$transactions = $wpdb->get_results( "SELECT * FROM {$table_name} ORDER BY id DESC LIMIT 50" );
 
@@ -459,8 +459,8 @@ class PaySentinel_Admin_Page_Renderer {
 							$section = $wp_settings_sections['paysentinel_settings'][ $section_id ];
 
 							if ( isset( $section['title'] ) ) {
-				echo '<h2>' . esc_html( $section['title'] ) . "</h2>\n";
-			}
+								echo '<h2>' . esc_html( $section['title'] ) . "</h2>\n";
+							}
 
 							if ( $section['callback'] ) {
 								call_user_func( $section['callback'], $section );

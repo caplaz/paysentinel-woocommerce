@@ -661,7 +661,7 @@ class PaySentinel_Retry {
 		$order_url   = $order->get_view_order_url();
 		$order_total = $order->get_formatted_order_total();
 		/* translators: 1: blog name, 2: order number */
-		$subject     = sprintf(
+		$subject = sprintf(
 			__( '[%1$s] Payment Successful - Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),
 			$order->get_order_number()
@@ -784,7 +784,7 @@ class PaySentinel_Retry {
 		$pay_link    = $order->get_checkout_payment_url();
 		$order_total = $order->get_formatted_order_total();
 		/* translators: 1: blog name, 2: order number */
-		$subject     = sprintf(
+		$subject = sprintf(
 			__( '[%1$s] Action Required: Payment Failed for Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),
 			$order->get_order_number()

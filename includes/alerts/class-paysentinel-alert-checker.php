@@ -131,16 +131,16 @@ class PaySentinel_Alert_Checker {
 
 		// Create connectivity alert
 		$alert_data = array(
-			'gateway_id'   => $gateway_id,
-			'alert_type'   => 'gateway_down',
-			'severity'     => 'critical',
-			'period'       => 'current',
-			'message'      => sprintf(
+			'gateway_id' => $gateway_id,
+			'alert_type' => 'gateway_down',
+			'severity'   => 'critical',
+			'period'     => 'current',
+			'message'    => sprintf(
 				/* translators: %s: gateway display name */
 				__( 'Payment gateway %s is currently unavailable. Customers cannot complete payments.', 'paysentinel' ),
 				$this->gateway_manager->get_gateway_display_name( $gateway_id )
 			),
-			'metadata'     => array(
+			'metadata'   => array(
 				'error'      => isset( $status['error'] ) ? $status['error'] : '',
 				'checked_at' => current_time( 'mysql' ),
 			),

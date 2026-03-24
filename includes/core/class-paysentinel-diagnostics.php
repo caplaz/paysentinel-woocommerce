@@ -96,7 +96,7 @@ class PaySentinel_Diagnostics {
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 			} else {
-				$results['status']   = 'error';
+				$results['status'] = 'error';
 				/* translators: %s: database table name */
 				$results['issues'][] = sprintf( __( 'Table %s does not exist', 'paysentinel' ), $table );
 			}
@@ -170,7 +170,7 @@ class PaySentinel_Diagnostics {
 			$results['gateways'][ $gateway_id ] = $gateway_result;
 
 			if ( 'offline' === $status['status'] ) {
-				$results['status']   = 'warning';
+				$results['status'] = 'warning';
 				/* translators: 1: gateway ID, 2: offline message */
 				$results['issues'][] = sprintf(
 					__( 'Gateway %1$s is offline: %2$s', 'paysentinel' ),
@@ -181,7 +181,7 @@ class PaySentinel_Diagnostics {
 
 			// Check for poor health
 			if ( isset( $health_data['24hour']['success_rate'] ) && $health_data['24hour']['success_rate'] < 90 ) {
-				$results['status']   = 'warning';
+				$results['status'] = 'warning';
 				/* translators: 1: gateway ID, 2: success rate percentage */
 				$results['issues'][] = sprintf(
 					__( 'Gateway %1$s has low success rate: %2$.1f%%', 'paysentinel' ),
