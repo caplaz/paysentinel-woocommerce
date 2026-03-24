@@ -131,8 +131,8 @@ class PaySentinel_Admin_Page_Renderer {
 		<div class="wrap">
 			<?php if ( isset( $_GET['message'] ) ) : ?>
 				<div
-					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( $_GET['type'] ) : 'info' ); ?> is-dismissible">
-					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
+					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
+					<p><?php echo esc_html( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ); ?></p>
 				</div>
 			<?php endif; ?>
 
@@ -192,6 +192,7 @@ class PaySentinel_Admin_Page_Renderer {
 
 		global $wpdb;
 		$table_name   = $this->database->get_transactions_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$transactions = $wpdb->get_results( "SELECT * FROM {$table_name} ORDER BY id DESC LIMIT 50" );
 
 		add_thickbox();
@@ -201,8 +202,8 @@ class PaySentinel_Admin_Page_Renderer {
 
 			<?php if ( isset( $_GET['message'] ) ) : ?>
 				<div
-					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( $_GET['type'] ) : 'info' ); ?> is-dismissible">
-					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
+					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
+					<p><?php echo esc_html( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ); ?></p>
 				</div>
 			<?php endif; ?>
 
@@ -249,17 +250,17 @@ class PaySentinel_Admin_Page_Renderer {
 								<td><?php echo esc_html( $t->gateway_id ); ?></td>
 								<td><?php echo esc_html( $t->failure_reason ? $t->failure_reason : '-' ); ?></td>
 								<td>
-									<a href="#TB_inline?width=600&height=440&inlineId=transaction-details-<?php echo $t->id; ?>"
+									<a href="#TB_inline?width=600&height=440&inlineId=transaction-details-<?php echo esc_attr( $t->id ); ?>"
 										class="thickbox button button-small tip"
 										<?php /* translators: %d: transaction ID */ ?>
 										title="<?php echo esc_attr( sprintf( __( 'Transaction Details #%d', 'paysentinel' ), $t->id ) ); ?>"
 										style="display: inline-flex; align-items: center; justify-content: center; padding: 0 8px;">
 										<span class="dashicons dashicons-visibility"
-											style="font-size: 18px; width: 18px; height: 18px;"></span>
+											style="font-size: 16px; width: 16px; height: 16px; line-height: 1;"></span>
 									</a>
 
-									<div id="transaction-details-<?php echo $t->id; ?>" style="display:none;">
-										<div class="wc-monitor-details-modal" style="padding: 10px 20px;">
+									<div id="transaction-details-<?php echo esc_attr( $t->id ); ?>" style="display:none;">
+										<h3><?php echo esc_html( sprintf( __( 'Transaction #%d Details', 'paysentinel' ), $t->id ) ); ?></h3><div class="wc-monitor-details-modal" style="padding: 10px 20px;">
 											<style>
 												.wc-monitor-details-modal .form-table th,
 												.wc-monitor-details-modal .form-table td {
@@ -398,15 +399,15 @@ class PaySentinel_Admin_Page_Renderer {
 		}
 
 		$tabs       = $this->get_settings_tabs();
-		$active_tab = isset( $_GET['tab'] ) && array_key_exists( $_GET['tab'], $tabs ) ? sanitize_text_field( $_GET['tab'] ) : 'general';
+		$active_tab = isset( $_GET['tab'] ) && array_key_exists( $_GET['tab'], $tabs ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'general';
 		?>
 		<div class="wrap">
 			<?php $this->render_page_header( __( 'Settings', 'paysentinel' ), 'settings' ); ?>
 
 			<?php if ( isset( $_GET['message'] ) ) : ?>
 				<div
-					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( $_GET['type'] ) : 'info' ); ?> is-dismissible">
-					<p><?php echo esc_html( urldecode( $_GET['message'] ) ); ?></p>
+					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
+					<p><?php echo esc_html( urldecode( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ) ); ?></p>
 				</div>
 			<?php endif; ?>
 
@@ -457,9 +458,9 @@ class PaySentinel_Admin_Page_Renderer {
 						if ( isset( $wp_settings_sections['paysentinel_settings'][ $section_id ] ) ) {
 							$section = $wp_settings_sections['paysentinel_settings'][ $section_id ];
 
-							if ( $section['title'] ) {
-								echo "<h2>{$section['title']}</h2>\n";
-							}
+							if ( isset( $section['title'] ) ) {
+				echo '<h2>' . esc_html( $section['title'] ) . "</h2>\n";
+			}
 
 							if ( $section['callback'] ) {
 								call_user_func( $section['callback'], $section );

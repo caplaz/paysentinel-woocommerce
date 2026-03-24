@@ -594,7 +594,7 @@ class PaySentinel_Admin_Settings_Handler {
 					<span style="color: #646970;">
 						<span class="dashicons dashicons-admin-site"
 							style="font-size: 14px; width: 14px; height: 14px; vertical-align: text-bottom;"></span>
-						<?php echo esc_html( parse_url( get_site_url(), PHP_URL_HOST ) ); ?>
+						<?php echo esc_html( wp_parse_url( get_site_url(), PHP_URL_HOST ) ); ?>
 					</span>
 					<span style="color: #46b450; font-weight: 500;"><?php esc_html_e( 'Verified', 'paysentinel' ); ?></span>
 				</div>
@@ -666,9 +666,18 @@ class PaySentinel_Admin_Settings_Handler {
 						<strong><?php esc_html_e( 'Pro Feature', 'paysentinel' ); ?></strong><br>
 						<?php
 						/* translators: %s: upgrade URL */
-						printf(
-							__( 'Per-gateway alert configuration requires Pro plan or higher. <a href="%s" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'paysentinel' ),
-							esc_url( admin_url( 'admin.php?page=paysentinel-settings&tab=license' ) )
+						echo wp_kses(
+							sprintf(
+								__( 'Per-gateway alert configuration requires Pro plan or higher. <a href="%s" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'paysentinel' ),
+								esc_url( admin_url( 'admin.php?page=paysentinel-settings&tab=license' ) )
+							),
+							array(
+								'a' => array(
+									'href'  => array(),
+									'class' => array(),
+									'style' => array(),
+								),
+							)
 						);
 						?>
 					</p>
@@ -879,7 +888,7 @@ class PaySentinel_Admin_Settings_Handler {
 			</div>
 
 			<div class="license-body">
-				<form method="post" action="<?php echo admin_url( 'admin-post.php' ); ?>" id="paysentinel-license-form">
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="paysentinel-license-form">
 					<input type="hidden" name="action" value="paysentinel_save_license">
 					<?php wp_nonce_field( 'paysentinel_save_license' ); ?>
 
@@ -969,7 +978,7 @@ class PaySentinel_Admin_Settings_Handler {
 					<span style="color: #646970;">
 						<span class="dashicons dashicons-admin-site"
 							style="font-size: 14px; width: 14px; height: 14px; vertical-align: text-bottom;"></span>
-						<?php echo esc_html( parse_url( get_site_url(), PHP_URL_HOST ) ); ?>
+						<?php echo esc_html( wp_parse_url( get_site_url(), PHP_URL_HOST ) ); ?>
 					</span>
 					<span
 						style="color: #46b450; font-weight: 500;"><?php esc_html_e( 'Verified & Registered', 'paysentinel' ); ?></span>
@@ -1002,7 +1011,7 @@ class PaySentinel_Admin_Settings_Handler {
 						data: {
 							action: 'paysentinel_validate_license',
 							license_key: licenseKey,
-							nonce: '<?php echo wp_create_nonce( 'paysentinel_validate_license' ); ?>'
+							nonce: '<?php echo esc_js( wp_create_nonce( 'paysentinel_validate_license' ) ); ?>'
 						},
 						success: function (response) {
 							if (response.success) {

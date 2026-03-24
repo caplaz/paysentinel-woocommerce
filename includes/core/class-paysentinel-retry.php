@@ -193,7 +193,7 @@ class PaySentinel_Retry {
 					'PaySentinel: Scheduled retry %d for transaction %d at %s via Action Scheduler',
 					$retry_attempt + 1,
 					$transaction_id,
-					date( 'Y-m-d H:i:s', $retry_time )
+					gmdate( 'Y-m-d H:i:s', $retry_time )
 				)
 			);
 			return true;
@@ -595,7 +595,7 @@ class PaySentinel_Retry {
 			sprintf(
 				__( 'Payment retry %1$d failed: %2$s', 'paysentinel' ),
 				$retry_count,
-				$retry_result['message']
+				$log_msg = wp_strip_all_tags( $retry_result['message'] )
 			)
 		);
 
@@ -687,37 +687,37 @@ class PaySentinel_Retry {
 		<body>
 			<div class="container">
 				<div class="header">
-					<h1><?php _e( 'Payment Successful!', 'paysentinel' ); ?></h1>
-					<p><?php _e( 'Your payment has been processed successfully', 'paysentinel' ); ?></p>
+					<h1><?php esc_html_e( 'Payment Successful!', 'paysentinel' ); ?></h1>
+					<p><?php esc_html_e( 'Your payment has been processed successfully', 'paysentinel' ); ?></p>
 				</div>
 				
 				<div class="content">
-					<h2><?php _e( 'Good News!', 'paysentinel' ); ?></h2>
-					<p><?php _e( 'We\'re pleased to inform you that your payment has been successfully processed after our automatic retry system resolved the initial payment issue.', 'paysentinel' ); ?></p>
+					<h2><?php esc_html_e( 'Good News!', 'paysentinel' ); ?></h2>
+					<p><?php esc_html_e( 'We\'re pleased to inform you that your payment has been successfully processed after our automatic retry system resolved the initial payment issue.', 'paysentinel' ); ?></p>
 					
 					<div class="order-details">
-						<h3><?php _e( 'Order Details', 'paysentinel' ); ?></h3>
+						<h3><?php esc_html_e( 'Order Details', 'paysentinel' ); ?></h3>
 						<ul>
-							<li><strong><?php _e( 'Order Number:', 'paysentinel' ); ?></strong> #<?php echo esc_html( $order->get_order_number() ); ?></li>
-							<li><strong><?php _e( 'Order Total:', 'paysentinel' ); ?></strong> <?php echo wp_kses_post( $order_total ); ?></li>
-							<li><strong><?php _e( 'Payment Method:', 'paysentinel' ); ?></strong> <?php echo esc_html( $order->get_payment_method_title() ); ?></li>
-							<li><strong><?php _e( 'Order Date:', 'paysentinel' ); ?></strong> <?php echo esc_html( $order->get_date_created()->format( 'F j, Y' ) ); ?></li>
+							<li><strong><?php esc_html_e( 'Order Number:', 'paysentinel' ); ?></strong> #<?php echo esc_html( $order->get_order_number() ); ?></li>
+							<li><strong><?php esc_html_e( 'Order Total:', 'paysentinel' ); ?></strong> <?php echo wp_kses_post( $order_total ); ?></li>
+							<li><strong><?php esc_html_e( 'Payment Method:', 'paysentinel' ); ?></strong> <?php echo esc_html( $order->get_payment_method_title() ); ?></li>
+							<li><strong><?php esc_html_e( 'Order Date:', 'paysentinel' ); ?></strong> <?php echo esc_html( $order->get_date_created()->format( 'F j, Y' ) ); ?></li>
 						</ul>
 					</div>
 					
 					<p>
 						<a href="<?php echo esc_url( $order_url ); ?>" class="button">
-							<?php _e( 'View Order Details', 'paysentinel' ); ?>
+							<?php esc_html_e( 'View Order Details', 'paysentinel' ); ?>
 						</a>
 					</p>
 					
-					<p><?php _e( 'Your order is now being processed and you will receive shipping information once your items are dispatched.', 'paysentinel' ); ?></p>
+					<p><?php esc_html_e( 'Your order is now being processed and you will receive shipping information once your items are dispatched.', 'paysentinel' ); ?></p>
 					
-					<p><?php _e( 'Thank you for your patience and for choosing us!', 'paysentinel' ); ?></p>
+					<p><?php esc_html_e( 'Thank you for your patience and for choosing us!', 'paysentinel' ); ?></p>
 				</div>
 				
 				<div class="footer">
-					<p><?php _e( 'This email was sent by our automated payment recovery system', 'paysentinel' ); ?></p>
+					<p><?php esc_html_e( 'This email was sent by our automated payment recovery system', 'paysentinel' ); ?></p>
 					<p><?php echo esc_html( get_bloginfo( 'name' ) ); ?> - <?php echo esc_url( home_url() ); ?></p>
 				</div>
 			</div>
@@ -810,34 +810,34 @@ class PaySentinel_Retry {
 		<body>
 			<div class="container">
 				<div class="header">
-					<h1><?php _e( 'Payment Action Required', 'paysentinel' ); ?></h1>
-					<p><?php _e( 'We were unable to process your payment', 'paysentinel' ); ?></p>
+					<h1><?php esc_html_e( 'Payment Action Required', 'paysentinel' ); ?></h1>
+					<p><?php esc_html_e( 'We were unable to process your payment', 'paysentinel' ); ?></p>
 				</div>
 				
 				<div class="content">
-					<h2><?php _e( 'Please Update Your Payment', 'paysentinel' ); ?></h2>
-					<p><?php _e( 'Unfortunately, the payment for your recent order was declined. To ensure your order is processed without delay, please use the link below to complete your payment.', 'paysentinel' ); ?></p>
+					<h2><?php esc_html_e( 'Please Update Your Payment', 'paysentinel' ); ?></h2>
+					<p><?php esc_html_e( 'Unfortunately, the payment for your recent order was declined. To ensure your order is processed without delay, please use the link below to complete your payment.', 'paysentinel' ); ?></p>
 					
 					<div class="order-details">
-						<h3><?php _e( 'Order Details', 'paysentinel' ); ?></h3>
+						<h3><?php esc_html_e( 'Order Details', 'paysentinel' ); ?></h3>
 						<ul>
-							<li><strong><?php _e( 'Order Number:', 'paysentinel' ); ?></strong> #<?php echo esc_html( $order->get_order_number() ); ?></li>
-							<li><strong><?php _e( 'Order Total:', 'paysentinel' ); ?></strong> <?php echo wp_kses_post( $order_total ); ?></li>
-							<li><strong><?php _e( 'Order Date:', 'paysentinel' ); ?></strong> <?php echo esc_html( $order->get_date_created()->format( 'F j, Y' ) ); ?></li>
+							<li><strong><?php esc_html_e( 'Order Number:', 'paysentinel' ); ?></strong> #<?php echo esc_html( $order->get_order_number() ); ?></li>
+							<li><strong><?php esc_html_e( 'Order Total:', 'paysentinel' ); ?></strong> <?php echo wp_kses_post( $order_total ); ?></li>
+							<li><strong><?php esc_html_e( 'Order Date:', 'paysentinel' ); ?></strong> <?php echo esc_html( $order->get_date_created()->format( 'F j, Y' ) ); ?></li>
 						</ul>
 					</div>
 					
 					<p style="text-align: center;">
 						<a href="<?php echo esc_url( $pay_link ); ?>" class="button">
-							<?php _e( 'Pay Now', 'paysentinel' ); ?>
+							<?php esc_html_e( 'Pay Now', 'paysentinel' ); ?>
 						</a>
 					</p>
 					
-					<p><?php _e( 'If you believe this charge should have gone through, please contact your bank or try a different card.', 'paysentinel' ); ?></p>
+					<p><?php esc_html_e( 'If you believe this charge should have gone through, please contact your bank or try a different card.', 'paysentinel' ); ?></p>
 				</div>
 				
 				<div class="footer">
-					<p><?php _e( 'This email was sent by our payment monitoring system', 'paysentinel' ); ?></p>
+					<p><?php esc_html_e( 'This email was sent by our payment monitoring system', 'paysentinel' ); ?></p>
 					<p><?php echo esc_html( get_bloginfo( 'name' ) ); ?> - <?php echo esc_url( home_url() ); ?></p>
 				</div>
 			</div>

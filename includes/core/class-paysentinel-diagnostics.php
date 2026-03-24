@@ -88,10 +88,12 @@ class PaySentinel_Diagnostics {
 		);
 
 		foreach ( $tables as $name => $table ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$exists = $wpdb->get_var( "SHOW TABLES LIKE '{$table}'" ) === $table;
 			$count  = 0;
 
 			if ( $exists ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 			} else {
 				$results['status']   = 'error';

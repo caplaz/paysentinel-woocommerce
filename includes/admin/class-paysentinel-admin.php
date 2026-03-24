@@ -210,7 +210,9 @@ class PaySentinel_Admin {
 		}
 
 		$order_id = isset( $_GET['order_id'] ) ? intval( $_GET['order_id'] ) : 0;
-		check_admin_referer( 'paysentinel_retry_' . $order_id );
+		if ( $order_id ) {
+			check_admin_referer( 'paysentinel_retry_' . $order_id );
+		}
 
 		if ( ! $order_id ) {
 			wp_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error' ) );
@@ -239,7 +241,9 @@ class PaySentinel_Admin {
 		}
 
 		$order_id = isset( $_GET['order_id'] ) ? intval( $_GET['order_id'] ) : 0;
-		check_admin_referer( 'paysentinel_recovery_' . $order_id );
+		if ( $order_id ) {
+			check_admin_referer( 'paysentinel_recovery_' . $order_id );
+		}
 
 		if ( ! $order_id ) {
 			wp_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error' ) );

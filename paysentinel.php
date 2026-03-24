@@ -578,33 +578,42 @@ class PaySentinel {
 	 * WooCommerce missing notice
 	 */
 	public function woocommerce_missing_notice() {
-		echo '<div class="error"><p><strong>' .
-			__( 'PaySentinel - Payment Monitor for WooCommerce', 'paysentinel' ) .
-			'</strong> ' .
-			__( 'requires WooCommerce to be installed and active.', 'paysentinel' ) .
-			'</p></div>';
+		?>
+		<div class="error">
+			<p>
+				<strong><?php esc_html_e( 'PaySentinel - Payment Monitor for WooCommerce', 'paysentinel' ); ?></strong>
+				<?php esc_html_e( 'requires WooCommerce to be installed and active.', 'paysentinel' ); ?>
+			</p>
+		</div>
+		<?php
 	}
 
 	/**
 	 * Show WordPress version notice
 	 */
 	public function wordpress_version_notice() {
-		echo '<div class="error"><p><strong>' .
-			__( 'PaySentinel - Payment Monitor for WooCommerce', 'paysentinel' ) .
-			'</strong> ' .
-			__( 'requires WordPress 6.5 or higher.', 'paysentinel' ) .
-			'</p></div>';
+		?>
+		<div class="error">
+			<p>
+				<strong><?php esc_html_e( 'PaySentinel - Payment Monitor for WooCommerce', 'paysentinel' ); ?></strong>
+				<?php esc_html_e( 'requires WordPress 6.5 or higher.', 'paysentinel' ); ?>
+			</p>
+		</div>
+		<?php
 	}
 
 	/**
 	 * Show WooCommerce version notice
 	 */
 	public function woocommerce_version_notice() {
-		echo '<div class="error"><p><strong>' .
-			__( 'PaySentinel - Payment Monitor for WooCommerce', 'paysentinel' ) .
-			'</strong> ' .
-			__( 'requires WooCommerce 8.5 or higher.', 'paysentinel' ) .
-			'</p></div>';
+		?>
+		<div class="error">
+			<p>
+				<strong><?php esc_html_e( 'PaySentinel - Payment Monitor for WooCommerce', 'paysentinel' ); ?></strong>
+				<?php esc_html_e( 'requires WooCommerce 8.5 or higher.', 'paysentinel' ); ?>
+			</p>
+		</div>
+		<?php
 	}
 }
 
