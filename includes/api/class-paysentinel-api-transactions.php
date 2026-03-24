@@ -91,9 +91,10 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 	public function get_transactions( $request ) {
 		try {
 			global $wpdb;
-			$table_name = $wpdb->prefix . 'payment_monitor_transactions';
+			$table_name = $this->database->get_transactions_table();
 
 			// Check if table exists
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 				return $this->get_paginated_response(
 					array(),
@@ -156,23 +157,30 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 			$pagination = $this->validate_pagination( $request );
 
 			// Get total count
-			$count_query = "SELECT COUNT(*) FROM $table_name WHERE $where_clause";
-			$total_count = $wpdb->get_var( $wpdb->prepare( $count_query, ...$where_params ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$total_count = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM %i WHERE {$where_clause}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					array_merge( array( $table_name ), $where_params )
+				)
+			);
 
 			// Get paginated results
 			$offset = $this->calculate_offset( $pagination['page'], $pagination['per_page'] );
 
 			$query = "SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code, 
                      transaction_id, customer_email, customer_ip, created_at as created_at
-                      FROM $table_name 
-                      WHERE $where_clause
+                      FROM %i 
+                      WHERE {$where_clause}
                       ORDER BY created_at DESC
                       LIMIT %d OFFSET %d";
 
-			$where_params[] = $pagination['per_page'];
-			$where_params[] = $offset;
+			$prepared_params = array_merge( array( $table_name ), $where_params, array( $pagination['per_page'], $offset ) );
 
-			$results = $wpdb->get_results( $wpdb->prepare( $query, ...$where_params ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$results = $wpdb->get_results(
+				$wpdb->prepare( $query, ...$prepared_params ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			);
 
 			if ( ! $results ) {
 				$results = array();
@@ -235,9 +243,10 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 			}
 
 			global $wpdb;
-			$table_name = $wpdb->prefix . 'payment_monitor_transactions';
+			$table_name = $this->database->get_transactions_table();
 
 			// Check if table exists
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 				return $this->get_error_response(
 					'transaction_not_found',
@@ -246,12 +255,14 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 				);
 			}
 
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->get_row(
 				$wpdb->prepare(
 					"SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code,
                         created_at as created_at
-                 FROM $table_name 
+                 FROM %i 
                  WHERE id = %d",
+					$table_name,
 					$transaction_id
 				)
 			);

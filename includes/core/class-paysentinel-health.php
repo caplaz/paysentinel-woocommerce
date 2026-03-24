@@ -238,9 +238,11 @@ class PaySentinel_Health {
 
 		$table_name = $this->database->get_gateway_health_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} WHERE gateway_id = %s AND period = %s ORDER BY calculated_at DESC LIMIT 1",
+				"SELECT * FROM %i WHERE gateway_id = %s AND period = %s ORDER BY calculated_at DESC LIMIT 1",
+				$table_name,
 				$gateway_id,
 				$period
 			)
@@ -260,16 +262,19 @@ class PaySentinel_Health {
 		$table_name = $this->database->get_gateway_health_table();
 
 		// Get latest record for each period
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT t1.* FROM {$table_name} t1
+				"SELECT t1.* FROM %i t1
 				INNER JOIN (
 					SELECT period, MAX(calculated_at) as latest_calc
-					FROM {$table_name}
+					FROM %i
 					WHERE gateway_id = %s
 					GROUP BY period
 				) t2 ON t1.period = t2.period AND t1.calculated_at = t2.latest_calc
 				WHERE t1.gateway_id = %s",
+				$table_name,
+				$table_name,
 				$gateway_id,
 				$gateway_id
 			),
@@ -297,8 +302,8 @@ class PaySentinel_Health {
 
 		$table_name = $this->database->get_gateway_health_table();
 
-		$sql    = "SELECT * FROM {$table_name}";
-		$params = array();
+		$sql    = "SELECT * FROM %i";
+		$params = array( $table_name );
 
 		if ( $period ) {
 			$sql     .= ' WHERE period = %s';
@@ -307,11 +312,8 @@ class PaySentinel_Health {
 
 		$sql .= ' ORDER BY gateway_id, period';
 
-		if ( ! empty( $params ) ) {
-			return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
-		} else {
-			return $wpdb->get_results( $sql, ARRAY_A );
-		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 	}
 
 	/**
@@ -379,11 +381,13 @@ class PaySentinel_Health {
 		$table_name = $this->database->get_transactions_table();
 		$start_time = date_create( current_time( 'mysql' ) )->modify( "-{$period_seconds} seconds" )->format( 'Y-m-d H:i:s' );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$last_failure = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COALESCE(updated_at, created_at) as failure_time FROM {$table_name} 
-             WHERE gateway_id = %s AND status = 'failed' AND (created_at >= %s OR updated_at >= %s) 
+				"SELECT COALESCE(updated_at, created_at) as failure_time FROM %i
+             WHERE gateway_id = %s AND status = 'failed' AND (created_at >= %s OR updated_at >= %s)
              ORDER BY failure_time DESC LIMIT 1",
+				$table_name,
 				$gateway_id,
 				$start_time,
 				$start_time
@@ -408,11 +412,13 @@ class PaySentinel_Health {
 		$table_name = $this->database->get_gateway_health_table();
 		$start_date = date_create( current_time( 'mysql' ) )->modify( "-{$days} days" )->format( 'Y-m-d H:i:s' );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} 
-             WHERE gateway_id = %s AND period = %s AND calculated_at >= %s 
+				"SELECT * FROM %i
+             WHERE gateway_id = %s AND period = %s AND calculated_at >= %s
              ORDER BY calculated_at ASC",
+				$table_name,
 				$gateway_id,
 				$period,
 				$start_date
@@ -434,9 +440,11 @@ class PaySentinel_Health {
 		$table_name  = $this->database->get_gateway_health_table();
 		$cutoff_date = date_create( current_time( 'mysql' ) )->modify( "-{$days} days" )->format( 'Y-m-d H:i:s' );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$table_name} WHERE calculated_at < %s",
+				"DELETE FROM %i WHERE calculated_at < %s",
+				$table_name,
 				$cutoff_date
 			)
 		);

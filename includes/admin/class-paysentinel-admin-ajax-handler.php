@@ -77,7 +77,7 @@ class PaySentinel_Admin_Ajax_Handler {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'paysentinel' ) ) );
 		}
 
-		$license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( $_POST['license_key'] ) : '';
+		$license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( wp_unslash( $_POST['license_key'] ) ) : '';
 
 		if ( empty( $license_key ) ) {
 			wp_send_json_error( array( 'message' => __( 'License key is required', 'paysentinel' ) ) );
@@ -99,12 +99,12 @@ class PaySentinel_Admin_Ajax_Handler {
 	 */
 	public function handle_save_license() {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
-			wp_die( __( 'Unauthorized', 'paysentinel' ) );
+			wp_die( esc_html__( 'Unauthorized', 'paysentinel' ) );
 		}
 
 		check_admin_referer( 'paysentinel_save_license' );
 
-		$license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( $_POST['license_key'] ) : '';
+		$license_key = isset( $_POST['license_key'] ) ? sanitize_text_field( wp_unslash( $_POST['license_key'] ) ) : '';
 
 		if ( ! empty( $license_key ) ) {
 			$result  = $this->license->save_and_validate_license( $license_key );
@@ -116,7 +116,7 @@ class PaySentinel_Admin_Ajax_Handler {
 			$message = __( 'License key removed.', 'paysentinel' );
 		}
 
-		wp_redirect( admin_url( 'admin.php?page=paysentinel-settings&tab=license&message=' . urlencode( $message ) . '&type=' . $type ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-settings&tab=license&message=' . urlencode( $message ) . '&type=' . $type ) );
 		exit;
 	}
 }

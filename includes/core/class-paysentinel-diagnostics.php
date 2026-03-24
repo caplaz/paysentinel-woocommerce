@@ -88,13 +88,13 @@ class PaySentinel_Diagnostics {
 		);
 
 		foreach ( $tables as $name => $table ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$exists = $wpdb->get_var( "SHOW TABLES LIKE '{$table}'" ) === $table;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) ) === $table;
 			$count  = 0;
 
 			if ( $exists ) {
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i", $table ) );
 			} else {
 				$results['status'] = 'error';
 				/* translators: %s: database table name */
@@ -175,7 +175,7 @@ class PaySentinel_Diagnostics {
 				$results['issues'][] = sprintf(
 					__( 'Gateway %1$s is offline: %2$s', 'paysentinel' ),
 					$gateway_id,
-					$status['message']
+					$status['error']
 				);
 			}
 
@@ -207,13 +207,15 @@ class PaySentinel_Diagnostics {
 		$table_name = $this->database->get_transactions_table();
 
 		$sql = $wpdb->prepare(
-			"SELECT * FROM {$table_name}
+			"SELECT * FROM %i
 			WHERE status = 'failed'
 			ORDER BY created_at DESC
 			LIMIT %d",
+			$table_name,
 			$limit
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$failures = $wpdb->get_results( $sql );
 
 		return array(
@@ -291,11 +293,12 @@ class PaySentinel_Diagnostics {
 		$exhausted_retries = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT order_id, retry_count, failure_reason
-				FROM {$table_name}
+				FROM %i
 				WHERE retry_count >= %d
 				AND status = 'failed'
 				ORDER BY created_at DESC
 				LIMIT 50",
+				$table_name,
 				$max_retries
 			)
 		);
@@ -323,27 +326,83 @@ class PaySentinel_Diagnostics {
 
 		// Count pending retries
 		$pending = $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$table_name}
-			WHERE status IN ('failed', 'retry')
-			AND retry_count < " . PaySentinel_Retry::MAX_RETRY_ATTEMPTS
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i
+				WHERE status IN ('failed', 'retry')
+				AND retry_count < %d",
+				$table_name,
+				PaySentinel_Retry::MAX_RETRY_ATTEMPTS
+			)
 		);
 
 		// Get next scheduled retry
 		$next_retry = wp_next_scheduled( 'paysentinel_process_retries' );
 
+		// Transactions older than 30 days
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$old_records = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i
+				WHERE created_at < %s",
+				$table_name,
+				gmdate( 'Y-m-d H:i:s', time() - ( 30 * DAY_IN_SECONDS ) )
+			)
+		);
+
+		// Missing failure reasons
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$missing_reasons = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i
+				WHERE (failure_reason IS NULL OR failure_reason = '') AND status = 'failed'",
+				$table_name
+			)
+		);
+
+		// Transactions with max retries
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$max_retries = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i
+				WHERE retry_count >= %d",
+				$table_name,
+				PaySentinel_Retry::MAX_RETRY_ATTEMPTS
+			)
+		);
+
 		// Count recent retry attempts
 		$recent_retries = $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$table_name}
-			WHERE retry_count > 0
-			AND updated_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i
+				WHERE retry_count > 0
+				AND updated_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)",
+				$table_name
+			)
 		);
 
 		// Count successful retries
 		$successful_retries = $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$table_name}
-			WHERE status = 'success'
-			AND retry_count > 0"
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i
+				WHERE status = 'success'
+				AND retry_count > 0",
+				$table_name
+			)
 		);
+
+		$issues = array();
+		if ( $old_records > 0 ) {
+			/* translators: %d: number of old records */
+			$issues[] = sprintf( __( '%d transactions older than 30 days found. Consider archiving.', 'paysentinel' ), $old_records );
+		}
+		if ( $missing_reasons > 0 ) {
+			/* translators: %d: number of transactions with missing failure reasons */
+			$issues[] = sprintf( __( '%d failed transactions with missing failure reasons found.', 'paysentinel' ), $missing_reasons );
+		}
+		if ( $max_retries > 0 ) {
+			/* translators: %d: number of transactions that exhausted retries */
+			$issues[] = sprintf( __( '%d transactions have exhausted all retry attempts.', 'paysentinel' ), $max_retries );
+		}
 
 		return array(
 			'pending_retries'    => intval( $pending ),
@@ -351,6 +410,7 @@ class PaySentinel_Diagnostics {
 			'recent_retry_count' => intval( $recent_retries ),
 			'successful_retries' => intval( $successful_retries ),
 			'success_rate'       => $recent_retries > 0 ? round( ( $successful_retries / $recent_retries ) * 100, 2 ) : 0,
+			'issues'             => $issues,
 		);
 	}
 
@@ -386,11 +446,15 @@ class PaySentinel_Diagnostics {
 	private function find_orphaned_transactions() {
 		global $wpdb;
 
-		$table_name = $this->database->get_transactions_table();
-
+		$table_name        = $this->database->get_transactions_table();
+		$alerts_table_name = $this->database->get_alerts_table();
 		// Get all distinct order IDs from our transactions table.
-		$order_ids = $wpdb->get_col(
-			"SELECT DISTINCT order_id FROM {$table_name} WHERE order_id > 0"
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$order_ids = (array) $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT order_id FROM %i WHERE order_id > 0",
+				$table_name
+			)
 		);
 
 		$orphaned_count = 0;
@@ -427,16 +491,20 @@ class PaySentinel_Diagnostics {
 
 		$orphaned_order_ids = array();
 		foreach ( $order_ids as $order_id ) {
-			if ( ! wc_get_order( $order_id ) ) {
-				$orphaned_order_ids[] = absint( $order_id );
+			if ( ! wc_get_order( (int) $order_id ) ) {
+				$orphaned_order_ids[] = (int) $order_id;
 			}
 		}
 
 		$deleted_transactions = 0;
 		if ( ! empty( $orphaned_order_ids ) ) {
-			$placeholders         = implode( ',', array_map( 'absint', $orphaned_order_ids ) );
+			$placeholders         = implode( ',', array_map( 'intval', $orphaned_order_ids ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$deleted_transactions = $wpdb->query(
-				"DELETE FROM {$table_name} WHERE order_id IN ({$placeholders})"
+				$wpdb->prepare(
+					"DELETE FROM %i WHERE order_id IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$table_name
+				)
 			);
 		}
 
@@ -560,9 +628,10 @@ class PaySentinel_Diagnostics {
 		// In a production system, you might want to export to a separate archive table
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$table_name}
+				"DELETE FROM %i
 				WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)
 				AND status = 'success'",
+				$table_name,
 				$days
 			)
 		);
@@ -634,11 +703,12 @@ class PaySentinel_Diagnostics {
 		$by_gateway = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT gateway_id, COUNT(*) as count
-				FROM {$table_name}
+				FROM %i
 				WHERE status = 'failed'
 				AND created_at > DATE_SUB(NOW(), INTERVAL %d DAY)
 				GROUP BY gateway_id
 				ORDER BY count DESC",
+				$table_name,
 				$days
 			)
 		);

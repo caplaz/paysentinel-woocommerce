@@ -153,9 +153,11 @@ class PaySentinel_Retry {
 		$table_name = $this->database->get_transactions_table();
 
 		// Get transaction details
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$transaction = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} WHERE id = %d",
+				"SELECT * FROM %i WHERE id = %d",
+				$table_name,
 				$transaction_id
 			)
 		);
@@ -339,12 +341,14 @@ class PaySentinel_Retry {
 			// Prepare order for retry
 			/* translators: 1: current retry attempt number, 2: maximum retry attempts */
 			$order->add_order_note(
-				sprintf(
-					__( 'Attempting automatic payment retry %1$d of %2$d', 'paysentinel' ),
-					$transaction->retry_count + 1,
-					$max_retries
-				)
-			);
+			sprintf(
+				/* translators: 1: blog name, 2: current retry number, 3: max retries */
+				__( '[%1$s] Retrying payment (%2$d/%3$d)...', 'paysentinel' ),
+				get_bloginfo( 'name' ),
+				$transaction->retry_count + 1,
+				PaySentinel_Retry::MAX_RETRY_ATTEMPTS
+			)
+		);
 
 			// Process the payment
 			$result = $this->process_gateway_payment( $gateway, $order, $payment_method );
@@ -593,9 +597,10 @@ class PaySentinel_Retry {
 		/* translators: 1: retry count, 2: error message */
 		$order->add_order_note(
 			sprintf(
-				__( 'Payment retry %1$d failed: %2$s', 'paysentinel' ),
-				$retry_count,
-				$log_msg = wp_strip_all_tags( $retry_result['message'] )
+				/* translators: 1: blog name, 2: failure message */
+				__( '[%1$s] Automatic payment retry failed: %2$s', 'paysentinel' ),
+				get_bloginfo( 'name' ),
+				wp_strip_all_tags( $retry_result['message'] )
 			)
 		);
 

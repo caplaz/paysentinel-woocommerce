@@ -129,7 +129,10 @@ class PaySentinel_Admin_Page_Renderer {
 
 		?>
 		<div class="wrap">
-			<?php if ( isset( $_GET['message'] ) ) : ?>
+			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['message'] ) ) :
+				?>
 				<div
 					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
 					<p><?php echo esc_html( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ); ?></p>
@@ -192,15 +195,18 @@ class PaySentinel_Admin_Page_Renderer {
 
 		global $wpdb;
 		$table_name = $this->database->get_transactions_table();
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$transactions = $wpdb->get_results( "SELECT * FROM {$table_name} ORDER BY id DESC LIMIT 50" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$transactions = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i ORDER BY id DESC LIMIT 50", $table_name ) );
 
 		add_thickbox();
 		?>
 		<div class="wrap">
 			<?php $this->render_page_header( __( 'Transactions', 'paysentinel' ), 'transactions' ); ?>
 
-			<?php if ( isset( $_GET['message'] ) ) : ?>
+			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['message'] ) ) :
+				?>
 				<div
 					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
 					<p><?php echo esc_html( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ); ?></p>
@@ -260,6 +266,7 @@ class PaySentinel_Admin_Page_Renderer {
 									</a>
 
 									<div id="transaction-details-<?php echo esc_attr( $t->id ); ?>" style="display:none;">
+										<?php /* translators: %d: transaction ID */ ?>
 										<h3><?php echo esc_html( sprintf( __( 'Transaction #%d Details', 'paysentinel' ), $t->id ) ); ?></h3><div class="wc-monitor-details-modal" style="padding: 10px 20px;">
 											<style>
 												.wc-monitor-details-modal .form-table th,
@@ -399,6 +406,7 @@ class PaySentinel_Admin_Page_Renderer {
 		}
 
 		$tabs       = $this->get_settings_tabs();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$active_tab = isset( $_GET['tab'] ) && array_key_exists( $_GET['tab'], $tabs ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'general';
 		?>
 		<div class="wrap">

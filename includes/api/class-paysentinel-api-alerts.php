@@ -131,28 +131,26 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 			$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
 		}
 
-		$prefix     = ( is_object( $wpdb ) && property_exists( $wpdb, 'prefix' ) ) ? $wpdb->prefix : 'wp_';
-		$table_name = $prefix . 'payment_monitor_alerts';
+		$table_name = $this->database->get_alerts_table();
 
-		// Check if table exists
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
-			return $this->get_paginated_response( array(), 0, intval( $page ), intval( $per_page ) );
-		}
-
-		// Get total count
-		$total_query = $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$table_name} {$where_sql}",
-			$where_values
+		// Total count query
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$total = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i {$where_sql}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				array_merge( array( $table_name ), $where_values )
+			)
 		);
-		$total       = $wpdb->get_var( $total_query );
 
 		// Get alerts
-		$query = $wpdb->prepare(
-			"SELECT * FROM {$table_name} {$where_sql} ORDER BY created_at DESC LIMIT %d OFFSET %d",
-			array_merge( $where_values, array( $per_page, $offset ) )
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$alerts = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i {$where_sql} ORDER BY created_at DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				array_merge( array( $table_name ), $where_values, array( $per_page, $offset ) )
+			),
+			ARRAY_A
 		);
-
-		$alerts = $wpdb->get_results( $query, ARRAY_A );
 
 		// Format alerts
 		$formatted_alerts = array();
@@ -180,16 +178,11 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 
 		$id = $request->get_param( 'id' );
 
-		$prefix     = ( is_object( $wpdb ) && property_exists( $wpdb, 'prefix' ) ) ? $wpdb->prefix : 'wp_';
-		$table_name = $prefix . 'payment_monitor_alerts';
+		$table_name = $this->database->get_alerts_table();
 
-		// Check if table exists
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
-			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
-		}
-
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$table_name} WHERE id = %d", $id ),
+			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", $table_name, $id ),
 			ARRAY_A
 		);
 
@@ -208,17 +201,12 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 
 		$id = $request->get_param( 'id' );
 
-		$prefix     = ( is_object( $wpdb ) && property_exists( $wpdb, 'prefix' ) ) ? $wpdb->prefix : 'wp_';
-		$table_name = $prefix . 'payment_monitor_alerts';
-
-		// Check if table exists
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
-			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
-		}
+		$table_name = $this->database->get_alerts_table();
 
 		// Check if alert exists
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$table_name} WHERE id = %d", $id ),
+			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", $table_name, $id ),
 			ARRAY_A
 		);
 
@@ -243,8 +231,9 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 		}
 
 		// Get updated alert
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$updated_alert = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$table_name} WHERE id = %d", $id ),
+			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", $table_name, $id ),
 			ARRAY_A
 		);
 

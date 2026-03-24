@@ -98,13 +98,15 @@ class PaySentinel_Database {
 		// Drop legacy unique index if it exists (dbDelta won't do this)
 		$index_exists = $wpdb->get_results(
 			$wpdb->prepare(
-				"SHOW INDEX FROM {$this->gateway_health_table} WHERE KEY_NAME = %s",
+				"SHOW INDEX FROM %i WHERE KEY_NAME = %s",
+				$this->gateway_health_table,
 				'idx_gateway_period'
 			)
 		);
 
 		if ( ! empty( $index_exists ) ) {
-			$wpdb->query( "ALTER TABLE {$this->gateway_health_table} DROP INDEX idx_gateway_period" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i DROP INDEX idx_gateway_period", $this->gateway_health_table ) );
 		}
 
 		$charset_collate = $wpdb->get_charset_collate();
@@ -194,10 +196,14 @@ class PaySentinel_Database {
 	public function drop_tables() {
 		global $wpdb;
 
-		$wpdb->query( "DROP TABLE IF EXISTS {$this->transactions_table}" );
-		$wpdb->query( "DROP TABLE IF EXISTS {$this->gateway_health_table}" );
-		$wpdb->query( "DROP TABLE IF EXISTS {$this->alerts_table}" );
-		$wpdb->query( "DROP TABLE IF EXISTS {$this->gateway_connectivity_table}" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %i", $this->transactions_table ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %i", $this->gateway_health_table ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %i", $this->alerts_table ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %i", $this->gateway_connectivity_table ) );
 
 		// Remove database version
 		delete_option( 'payment_monitor_db_version' );
@@ -271,10 +277,12 @@ class PaySentinel_Database {
 
 		$table = $this->get_transactions_table();
 		$query = $wpdb->prepare(
-			"SELECT * FROM {$table} WHERE order_id = %d ORDER BY created_at DESC LIMIT 1",
+			"SELECT * FROM %i WHERE order_id = %d ORDER BY created_at DESC LIMIT 1",
+			$table,
 			$order_id
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_row( $query );
 	}
 
@@ -290,10 +298,12 @@ class PaySentinel_Database {
 
 		$table_name = $this->get_transactions_table();
 		$query      = $wpdb->prepare(
-			"SELECT MIN(created_at) FROM {$table_name} WHERE gateway_id = %s",
+			"SELECT MIN(created_at) FROM %i WHERE gateway_id = %s",
+			$table_name,
 			$gateway_id
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_var( $query );
 	}
 
@@ -349,15 +359,18 @@ class PaySentinel_Database {
 		global $wpdb;
 
 		// Drop the unique index to allow history
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$index_exists = $wpdb->get_results(
 			$wpdb->prepare(
-				"SHOW INDEX FROM {$this->gateway_health_table} WHERE KEY_NAME = %s",
+				"SHOW INDEX FROM %i WHERE KEY_NAME = %s",
+				$this->gateway_health_table,
 				'idx_gateway_period'
 			)
 		);
 
 		if ( ! empty( $index_exists ) ) {
-			$wpdb->query( "ALTER TABLE {$this->gateway_health_table} DROP INDEX idx_gateway_period" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i DROP INDEX idx_gateway_period", $this->gateway_health_table ) );
 		}
 
 		// Recreate tables (this will add the new non-unique index via dbDelta)
@@ -399,7 +412,8 @@ class PaySentinel_Database {
 			}
 
 			// Check required columns
-			$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$table}" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$columns = $wpdb->get_col( $wpdb->prepare( "SHOW COLUMNS FROM %i", $table ) );
 			foreach ( $info['required_columns'] as $column ) {
 				if ( ! in_array( $column, $columns, true ) ) {
 					$errors[] = "Missing column '$column' in table '$table'";
@@ -407,7 +421,8 @@ class PaySentinel_Database {
 			}
 
 			// Check required indexes
-			$indexes = $wpdb->get_col( "SHOW INDEX FROM {$table}" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$indexes = $wpdb->get_col( $wpdb->prepare( "SHOW INDEX FROM %i", $table ) );
 			foreach ( $info['required_indexes'] as $index ) {
 				if ( ! in_array( $index, $indexes, true ) ) {
 					$errors[] = "Missing index for column '$index' in table '$table'";
@@ -498,9 +513,11 @@ class PaySentinel_Database {
 
 		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$this->alerts_table} WHERE is_resolved = 1 AND resolved_at < %s",
+				"DELETE FROM %i WHERE is_resolved = 1 AND resolved_at < %s",
+				$this->alerts_table,
 				$cutoff_date
 			)
 		);
