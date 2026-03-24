@@ -93,6 +93,7 @@ class PaySentinel_Health {
 
 		$schedules['paysentinel_interval'] = array(
 			'interval' => $interval,
+			/* translators: %d: interval in minutes */
 			'display'  => sprintf( __( 'Every %d minutes', 'paysentinel' ), $interval / 60 ),
 		);
 

@@ -58,6 +58,7 @@ class PaySentinel_Alert_Template_Manager {
 		$success_count = $total_count - $failed_count;
 
 		$message = sprintf(
+			/* translators: 1: gateway name, 2: success rate percentage, 3: time period, 4: successful count, 5: total count, 6: failed count */
 			__( 'Payment gateway "%1$s" success rate has dropped to %2$s%% in the last %3$s. Only %4$d out of %5$d transactions succeeded (%6$d failed).', 'paysentinel' ),
 			$gateway_name,
 			$success_rate,

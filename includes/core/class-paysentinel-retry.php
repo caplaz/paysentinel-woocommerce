@@ -337,6 +337,7 @@ class PaySentinel_Retry {
 			$max_retries = isset( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ? intval( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) : self::MAX_RETRY_ATTEMPTS;
 
 			// Prepare order for retry
+			/* translators: 1: current retry attempt number, 2: maximum retry attempts */
 			$order->add_order_note(
 				sprintf(
 					__( 'Attempting automatic payment retry %1$d of %2$d', 'paysentinel' ),
@@ -543,6 +544,7 @@ class PaySentinel_Retry {
 
 		// Update order status
 		$order->payment_complete( $retry_result['transaction_id'] );
+		/* translators: 1: attempt number, 2: transaction ID */
 		$order->add_order_note(
 			sprintf(
 				__( 'Payment retry successful on attempt %1$d. Transaction ID: %2$s', 'paysentinel' ),
@@ -588,6 +590,7 @@ class PaySentinel_Retry {
 		);
 
 		// Add order note
+		/* translators: 1: retry count, 2: error message */
 		$order->add_order_note(
 			sprintf(
 				__( 'Payment retry %1$d failed: %2$s', 'paysentinel' ),
@@ -601,6 +604,7 @@ class PaySentinel_Retry {
 
 		// If max attempts reached, add final note
 		if ( $retry_count >= $max_retries ) {
+			/* translators: %d: maximum retry attempts */
 			$order->add_order_note(
 				sprintf(
 					__( 'Maximum retry attempts (%d) reached. No further automatic retries will be attempted.', 'paysentinel' ),
@@ -629,6 +633,7 @@ class PaySentinel_Retry {
 			return false;
 		}
 
+		/* translators: 1: blog name, 2: order number */
 		$subject = sprintf(
 			__( '[%1$s] Payment Successful - Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),
@@ -655,6 +660,7 @@ class PaySentinel_Retry {
 	private function create_retry_success_email_template( $order ) {
 		$order_url   = $order->get_view_order_url();
 		$order_total = $order->get_formatted_order_total();
+		/* translators: 1: blog name, 2: order number */
 		$subject     = sprintf(
 			__( '[%1$s] Payment Successful - Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),
@@ -740,6 +746,7 @@ class PaySentinel_Retry {
 			return false;
 		}
 
+		/* translators: 1: blog name, 2: order number */
 		$subject = sprintf(
 			__( '[%1$s] Action Required: Payment Failed for Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),
@@ -776,6 +783,7 @@ class PaySentinel_Retry {
 	private function create_recovery_email_template( $order ) {
 		$pay_link    = $order->get_checkout_payment_url();
 		$order_total = $order->get_formatted_order_total();
+		/* translators: 1: blog name, 2: order number */
 		$subject     = sprintf(
 			__( '[%1$s] Action Required: Payment Failed for Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),

@@ -95,7 +95,8 @@ class PaySentinel_Diagnostics {
 				$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 			} else {
 				$results['status']   = 'error';
-				$results['issues'][] = sprintf( __( 'Table %s does not exist', 'paysentinel' ), $name );
+				/* translators: %s: database table name */
+				$results['issues'][] = sprintf( __( 'Table %s does not exist', 'paysentinel' ), $table );
 			}
 
 			$results['tables'][ $name ] = array(
@@ -109,6 +110,7 @@ class PaySentinel_Diagnostics {
 		// Check for orphaned records
 		$orphaned = $this->find_orphaned_transactions();
 		if ( $orphaned > 0 ) {
+			/* translators: %d: number of orphaned records */
 			$results['issues'][] = sprintf( __( '%d orphaned transaction records found', 'paysentinel' ), $orphaned );
 		}
 
@@ -129,6 +131,7 @@ class PaySentinel_Diagnostics {
 		$results['total_size_mb'] = round( $size, 2 );
 
 		if ( $size > 100 ) {
+			/* translators: %s: table size in MB */
 			$results['issues'][] = sprintf( __( 'Database tables are large (%s MB). Consider archiving old records.', 'paysentinel' ), round( $size, 2 ) );
 		}
 
@@ -166,6 +169,7 @@ class PaySentinel_Diagnostics {
 
 			if ( 'offline' === $status['status'] ) {
 				$results['status']   = 'warning';
+				/* translators: 1: gateway ID, 2: offline message */
 				$results['issues'][] = sprintf(
 					__( 'Gateway %1$s is offline: %2$s', 'paysentinel' ),
 					$gateway_id,
@@ -176,6 +180,7 @@ class PaySentinel_Diagnostics {
 			// Check for poor health
 			if ( isset( $health_data['24hour']['success_rate'] ) && $health_data['24hour']['success_rate'] < 90 ) {
 				$results['status']   = 'warning';
+				/* translators: 1: gateway ID, 2: success rate percentage */
 				$results['issues'][] = sprintf(
 					__( 'Gateway %1$s has low success rate: %2$.1f%%', 'paysentinel' ),
 					$gateway_id,
@@ -470,6 +475,7 @@ class PaySentinel_Diagnostics {
 			'deleted'              => $total_deleted,
 			'transactions_deleted' => intval( $deleted_transactions ),
 			'alerts_deleted'       => intval( $deleted_alerts ),
+			/* translators: 1: total deleted records, 2: deleted transactions, 3: deleted alerts */
 			'message'              => sprintf(
 				__( 'Deleted %1$d orphaned records (%2$d transactions, %3$d alerts).', 'paysentinel' ),
 				$total_deleted,
@@ -496,12 +502,12 @@ class PaySentinel_Diagnostics {
 		}
 
 		// Attempt the retry
-		$result = $this->retry->attempt_retry( $order_id );
+		$success = $this->retry->attempt_retry( $order_id );
 
 		return array(
-			'success' => $result['success'],
-			'message' => $result['message'],
-			'details' => $result,
+			'success' => $success,
+			'message' => $success ? __( 'Retry attempt completed.', 'paysentinel' ) : __( 'Retry attempt failed.', 'paysentinel' ),
+			'details' => array( 'success' => $success ),
 		);
 	}
 
@@ -522,6 +528,7 @@ class PaySentinel_Diagnostics {
 			$message = __( 'Reset health metrics for all gateways.', 'paysentinel' );
 		} else {
 			$deleted = $wpdb->delete( $table_name, array( 'gateway_id' => $gateway_id ) );
+			/* translators: %s: gateway ID */
 			$message = sprintf( __( 'Reset health metrics for gateway: %s', 'paysentinel' ), $gateway_id );
 		}
 
@@ -561,6 +568,7 @@ class PaySentinel_Diagnostics {
 		return array(
 			'success' => true,
 			'deleted' => intval( $deleted ),
+			/* translators: 1: number of archived transactions, 2: number of days */
 			'message' => sprintf(
 				__( 'Archived (deleted) %1$d successful transactions older than %2$d days.', 'paysentinel' ),
 				intval( $deleted ),

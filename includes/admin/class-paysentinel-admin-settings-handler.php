@@ -538,7 +538,10 @@ class PaySentinel_Admin_Settings_Handler {
 							</p>
 							<?php if ( isset( $license_data['expiration_ts'] ) ) : ?>
 								<p style="margin: 5px 0 0; font-size: 12px; color: #646970;">
-									<?php echo esc_html( sprintf( __( 'Renews on: %s', 'paysentinel' ), date_i18n( get_option( 'date_format' ), strtotime( $license_data['expiration_ts'] ) ) ) ); ?>
+									<?php
+									/* translators: %s: expiration date */
+									echo esc_html( sprintf( __( 'Renews on: %s', 'paysentinel' ), date_i18n( get_option( 'date_format' ), strtotime( $license_data['expiration_ts'] ) ) ) );
+									?>
 								</p>
 							<?php endif; ?>
 							<p style="margin: 10px 0 0;">
@@ -564,7 +567,10 @@ class PaySentinel_Admin_Settings_Handler {
 							<a href="<?php echo esc_url( PaySentinel_License::SAAS_URL . '/plans' ); ?>" target="_blank"
 								class="upgrade-button">
 								<span class="dashicons dashicons-star-filled"></span>
-								<?php echo esc_html( sprintf( __( 'Upgrade to %s', 'paysentinel' ), $next_tier ) ); ?>
+								<?php
+								/* translators: %s: tier name */
+								echo esc_html( sprintf( __( 'Upgrade to %s', 'paysentinel' ), $next_tier ) );
+								?>
 							</a>
 						<?php endif; ?>
 					</div>
@@ -659,8 +665,8 @@ class PaySentinel_Admin_Settings_Handler {
 					<p style="margin: 0; color: #856404;">
 						<strong><?php esc_html_e( 'Pro Feature', 'paysentinel' ); ?></strong><br>
 						<?php
+						/* translators: %s: upgrade URL */
 						printf(
-							/* translators: %s: upgrade URL */
 							__( 'Per-gateway alert configuration requires Pro plan or higher. <a href="%s" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'paysentinel' ),
 							esc_url( admin_url( 'admin.php?page=paysentinel-settings&tab=license' ) )
 						);
@@ -910,7 +916,10 @@ class PaySentinel_Admin_Settings_Handler {
 								</p>
 								<?php if ( isset( $license_data['expiration_ts'] ) ) : ?>
 									<p style="margin: 5px 0 0; font-size: 12px; color: #646970;">
-										<?php echo esc_html( sprintf( __( 'Renews on: %s', 'paysentinel' ), date_i18n( get_option( 'date_format' ), strtotime( $license_data['expiration_ts'] ) ) ) ); ?>
+										<?php
+										/* translators: %s: expiration date */
+										echo esc_html( sprintf( __( 'Renews on: %s', 'paysentinel' ), date_i18n( get_option( 'date_format' ), strtotime( $license_data['expiration_ts'] ) ) ) );
+										?>
 									</p>
 								<?php endif; ?>
 								<p style="margin: 10px 0 0;">
@@ -931,7 +940,10 @@ class PaySentinel_Admin_Settings_Handler {
 									<a href="<?php echo esc_url( PaySentinel_License::SAAS_URL . '/plans' ); ?>" target="_blank"
 										class="upgrade-button">
 										<span class="dashicons dashicons-star-filled"></span>
-										<?php echo esc_html( sprintf( __( 'Upgrade to %s', 'paysentinel' ), $next_tier ) ); ?>
+										<?php
+										/* translators: %s: tier name */
+										echo esc_html( sprintf( __( 'Upgrade to %s', 'paysentinel' ), $next_tier ) );
+										?>
 									</a>
 								<?php endif; ?>
 							</div>

@@ -134,9 +134,9 @@ class PaySentinel_Alert_Checker {
 			'gateway_id'   => $gateway_id,
 			'alert_type'   => 'gateway_down',
 			'severity'     => 'critical',
-			'success_rate' => 0,
 			'period'       => 'current',
 			'message'      => sprintf(
+				/* translators: %s: gateway display name */
 				__( 'Payment gateway %s is currently unavailable. Customers cannot complete payments.', 'paysentinel' ),
 				$this->gateway_manager->get_gateway_display_name( $gateway_id )
 			),
@@ -196,6 +196,7 @@ class PaySentinel_Alert_Checker {
 			'success_rate' => null,
 			'period'       => 'immediate',
 			'message'      => sprintf(
+				/* translators: 1: order ID, 2: gateway display name */
 				__( 'Payment failed for order #%1$d using %2$s gateway.', 'paysentinel' ),
 				$order_id,
 				$this->gateway_manager->get_gateway_display_name( $payment_method )
@@ -260,6 +261,7 @@ class PaySentinel_Alert_Checker {
 					'total_transactions'  => $total_transactions,
 					'failed_transactions' => $data['failed_transactions'] ?? 0,
 					'message'             => sprintf(
+						/* translators: 1: gateway name, 2: success rate percentage, 3: time period, 4: successful count, 5: total count */
 						__( 'Payment gateway "%1$s" success rate has dropped to %2$s%% in the last %3$s. Only %4$d out of %5$d transactions succeeded.', 'paysentinel' ),
 						$this->gateway_manager->get_gateway_display_name( $gateway_id ),
 						number_format( $success_rate, 2 ),

@@ -144,6 +144,7 @@ class PaySentinel_Alert_Recovery_Handler {
 		if ( 'success' === $status ) {
 			$severity = 'info';
 			$message  = sprintf(
+				/* translators: 1: retry attempt number, 2: order number */
 				__( 'Payment recovery successful on retry attempt %1$d for order #%2$d', 'paysentinel' ),
 				$retry_count,
 				$order->get_id()
@@ -154,12 +155,14 @@ class PaySentinel_Alert_Recovery_Handler {
 
 			if ( $is_max_reached ) {
 				$message = sprintf(
+					/* translators: 1: maximum retry attempts, 2: order number */
 					__( 'Payment recovery exhausted all %1$d retry attempts for order #%2$d — manual intervention needed', 'paysentinel' ),
 					$max_retries,
 					$order->get_id()
 				);
 			} else {
 				$message = sprintf(
+					/* translators: 1: current retry attempt number, 2: order number */
 					__( 'Payment recovery failed on attempt %1$d for order #%2$d. Retrying...', 'paysentinel' ),
 					$retry_count,
 					$order->get_id()

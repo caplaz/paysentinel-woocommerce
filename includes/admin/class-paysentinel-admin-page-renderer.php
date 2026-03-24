@@ -251,6 +251,7 @@ class PaySentinel_Admin_Page_Renderer {
 								<td>
 									<a href="#TB_inline?width=600&height=440&inlineId=transaction-details-<?php echo $t->id; ?>"
 										class="thickbox button button-small tip"
+										<?php /* translators: %d: transaction ID */ ?>
 										title="<?php echo esc_attr( sprintf( __( 'Transaction Details #%d', 'paysentinel' ), $t->id ) ); ?>"
 										style="display: inline-flex; align-items: center; justify-content: center; padding: 0 8px;">
 										<span class="dashicons dashicons-visibility"
