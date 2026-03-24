@@ -116,7 +116,7 @@ class PaySentinel_Diagnostics {
 			$results['issues'][] = sprintf( __( '%d orphaned transaction records found', 'paysentinel' ), $orphaned );
 		}
 
-		// Check table sizes
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$size = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT SUM(data_length + index_length) / 1024 / 1024 AS size_mb
@@ -290,6 +290,7 @@ class PaySentinel_Diagnostics {
 		$table_name  = $this->database->get_transactions_table();
 		$max_retries = PaySentinel_Retry::MAX_RETRY_ATTEMPTS;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$exhausted_retries = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT order_id, retry_count, failure_reason
@@ -325,6 +326,7 @@ class PaySentinel_Diagnostics {
 		$table_name = $this->database->get_transactions_table();
 
 		// Count pending retries
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$pending = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i
@@ -371,6 +373,7 @@ class PaySentinel_Diagnostics {
 		);
 
 		// Count recent retry attempts
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$recent_retries = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i
@@ -381,6 +384,7 @@ class PaySentinel_Diagnostics {
 		);
 
 		// Count successful retries
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$successful_retries = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i

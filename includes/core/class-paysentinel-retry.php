@@ -188,21 +188,10 @@ class PaySentinel_Retry {
 		// Schedule with Action Scheduler
 		if ( function_exists( 'as_schedule_single_action' ) ) {
 			as_schedule_single_action( $retry_time, 'paysentinel_retry_payment', array( $transaction_id ) );
-
-			// Log the scheduled retry
-			error_log(
-				sprintf(
-					'PaySentinel: Scheduled retry %d for transaction %d at %s via Action Scheduler',
-					$retry_attempt + 1,
-					$transaction_id,
-					gmdate( 'Y-m-d H:i:s', $retry_time )
-				)
-			);
 			return true;
-		} else {
-			error_log( 'PaySentinel: Action Scheduler not available for retry scheduling' );
-			return false;
 		}
+
+		return false;
 	}
 
 	/**
@@ -227,15 +216,16 @@ class PaySentinel_Retry {
 		$table_name = $this->database->get_transactions_table();
 
 		// Get transaction details
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$transaction = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} WHERE id = %d",
+				"SELECT * FROM %i WHERE id = %d",
+				$table_name,
 				$transaction_id
 			)
 		);
 
 		if ( ! $transaction ) {
-			error_log( 'PaySentinel: Transaction not found for retry: ' . $transaction_id );
 			return false;
 		}
 
@@ -243,20 +233,17 @@ class PaySentinel_Retry {
 
 		// Check retry limits
 		if ( $transaction->retry_count >= $max_retries ) {
-			error_log( 'PaySentinel: Max retry attempts reached for transaction: ' . $transaction_id );
 			return false;
 		}
 
 		// Get the order
 		$order = wc_get_order( $transaction->order_id );
 		if ( ! $order ) {
-			error_log( 'PaySentinel: Order not found for retry: ' . $transaction->order_id );
 			return false;
 		}
 
 		// Check if order is still in failed status
 		if ( $order->get_status() !== 'failed' ) {
-			error_log( 'PaySentinel: Order status changed, skipping retry: ' . $transaction->order_id );
 			return false;
 		}
 
@@ -339,14 +326,13 @@ class PaySentinel_Retry {
 			$max_retries = isset( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ? intval( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) : self::MAX_RETRY_ATTEMPTS;
 
 			// Prepare order for retry
-			/* translators: 1: current retry attempt number, 2: maximum retry attempts */
 			$order->add_order_note(
 			sprintf(
 				/* translators: 1: blog name, 2: current retry number, 3: max retries */
 				__( '[%1$s] Retrying payment (%2$d/%3$d)...', 'paysentinel' ),
 				get_bloginfo( 'name' ),
 				$transaction->retry_count + 1,
-				PaySentinel_Retry::MAX_RETRY_ATTEMPTS
+				$max_retries
 			)
 		);
 
@@ -356,8 +342,6 @@ class PaySentinel_Retry {
 			return $result;
 
 		} catch ( Exception $e ) {
-			error_log( 'PaySentinel Retry Error: ' . $e->getMessage() );
-
 			return array(
 				'success' => false,
 				'message' => 'Exception during retry: ' . $e->getMessage(),
@@ -532,6 +516,7 @@ class PaySentinel_Retry {
 		$table_name = $this->database->get_transactions_table();
 
 		// Update transaction record
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
 			$table_name,
 			array(
@@ -548,9 +533,9 @@ class PaySentinel_Retry {
 
 		// Update order status
 		$order->payment_complete( $retry_result['transaction_id'] );
-		/* translators: 1: attempt number, 2: transaction ID */
 		$order->add_order_note(
 			sprintf(
+				/* translators: 1: attempt number, 2: transaction ID */
 				__( 'Payment retry successful on attempt %1$d. Transaction ID: %2$s', 'paysentinel' ),
 				$transaction->retry_count + 1,
 				$retry_result['transaction_id']
@@ -581,6 +566,7 @@ class PaySentinel_Retry {
 		$table_name = $this->database->get_transactions_table();
 
 		// Update transaction record
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
 			$table_name,
 			array(

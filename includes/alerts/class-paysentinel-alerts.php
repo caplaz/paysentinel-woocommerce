@@ -207,13 +207,7 @@ class PaySentinel_Alerts {
 	 * @return bool True if alerts were processed successfully.
 	 */
 	public function check_and_send( $gateway_id, $health_data ) {
-		$alerts_triggered = $this->check_gateway_alerts( $gateway_id, $health_data );
-
-		if ( ! empty( $alerts_triggered ) ) {
-			foreach ( $alerts_triggered as $alert ) {
-				$this->notifier->send_notifications( $alert, $alert['id'] ?? null );
-			}
-		}
+		$this->check_gateway_alerts( $gateway_id, $health_data );
 
 		return true;
 	}
@@ -278,9 +272,8 @@ class PaySentinel_Alerts {
 		global $wpdb;
 
 		$table_name = $this->database->get_alerts_table();
-
-		$sql    = "SELECT * FROM {$table_name}";
-		$params = array();
+		$sql        = 'SELECT * FROM %i';
+		$params     = array( $table_name );
 
 		if ( $severity ) {
 			$sql     .= ' WHERE severity = %s';
@@ -290,11 +283,8 @@ class PaySentinel_Alerts {
 		$sql     .= ' ORDER BY created_at DESC LIMIT %d';
 		$params[] = $limit;
 
-		if ( ! $severity ) {
-			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table_name} ORDER BY created_at DESC LIMIT %d", $limit ), ARRAY_A );
-		}
-
-		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
@@ -307,8 +297,10 @@ class PaySentinel_Alerts {
 		global $wpdb;
 
 		$table_name = $this->database->get_alerts_table();
-		$start_date = date_create( current_time( 'mysql' ) )->modify( "-{$days} days" )->format( 'Y-m-d H:i:s' );
+		$now        = current_time( 'timestamp' );
+		$start_date = gmdate( 'Y-m-d H:i:s', $now - ( $days * DAY_IN_SECONDS ) );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$stats = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT 
@@ -319,8 +311,9 @@ class PaySentinel_Alerts {
                 SUM(CASE WHEN severity = 'info' THEN 1 ELSE 0 END) as info_alerts,
                 SUM(CASE WHEN is_resolved = 1 THEN 1 ELSE 0 END) as resolved_alerts,
                 SUM(CASE WHEN is_resolved = 0 THEN 1 ELSE 0 END) as unresolved_alerts
-             FROM {$table_name} 
+             FROM %i 
              WHERE created_at >= %s",
+				$table_name,
 				$start_date
 			),
 			ARRAY_A

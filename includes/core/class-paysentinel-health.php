@@ -379,7 +379,7 @@ class PaySentinel_Health {
 		global $wpdb;
 
 		$table_name = $this->database->get_transactions_table();
-		$start_time = date_create( current_time( 'mysql' ) )->modify( "-{$period_seconds} seconds" )->format( 'Y-m-d H:i:s' );
+		$start_time = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - $period_seconds );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$last_failure = $wpdb->get_var(
@@ -410,7 +410,7 @@ class PaySentinel_Health {
 		global $wpdb;
 
 		$table_name = $this->database->get_gateway_health_table();
-		$start_date = date_create( current_time( 'mysql' ) )->modify( "-{$days} days" )->format( 'Y-m-d H:i:s' );
+		$start_date = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $days * DAY_IN_SECONDS ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
@@ -438,7 +438,7 @@ class PaySentinel_Health {
 		global $wpdb;
 
 		$table_name  = $this->database->get_gateway_health_table();
-		$cutoff_date = date_create( current_time( 'mysql' ) )->modify( "-{$days} days" )->format( 'Y-m-d H:i:s' );
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $days * DAY_IN_SECONDS ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
