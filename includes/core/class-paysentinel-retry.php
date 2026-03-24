@@ -500,7 +500,7 @@ class PaySentinel_Retry {
 				if ( stripos( $note->content, 'failed' ) !== false || stripos( $note->content, 'declined' ) !== false ) {
 					return array(
 						'success' => false,
-						'message' => strip_tags( $note->content ),
+						'message' => wp_strip_all_tags( $note->content ),
 						'code'    => 'gateway_failure_note',
 					);
 				}

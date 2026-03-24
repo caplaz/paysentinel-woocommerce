@@ -347,7 +347,7 @@ class PaySentinel_Diagnostics {
 
 		return array(
 			'pending_retries'    => intval( $pending ),
-			'next_scheduled'     => $next_retry ? date( 'Y-m-d H:i:s', $next_retry ) : null,
+			'next_scheduled'     => $next_retry ? gmdate( 'Y-m-d H:i:s', $next_retry ) : null,
 			'recent_retry_count' => intval( $recent_retries ),
 			'successful_retries' => intval( $successful_retries ),
 			'success_rate'       => $recent_retries > 0 ? round( ( $successful_retries / $recent_retries ) * 100, 2 ) : 0,

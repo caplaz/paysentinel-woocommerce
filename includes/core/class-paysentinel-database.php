@@ -470,7 +470,7 @@ class PaySentinel_Database {
 			return 0;
 		}
 
-		$cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
 
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
@@ -496,7 +496,7 @@ class PaySentinel_Database {
 			return 0;
 		}
 
-		$cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
 
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
@@ -539,7 +539,7 @@ class PaySentinel_Database {
 	 */
 	public function get_last_maintenance() {
 		$time = get_option( 'payment_monitor_last_maintenance', false );
-		return $time ? date( 'Y-m-d H:i:s', intval( $time ) ) : 'never';
+		return $time ? gmdate( 'Y-m-d H:i:s', intval( $time ) ) : 'never';
 	}
 
 	/**
