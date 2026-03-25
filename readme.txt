@@ -177,14 +177,17 @@ Yes! Check the Developer Guide in the plugin package for APIs, hooks, filters, a
 == Changelog ==
 
 = 1.1.1 - March 24, 2026 =
-* Added systematic resolution of findings from the WooCommerce.org plugin review team
-* Added improved database table existence verification for smoother upgrades
-* Changed discouraged functions (parse_url, strip_tags, date) to WordPress alternatives
-* Standardized all $_GET and $_POST input handling with wp_unslash() and sanitization
-* Fixed XSS vulnerabilities with strict output escaping (esc_html, esc_attr, wp_kses)
-* Fixed CSRF protection with robust nonce verification in admin/AJAX handlers
-* Fixed SQL warnings for safe dynamic table name interpolation
-* Fixed missing translator comments for all placeholders in i18n strings
+* Security Fix: Resolved all findings from the WordPress.org plugin review team audit
+* Security Fix: Refactored all direct database queries to use strict `$wpdb->prepare()` parameterization
+* Security Fix: Eliminated raw `$table_name` string interpolations via secure `%i` identifiers
+* Security Fix: Standardized all `$_GET` and `$_POST` array interactions with `wp_unslash()` and sanitization
+* Security Fix: Fixed XSS vulnerabilities with strict output escaping (`esc_html`, `esc_attr`, `wp_kses`)
+* Security Fix: Added robust CSRF nonce verification in all admin and AJAX endpoint handlers
+* Core Fix: Replaced discouraged PHP functions (`parse_url`, `strip_tags`, `date`) with strict WordPress alternatives
+* Core Fix: Added missing translator `/* translators: %s */` comments for all i18n string placeholders
+* Core Fix: Cleaned up and consolidated `phpcs:ignore` suppression blocks for custom database table operations
+* Core Fix: Updated "Tested up to" compatibility header accurately to WordPress 6.9
+* Core Fix: Addressed `OffloadedContent` warnings safely for external payment gateway requirement scripts
 
 = 1.1.0 - March 17, 2026 =
 * Added comprehensive Auto-Retry Engine for soft declines (Starter+ feature)
