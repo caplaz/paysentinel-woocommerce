@@ -328,14 +328,14 @@ class PaySentinel_Failure_Simulator {
 		// error_log( '[PaySentinel] upsert_simulated_failure_transaction: writing record for order #' . $order_id . ', table=' . $table_name );
 
 		// Check if a record already exists for this order (the hook may have already logged it).
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$existing_id = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT id FROM {$table_name} WHERE order_id = %d ORDER BY created_at DESC LIMIT 1",
+				'SELECT id FROM %i WHERE order_id = %d ORDER BY created_at DESC LIMIT 1',
+				$table_name,
 				$order_id
 			)
 		);
-		// phpcs:enable
 
 		if ( $existing_id ) {
 			// Update the existing record to ensure the failure_reason has the [SIMULATED FAILURE] marker.
@@ -602,19 +602,19 @@ class PaySentinel_Failure_Simulator {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// Build SQL with table name, then prepare values.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$sql = 'SELECT failure_code, COUNT(*) as count
-				FROM ' . $table_name . '
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT failure_code, COUNT(*) as count
+				FROM %i
 				WHERE status = %s
 				AND failure_reason LIKE %s
-				GROUP BY failure_code';
-		// @codingStandardsIgnoreStart - Table name Cannot be prepared
-		// phpcs:ignore
-		$results = $wpdb->get_results(
-			$wpdb->prepare( $sql, 'failed', '[SIMULATED FAILURE]%' )
+				GROUP BY failure_code',
+				$table_name,
+				'failed',
+				'[SIMULATED FAILURE]%'
+			)
 		);
-		// @codingStandardsIgnoreEnd
 
 		$stats = array(
 			'total_simulated' => 0,
@@ -643,14 +643,14 @@ class PaySentinel_Failure_Simulator {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// Query transactions table - works regardless of HPOS/legacy storage model.
-		// @codingStandardsIgnoreStart
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$sql       = 'SELECT DISTINCT order_id FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$order_ids = $wpdb->get_col(
-			$wpdb->prepare( $sql, '[SIMULATED FAILURE]%' )
+			$wpdb->prepare(
+				'SELECT DISTINCT order_id FROM %i WHERE failure_reason LIKE %s AND order_id > 0',
+				$table_name,
+				'[SIMULATED FAILURE]%'
+			)
 		);
-		// @codingStandardsIgnoreEnd
 
 		return array_map( 'absint', $order_ids );
 	}
@@ -674,12 +674,13 @@ class PaySentinel_Failure_Simulator {
 
 		if ( ! empty( $order_ids ) ) {
 			$order_ids_string = implode( ',', array_map( 'absint', $order_ids ) );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-			$sql = 'DELETE FROM ' . $table_name . ' WHERE order_id IN (' . $order_ids_string . ')';
-			// @codingStandardsIgnoreStart
-			// phpcs:ignore
-			$deleted_transactions = $wpdb->query( $sql );
-			// @codingStandardsIgnoreEnd
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$deleted_transactions = $wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM %i WHERE order_id IN ({$order_ids_string})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$table_name
+				)
+			);
 		}
 
 		// Now delete the orders using WooCommerce's proper method.

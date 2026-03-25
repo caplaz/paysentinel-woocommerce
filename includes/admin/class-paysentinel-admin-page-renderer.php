@@ -135,9 +135,7 @@ class PaySentinel_Admin_Page_Renderer {
 				?>
 				<div
 					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					<p><?php echo esc_html( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ); ?></p>
 				</div>
@@ -213,9 +211,7 @@ class PaySentinel_Admin_Page_Renderer {
 				?>
 				<div
 					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					<p><?php echo esc_html( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ); ?></p>
 				</div>
@@ -424,9 +420,7 @@ class PaySentinel_Admin_Page_Renderer {
 			<?php if ( isset( $_GET['message'] ) ) : ?>
 				<div
 					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					<p><?php echo esc_html( urldecode( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ) ); ?></p>
 				</div>

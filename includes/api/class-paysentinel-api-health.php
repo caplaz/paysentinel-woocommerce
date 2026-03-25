@@ -809,8 +809,9 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 					SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful,
 					SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
 					SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
-				FROM {$table_name} 
+				FROM %i 
 				WHERE gateway_id = %s",
+				$table_name,
 				$gateway_id
 			),
 			ARRAY_A

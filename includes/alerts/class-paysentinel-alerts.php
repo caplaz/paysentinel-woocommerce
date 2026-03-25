@@ -247,8 +247,8 @@ class PaySentinel_Alerts {
 
 		$table_name = $this->database->get_alerts_table();
 
-		$sql    = "SELECT * FROM {$table_name} WHERE gateway_id = %s";
-		$params = array( $gateway_id );
+		$sql    = 'SELECT * FROM %i WHERE gateway_id = %s';
+		$params = array( $table_name, $gateway_id );
 
 		if ( $resolved_only !== null ) {
 			$sql     .= ' AND is_resolved = %d';
@@ -259,8 +259,7 @@ class PaySentinel_Alerts {
 		$params[] = $limit;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**

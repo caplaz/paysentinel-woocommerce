@@ -218,7 +218,7 @@ class PaySentinel_Diagnostics {
 		);
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$failures = $wpdb->get_results( $sql );
+		$failures = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 		return array(
 			'count'    => count( $failures ),
@@ -354,7 +354,7 @@ class PaySentinel_Diagnostics {
 		);
 
 		// Missing failure reasons
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$missing_reasons = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i
@@ -364,7 +364,7 @@ class PaySentinel_Diagnostics {
 		);
 
 		// Transactions with max retries
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$max_retries = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i
@@ -544,7 +544,7 @@ class PaySentinel_Diagnostics {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$deleted_alerts = $wpdb->query(
 				$wpdb->prepare(
-					"DELETE FROM %i WHERE id IN ({$placeholders})",
+					"DELETE FROM %i WHERE id IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					array_merge( array( $alerts_table ), $orphaned_alert_ids )
 				)
 			);
@@ -739,12 +739,13 @@ class PaySentinel_Diagnostics {
 		$by_reason = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT failure_code, COUNT(*) as count
-				FROM {$table_name}
+				FROM %i
 				WHERE status = 'failed'
 				AND created_at > DATE_SUB(NOW(), INTERVAL %d DAY)
 				GROUP BY failure_code
 				ORDER BY count DESC
 				LIMIT 10",
+				$table_name,
 				$days
 			)
 		);
@@ -755,11 +756,12 @@ class PaySentinel_Diagnostics {
 		$hourly_pattern = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT HOUR(created_at) as hour, COUNT(*) as count
-				FROM {$table_name}
+				FROM %i
 				WHERE status = 'failed'
 				AND created_at > DATE_SUB(NOW(), INTERVAL %d DAY)
 				GROUP BY HOUR(created_at)
 				ORDER BY hour",
+				$table_name,
 				$days
 			)
 		);
@@ -769,9 +771,10 @@ class PaySentinel_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$total_failures = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table_name}
+				"SELECT COUNT(*) FROM %i
 				WHERE status = 'failed'
 				AND created_at > DATE_SUB(NOW(), INTERVAL %d DAY)",
+				$table_name,
 				$days
 			)
 		);

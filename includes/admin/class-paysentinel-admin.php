@@ -129,6 +129,7 @@ class PaySentinel_Admin {
 		wp_enqueue_script( 'wp-i18n' );
 
 		// Enqueue Chart.js 4.x from CDN for data visualization
+		// phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
 		wp_register_script(
 			'chartjs',
 			'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',

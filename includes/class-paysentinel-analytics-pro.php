@@ -154,11 +154,12 @@ class PaySentinel_Analytics_Pro {
 				SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END) as recovered_revenue,
 				SUM(CASE WHEN retry_count > 0 AND status = 'success' THEN 1 ELSE 0 END) as recovered_transactions,
 				SUM(CASE WHEN retry_count > 0 AND status = 'success' THEN amount ELSE 0 END) as recovery_roi
-				FROM `{$table_name}` 
+				FROM %i 
 				WHERE gateway_id = %s 
 				AND created_at >= %s 
 				GROUP BY DATE(created_at) 
 				ORDER BY date ASC",
+				$table_name,
 				$gateway_id,
 				$cutoff_date
 			),
@@ -192,7 +193,7 @@ class PaySentinel_Analytics_Pro {
 		$failure_reasons = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT failure_reason, failure_code, COUNT(*) as count 
-				FROM `{$table_name}` 
+				FROM %i 
 				WHERE gateway_id = %s 
 				AND status = 'failed' 
 				AND created_at >= %s 
@@ -200,6 +201,7 @@ class PaySentinel_Analytics_Pro {
 				GROUP BY failure_reason, failure_code 
 				ORDER BY count DESC 
 				LIMIT 10",
+				$table_name,
 				$gateway_id,
 				$cutoff_date
 			),
@@ -212,12 +214,13 @@ class PaySentinel_Analytics_Pro {
 		$hourly_distribution = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT HOUR(created_at) as hour, COUNT(*) as failures 
-				FROM `{$table_name}` 
+				FROM %i 
 				WHERE gateway_id = %s 
 				AND status = 'failed' 
 				AND created_at >= %s 
 				GROUP BY HOUR(created_at) 
 				ORDER BY hour ASC",
+				$table_name,
 				$gateway_id,
 				$cutoff_date
 			),

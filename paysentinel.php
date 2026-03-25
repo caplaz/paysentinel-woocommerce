@@ -10,7 +10,7 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: paysentinel
  * Requires at least: 6.5
- * Tested up to: 6.8
+ * Tested up to: 6.9
  * Requires PHP: 7.4
  * WC requires at least: 8.5
  * WC tested up to: 9.5

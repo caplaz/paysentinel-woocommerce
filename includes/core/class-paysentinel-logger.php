@@ -449,8 +449,8 @@ class PaySentinel_Logger {
 
 		$table_name = $this->database->get_transactions_table();
 
-		$sql    = "SELECT * FROM {$table_name} WHERE created_at BETWEEN %s AND %s";
-		$params = array( $start_date, $end_date );
+		$sql    = 'SELECT * FROM %i WHERE created_at BETWEEN %s AND %s';
+		$params = array( $table_name, $start_date, $end_date );
 
 		if ( $gateway_id ) {
 			$sql     .= ' AND gateway_id = %s';
@@ -460,8 +460,7 @@ class PaySentinel_Logger {
 		$sql .= ' ORDER BY created_at DESC';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
@@ -479,7 +478,7 @@ class PaySentinel_Logger {
 		$start_time = date_create( current_time( 'mysql' ) )->modify( "-{$period_seconds} seconds" )->format( 'Y-m-d H:i:s' );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$stats = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT 
@@ -490,8 +489,9 @@ class PaySentinel_Logger {
                 SUM(CASE WHEN status = 'retry' THEN 1 ELSE 0 END) as retry_transactions,
                 SUM(amount) as total_amount,
                 AVG(amount) as avg_amount
-            FROM {$table_name} 
+            FROM %i 
             WHERE gateway_id = %s AND (created_at >= %s OR updated_at >= %s) AND status != 'pending'",
+				$table_name,
 				$gateway_id,
 				$start_time,
 				$start_time

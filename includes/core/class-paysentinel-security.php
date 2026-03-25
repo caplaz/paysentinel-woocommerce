@@ -259,7 +259,7 @@ class PaySentinel_Security {
 			}
 
 			// Prepare query with parameters
-			$prepared = $wpdb->prepare( $query, ...$params );
+			$prepared = $wpdb->prepare( $query, ...$params ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( $prepared === false ) {
 				return new WP_Error(
@@ -299,12 +299,10 @@ class PaySentinel_Security {
 			// Execute prepared query
 			if ( strpos( strtoupper( trim( $query ) ), 'SELECT' ) === 0 ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				return $wpdb->get_results( $prepared, $output );
+				return $wpdb->get_results( $prepared, $output ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 			} else {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				return $wpdb->query( $prepared );
+				return $wpdb->query( $prepared ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 			}
 		} catch ( Exception $e ) {
 			return null;

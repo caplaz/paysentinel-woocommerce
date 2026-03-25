@@ -314,7 +314,7 @@ class PaySentinel_Health {
 		$sql .= ' ORDER BY gateway_id, period';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
@@ -478,7 +478,7 @@ class PaySentinel_Health {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$stats = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT 
+				'SELECT 
                 COUNT(*) as total_gateways,
                 AVG(success_rate) as avg_success_rate,
                 MIN(success_rate) as min_success_rate,
@@ -486,8 +486,9 @@ class PaySentinel_Health {
                 SUM(total_transactions) as total_transactions,
                 SUM(successful_transactions) as total_successful,
                 SUM(failed_transactions) as total_failed
-             FROM {$table_name} 
-             WHERE period = %s",
+             FROM %i 
+             WHERE period = %s',
+				$table_name,
 				$period
 			),
 			ARRAY_A
