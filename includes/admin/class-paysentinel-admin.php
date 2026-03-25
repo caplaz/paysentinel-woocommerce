@@ -128,11 +128,10 @@ class PaySentinel_Admin {
 		wp_enqueue_script( 'wp-components' );
 		wp_enqueue_script( 'wp-i18n' );
 
-		// Enqueue Chart.js 4.x from CDN for data visualization
-		// phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent
+		// Enqueue Chart.js 4.x from local bundle for data visualization
 		wp_register_script(
 			'chartjs',
-			'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+			PAYSENTINEL_PLUGIN_URL . 'assets/js/chart.umd.min.js',
 			array(),
 			'4.4.1',
 			true

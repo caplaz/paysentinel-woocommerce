@@ -168,19 +168,19 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 			// Get paginated results
 			$offset = $this->calculate_offset( $pagination['page'], $pagination['per_page'] );
 
-			$query = "SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code, 
+			$query = $wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code, 
                      transaction_id, customer_email, customer_ip, created_at as created_at
                       FROM %i 
                       WHERE {$where_clause}
                       ORDER BY created_at DESC
-                      LIMIT %d OFFSET %d";
-
-			$prepared_params = array_merge( array( $table_name ), $where_params, array( $pagination['per_page'], $offset ) );
+                      LIMIT %d OFFSET %d",
+				...array_merge( array( $table_name ), $where_params, array( $pagination['per_page'], $offset ) )
+			);
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$results = $wpdb->get_results(
-				$wpdb->prepare( $query, ...$prepared_params ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			);
+			$results = $wpdb->get_results( $query );
 
 			if ( ! $results ) {
 				$results = array();
