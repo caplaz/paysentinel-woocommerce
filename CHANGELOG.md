@@ -7,19 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [1.1.1] - 2026-03-24
 
-### Added
-- **Compliance Audit**: Systematic resolution of findings from the WooCommerce.org plugin review team.
-- **Improved Database Handling**: Enhanced table existence verification and migration consistency for smoother upgrades.
+### Security (Audit Compliance)
+- Resolved all findings from the WordPress.org plugin review team audit.
+- Refactored all direct database queries to use strict `$wpdb->prepare()` parameterization to prevent SQL injection.
+- Eliminated raw `$table_name` string interpolations via secure `%i` identifiers.
+- Standardized all `$_GET` and `$_POST` array interactions with `wp_unslash()` and strict sanitization.
+- Fixed XSS vulnerabilities with strict output escaping (`esc_html()`, `esc_attr()`, and `wp_kses()`) in all templates and components.
+- Added robust CSRF nonce verification in all admin and AJAX endpoint handlers.
+- Addressed `OffloadedContent` security warnings safely for required external payment gateway scripts.
 
 ### Changed
-- Replaced discouraged functions (`parse_url`, `strip_tags`, `date`) with WordPress-recommended alternatives (`wp_parse_url`, `wp_strip_all_tags`, `gmdate`).
-- Standardized all `$_GET` and `$_POST` input handling using `wp_unslash()` and appropriate sanitization functions.
-- Updated all translatable strings with placeholders to include mandatory `/* translators: ... */` comments.
+- Replaced discouraged functions (`parse_url`, `strip_tags`, `date`) with strict WordPress-recommended alternatives (`wp_parse_url`, `wp_strip_all_tags`, `gmdate`).
+- Cleaned up and consolidated `phpcs:ignore` suppression blocks for custom database table operations to remove redundancies and inline queries effectively.
+- Updated "Tested up to" compatibility header accurately to WordPress 6.9.
 
 ### Fixed
-- **XSS Prevention**: Implemented strict output escaping using `esc_html()`, `esc_attr()`, and `wp_kses()` in all admin templates and emails.
-- **CSRF Protection**: Strengthened critical administrative actions with robust nonce verification.
-- **Interpolated SQL**: Resolved warnings for safe dynamic table name interpolation in database query helpers.
+- Added missing translator `/* translators: %s */` comments for all i18n string placeholders.
+- Improved database table existence verification in failure simulator execution blocks.
 
 ## [1.1.0] - 2026-03-17
 
