@@ -92,12 +92,12 @@ class PaySentinel_Logger {
 
 		// Debug the data we have
 		// error_log(
-		// 	sprintf(
-		// 		'[Payment Monitor] Data check - TxnID: %s, Email: %s, IP: %s',
-		// 		$order->get_transaction_id(),
-		// 		$order->get_billing_email(),
-		// 		$order->get_customer_ip_address()
-		// 	)
+		// sprintf(
+		// '[Payment Monitor] Data check - TxnID: %s, Email: %s, IP: %s',
+		// $order->get_transaction_id(),
+		// $order->get_billing_email(),
+		// $order->get_customer_ip_address()
+		// )
 		// );
 
 		$transaction_data = $this->extract_transaction_data( $order, 'failed' );
@@ -267,7 +267,8 @@ class PaySentinel_Logger {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$existing_transaction = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT id FROM %i WHERE order_id = %d", $table_name,
+				'SELECT id FROM %i WHERE order_id = %d',
+				$table_name,
 				$transaction_data['order_id']
 			)
 		);
@@ -373,7 +374,8 @@ class PaySentinel_Logger {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE order_id = %d", $table_name,
+				'SELECT * FROM %i WHERE order_id = %d',
+				$table_name,
 				$order_id
 			)
 		);
@@ -397,7 +399,8 @@ class PaySentinel_Logger {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE gateway_id = %s ORDER BY created_at DESC LIMIT %d OFFSET %d", $table_name,
+				'SELECT * FROM %i WHERE gateway_id = %s ORDER BY created_at DESC LIMIT %d OFFSET %d',
+				$table_name,
 				$gateway_id,
 				$limit,
 				$offset
@@ -423,7 +426,8 @@ class PaySentinel_Logger {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE status = %s ORDER BY created_at DESC LIMIT %d OFFSET %d", $table_name,
+				'SELECT * FROM %i WHERE status = %s ORDER BY created_at DESC LIMIT %d OFFSET %d',
+				$table_name,
 				$status,
 				$limit,
 				$offset

@@ -219,7 +219,8 @@ class PaySentinel_Alert_Recovery_Handler {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$recent_alert = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT id FROM %i WHERE gateway_id = %s AND alert_type = %s AND created_at > %s LIMIT 1", $table_name,
+				'SELECT id FROM %i WHERE gateway_id = %s AND alert_type = %s AND created_at > %s LIMIT 1',
+				$table_name,
 				$gateway_id,
 				$alert_type,
 				$time_limit_mysql

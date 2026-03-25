@@ -242,7 +242,7 @@ class PaySentinel_Health {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE gateway_id = %s AND period = %s ORDER BY calculated_at DESC LIMIT 1",
+				'SELECT * FROM %i WHERE gateway_id = %s AND period = %s ORDER BY calculated_at DESC LIMIT 1',
 				$table_name,
 				$gateway_id,
 				$period
@@ -266,14 +266,14 @@ class PaySentinel_Health {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT t1.* FROM %i t1
+				'SELECT t1.* FROM %i t1
 				INNER JOIN (
 					SELECT period, MAX(calculated_at) as latest_calc
 					FROM %i
 					WHERE gateway_id = %s
 					GROUP BY period
 				) t2 ON t1.period = t2.period AND t1.calculated_at = t2.latest_calc
-				WHERE t1.gateway_id = %s",
+				WHERE t1.gateway_id = %s',
 				$table_name,
 				$table_name,
 				$gateway_id,
@@ -303,7 +303,7 @@ class PaySentinel_Health {
 
 		$table_name = $this->database->get_gateway_health_table();
 
-		$sql    = "SELECT * FROM %i";
+		$sql    = 'SELECT * FROM %i';
 		$params = array( $table_name );
 
 		if ( $period ) {
@@ -416,9 +416,9 @@ class PaySentinel_Health {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i
+				'SELECT * FROM %i
              WHERE gateway_id = %s AND period = %s AND calculated_at >= %s
-             ORDER BY calculated_at ASC",
+             ORDER BY calculated_at ASC',
 				$table_name,
 				$gateway_id,
 				$period,
@@ -444,7 +444,7 @@ class PaySentinel_Health {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM %i WHERE calculated_at < %s",
+				'DELETE FROM %i WHERE calculated_at < %s',
 				$table_name,
 				$cutoff_date
 			)

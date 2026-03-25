@@ -200,7 +200,7 @@ class PaySentinel_Admin_Page_Renderer {
 		global $wpdb;
 		$table_name = $this->database->get_transactions_table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$transactions = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i ORDER BY id DESC LIMIT 50", $table_name ) );
+		$transactions = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY id DESC LIMIT 50', $table_name ) );
 
 		add_thickbox();
 		?>
@@ -413,7 +413,7 @@ class PaySentinel_Admin_Page_Renderer {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'paysentinel' ) );
 		}
 
-		$tabs       = $this->get_settings_tabs();
+		$tabs = $this->get_settings_tabs();
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$active_tab = isset( $_GET['tab'] ) && array_key_exists( sanitize_text_field( wp_unslash( $_GET['tab'] ) ), $tabs ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'general';
 		?>

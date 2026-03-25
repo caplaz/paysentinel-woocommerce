@@ -182,7 +182,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", $table_name, $id ),
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table_name, $id ),
 			ARRAY_A
 		);
 
@@ -206,7 +206,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 		// Check if alert exists
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", $table_name, $id ),
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table_name, $id ),
 			ARRAY_A
 		);
 
@@ -235,7 +235,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 		// Get updated alert
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$updated_alert = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", $table_name, $id ),
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table_name, $id ),
 			ARRAY_A
 		);
 

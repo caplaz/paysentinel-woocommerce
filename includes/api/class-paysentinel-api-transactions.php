@@ -258,10 +258,10 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->get_row(
 				$wpdb->prepare(
-					"SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code,
+					'SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code,
                         created_at as created_at
                  FROM %i 
-                 WHERE id = %d",
+                 WHERE id = %d',
 					$table_name,
 					$transaction_id
 				)

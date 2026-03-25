@@ -137,7 +137,8 @@ abstract class PaySentinel_Gateway_Connector {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE gateway_id = %s ORDER BY checked_at DESC LIMIT 1", $table,
+				'SELECT * FROM %i WHERE gateway_id = %s ORDER BY checked_at DESC LIMIT 1',
+				$table,
 				$this->gateway_id
 			)
 		);
@@ -159,7 +160,8 @@ abstract class PaySentinel_Gateway_Connector {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE gateway_id = %s ORDER BY checked_at DESC LIMIT %d", $table,
+				'SELECT * FROM %i WHERE gateway_id = %s ORDER BY checked_at DESC LIMIT %d',
+				$table,
 				$this->gateway_id,
 				$limit
 			)

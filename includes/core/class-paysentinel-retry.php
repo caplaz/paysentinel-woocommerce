@@ -156,7 +156,7 @@ class PaySentinel_Retry {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$transaction = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE id = %d",
+				'SELECT * FROM %i WHERE id = %d',
 				$table_name,
 				$transaction_id
 			)
@@ -219,7 +219,7 @@ class PaySentinel_Retry {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$transaction = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE id = %d",
+				'SELECT * FROM %i WHERE id = %d',
 				$table_name,
 				$transaction_id
 			)
@@ -329,14 +329,14 @@ class PaySentinel_Retry {
 
 			// Prepare order for retry
 			$order->add_order_note(
-			sprintf(
+				sprintf(
 				/* translators: 1: blog name, 2: current retry number, 3: max retries */
-				__( '[%1$s] Retrying payment (%2$d/%3$d)...', 'paysentinel' ),
-				get_bloginfo( 'name' ),
-				$transaction->retry_count + 1,
-				$max_retries
-			)
-		);
+					__( '[%1$s] Retrying payment (%2$d/%3$d)...', 'paysentinel' ),
+					get_bloginfo( 'name' ),
+					$transaction->retry_count + 1,
+					$max_retries
+				)
+			);
 
 			// Process the payment
 			$result = $this->process_gateway_payment( $gateway, $order, $payment_method );

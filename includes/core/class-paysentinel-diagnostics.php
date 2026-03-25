@@ -89,12 +89,12 @@ class PaySentinel_Diagnostics {
 
 		foreach ( $tables as $name => $table ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) ) === $table;
+			$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
 			$count  = 0;
 
 			if ( $exists ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i", $table ) );
+				$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
 			} else {
 				$results['status'] = 'error';
 				/* translators: %s: database table name */
@@ -346,8 +346,8 @@ class PaySentinel_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$old_records = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM %i
-				WHERE created_at < %s",
+				'SELECT COUNT(*) FROM %i
+				WHERE created_at < %s',
 				$table_name,
 				gmdate( 'Y-m-d H:i:s', time() - ( 30 * DAY_IN_SECONDS ) )
 			)
@@ -367,8 +367,8 @@ class PaySentinel_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$max_retries = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM %i
-				WHERE retry_count >= %d",
+				'SELECT COUNT(*) FROM %i
+				WHERE retry_count >= %d',
 				$table_name,
 				PaySentinel_Retry::MAX_RETRY_ATTEMPTS
 			)
@@ -378,9 +378,9 @@ class PaySentinel_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$recent_retries = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM %i
+				'SELECT COUNT(*) FROM %i
 				WHERE retry_count > 0
-				AND updated_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)",
+				AND updated_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)',
 				$table_name
 			)
 		);
@@ -458,7 +458,7 @@ class PaySentinel_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$order_ids = (array) $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT DISTINCT order_id FROM %i WHERE order_id > 0",
+				'SELECT DISTINCT order_id FROM %i WHERE order_id > 0',
 				$table_name
 			)
 		);
@@ -494,7 +494,7 @@ class PaySentinel_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$order_ids = $wpdb->get_col(
-			$wpdb->prepare( "SELECT DISTINCT order_id FROM %i WHERE order_id > 0", $table_name )
+			$wpdb->prepare( 'SELECT DISTINCT order_id FROM %i WHERE order_id > 0', $table_name )
 		);
 
 		$orphaned_order_ids = array();
@@ -506,7 +506,7 @@ class PaySentinel_Diagnostics {
 
 		$deleted_transactions = 0;
 		if ( ! empty( $orphaned_order_ids ) ) {
-			$placeholders         = implode( ',', array_map( 'intval', $orphaned_order_ids ) );
+			$placeholders = implode( ',', array_map( 'intval', $orphaned_order_ids ) );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$deleted_transactions = $wpdb->query(
 				$wpdb->prepare(
@@ -518,12 +518,13 @@ class PaySentinel_Diagnostics {
 
 		// Clean orphaned alerts (gateway_error alerts referencing deleted orders).
 		// Also uses wc_get_order() for HPOS compatibility.
-		$deleted_alerts   = 0;
+		$deleted_alerts = 0;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$potential_alerts = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id, metadata FROM %i WHERE alert_type = %s", $alerts_table,
+				'SELECT id, metadata FROM %i WHERE alert_type = %s',
+				$alerts_table,
 				'gateway_error'
 			)
 		);
@@ -539,7 +540,7 @@ class PaySentinel_Diagnostics {
 		}
 
 		if ( ! empty( $orphaned_alert_ids ) ) {
-			$placeholders   = implode( ',', array_fill( 0, count( $orphaned_alert_ids ), '%d' ) );
+			$placeholders = implode( ',', array_fill( 0, count( $orphaned_alert_ids ), '%d' ) );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$deleted_alerts = $wpdb->query(
 				$wpdb->prepare(
@@ -606,7 +607,7 @@ class PaySentinel_Diagnostics {
 		$table_name = $this->database->get_gateway_health_table();
 
 		if ( empty( $gateway_id ) ) {
-			$deleted = $wpdb->query( $wpdb->prepare( "TRUNCATE TABLE %i", $table_name ) );
+			$deleted = $wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table_name ) );
 			$message = __( 'Reset health metrics for all gateways.', 'paysentinel' );
 		} else {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

@@ -492,7 +492,8 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$total_count = $wpdb->get_var(
 				$wpdb->prepare(
-					"SELECT COUNT(*) FROM %i WHERE gateway_id = %s AND calculated_at >= %s AND calculated_at <= %s", $table_name,
+					'SELECT COUNT(*) FROM %i WHERE gateway_id = %s AND calculated_at >= %s AND calculated_at <= %s',
+					$table_name,
 					$gateway_id,
 					$start_date,
 					$end_date
@@ -506,12 +507,13 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$results = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT id, gateway_id, success_rate, total_transactions, successful_transactions, 
+					'SELECT id, gateway_id, success_rate, total_transactions, successful_transactions, 
 						failed_transactions, calculated_at
 				 FROM %i 
 				 WHERE gateway_id = %s AND calculated_at >= %s AND calculated_at <= %s
 				 ORDER BY calculated_at DESC
-				 LIMIT %d OFFSET %d", $table_name,
+				 LIMIT %d OFFSET %d',
+					$table_name,
 					$gateway_id,
 					$start_date,
 					$end_date,
@@ -592,12 +594,13 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT id, gateway_id, success_rate, total_transactions, successful_transactions,
+				'SELECT id, gateway_id, success_rate, total_transactions, successful_transactions,
 					failed_transactions, avg_response_time, calculated_at as last_updated
              FROM %i 
              WHERE gateway_id = %s AND period = %s
 			 ORDER BY calculated_at DESC
-             LIMIT 1", $table_name,
+             LIMIT 1',
+				$table_name,
 				$gateway_id,
 				$period
 			)
@@ -660,7 +663,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT 
+				'SELECT 
                     DATE_FORMAT(calculated_at, %s) as timestamp,
                     AVG(success_rate) as avg_health_score
                  FROM %i 
@@ -669,7 +672,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
                  AND calculated_at <= %s
                  GROUP BY DATE_FORMAT(calculated_at, %s)
                  ORDER BY calculated_at ASC
-                 LIMIT %d",
+                 LIMIT %d',
 				$date_format,
 				$table_name,
 				$gateway_id,
@@ -736,7 +739,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				} catch ( Exception $e ) {
 					// Log but continue with other gateways
 					// error_log(
-					// 	'Payment Monitor: Error recalculating health for gateway ' . $gateway->id . ': ' . $e->getMessage()
+					// 'Payment Monitor: Error recalculating health for gateway ' . $gateway->id . ': ' . $e->getMessage()
 					// );
 				}
 			}
@@ -747,7 +750,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				$connectivity->check_all_gateways();
 			} catch ( Exception $e ) {
 				// error_log(
-				// 	'Payment Monitor: Error during connectivity checks: ' . $e->getMessage()
+				// 'Payment Monitor: Error during connectivity checks: ' . $e->getMessage()
 				// );
 			}
 

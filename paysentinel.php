@@ -417,7 +417,7 @@ class PaySentinel {
 			$connectivity->cleanup_old_checks( $retention_days );
 		} catch ( Exception $e ) {
 			// error_log(
-			// 	'Payment Monitor: Error during gateway connectivity check: ' . $e->getMessage()
+			// 'Payment Monitor: Error during gateway connectivity check: ' . $e->getMessage()
 			// );
 		}
 	}
