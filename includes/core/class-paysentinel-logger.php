@@ -71,34 +71,34 @@ class PaySentinel_Logger {
 	 */
 	public function log_failure( $order_id, $order = null ) {
 		// Debug logging
-		error_log( "[Payment Monitor] log_failure called for Order #$order_id" );
+		// error_log( "[Payment Monitor] log_failure called for Order #$order_id" );
 
 		// If order object wasn't passed (legacy), fetch it
 		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
-			error_log( '[Payment Monitor] Order object not passed or invalid, refetching...' );
+			// error_log( '[Payment Monitor] Order object not passed or invalid, refetching...' );
 			// Clear cache to ensure we get the freshest data
 			if ( function_exists( 'clean_post_cache' ) ) {
 				clean_post_cache( $order_id );
 			}
 			$order = wc_get_order( $order_id );
 		} else {
-			error_log( '[Payment Monitor] Using passed Order object.' );
+			// error_log( '[Payment Monitor] Using passed Order object.' );
 		}
 
 		if ( ! $order ) {
-			error_log( "[Payment Monitor] Order not found for ID #$order_id" );
+			// error_log( "[Payment Monitor] Order not found for ID #$order_id" );
 			return;
 		}
 
 		// Debug the data we have
-		error_log(
-			sprintf(
-				'[Payment Monitor] Data check - TxnID: %s, Email: %s, IP: %s',
-				$order->get_transaction_id(),
-				$order->get_billing_email(),
-				$order->get_customer_ip_address()
-			)
-		);
+		// error_log(
+		// 	sprintf(
+		// 		'[Payment Monitor] Data check - TxnID: %s, Email: %s, IP: %s',
+		// 		$order->get_transaction_id(),
+		// 		$order->get_billing_email(),
+		// 		$order->get_customer_ip_address()
+		// 	)
+		// );
 
 		$transaction_data = $this->extract_transaction_data( $order, 'failed' );
 
@@ -263,9 +263,11 @@ class PaySentinel_Logger {
 		$table_name = $this->database->get_transactions_table();
 
 		// Check if transaction already exists for this order
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$existing_transaction = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT id FROM {$table_name} WHERE order_id = %d",
+				"SELECT id FROM %i WHERE order_id = %d", $table_name,
 				$transaction_data['order_id']
 			)
 		);
@@ -275,6 +277,8 @@ class PaySentinel_Logger {
 			$transaction_data['updated_at'] = current_time( 'mysql' );
 			unset( $transaction_data['created_at'] ); // Don't update created_at
 
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->update(
 				$table_name,
 				$transaction_data,
@@ -299,6 +303,7 @@ class PaySentinel_Logger {
 			return $result !== false ? $existing_transaction->id : false;
 		} else {
 			// Insert new transaction
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->insert(
 				$table_name,
 				$transaction_data,
@@ -336,6 +341,8 @@ class PaySentinel_Logger {
 
 		$table_name = $this->database->get_transactions_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table_name,
 			array(
@@ -362,9 +369,11 @@ class PaySentinel_Logger {
 
 		$table_name = $this->database->get_transactions_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} WHERE order_id = %d",
+				"SELECT * FROM %i WHERE order_id = %d", $table_name,
 				$order_id
 			)
 		);
@@ -384,9 +393,11 @@ class PaySentinel_Logger {
 
 		$table_name = $this->database->get_transactions_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} WHERE gateway_id = %s ORDER BY created_at DESC LIMIT %d OFFSET %d",
+				"SELECT * FROM %i WHERE gateway_id = %s ORDER BY created_at DESC LIMIT %d OFFSET %d", $table_name,
 				$gateway_id,
 				$limit,
 				$offset
@@ -408,9 +419,11 @@ class PaySentinel_Logger {
 
 		$table_name = $this->database->get_transactions_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} WHERE status = %s ORDER BY created_at DESC LIMIT %d OFFSET %d",
+				"SELECT * FROM %i WHERE status = %s ORDER BY created_at DESC LIMIT %d OFFSET %d", $table_name,
 				$status,
 				$limit,
 				$offset
@@ -442,6 +455,8 @@ class PaySentinel_Logger {
 
 		$sql .= ' ORDER BY created_at DESC';
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
 	}
 
@@ -459,6 +474,8 @@ class PaySentinel_Logger {
 		$table_name = $this->database->get_transactions_table();
 		$start_time = date_create( current_time( 'mysql' ) )->modify( "-{$period_seconds} seconds" )->format( 'Y-m-d H:i:s' );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$stats = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT 
@@ -498,6 +515,8 @@ class PaySentinel_Logger {
 
 		$table_name = $this->database->get_transactions_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete(
 			$table_name,
 			array( 'order_id' => $order_id ),

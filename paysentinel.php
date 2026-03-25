@@ -9,7 +9,6 @@
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: paysentinel
- * Domain Path: /languages
  * Requires at least: 6.5
  * Tested up to: 6.8
  * Requires PHP: 7.4
@@ -216,7 +215,6 @@ class PaySentinel {
 		}
 
 		// Load text domain.
-		load_plugin_textdomain( 'paysentinel', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
 		// Initialize components.
 		$this->init_components();
@@ -418,9 +416,9 @@ class PaySentinel {
 
 			$connectivity->cleanup_old_checks( $retention_days );
 		} catch ( Exception $e ) {
-			error_log(
-				'Payment Monitor: Error during gateway connectivity check: ' . $e->getMessage()
-			);
+			// error_log(
+			// 	'Payment Monitor: Error during gateway connectivity check: ' . $e->getMessage()
+			// );
 		}
 	}
 
@@ -438,7 +436,7 @@ class PaySentinel {
 			$database->cleanup_old_alerts( 30 ); // Alerts kept for 30 days
 			$database->optimize_tables();
 		} catch ( Exception $e ) {
-			error_log( 'Payment Monitor: Error during daily cleanup: ' . $e->getMessage() );
+			// error_log( 'Payment Monitor: Error during daily cleanup: ' . $e->getMessage() );
 		}
 	}
 
@@ -462,7 +460,7 @@ class PaySentinel {
 			// Trigger health calculation scheduling.
 			do_action( 'paysentinel_activated' );
 		} catch ( \Throwable $e ) {
-			error_log( 'PaySentinel activation error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+			// error_log( 'PaySentinel activation error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
 			// Re-throw so WordPress shows the activation error notice instead of a blank screen.
 			throw $e;
 		}

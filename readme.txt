@@ -1,7 +1,7 @@
 === PaySentinel - Payment Monitor for WooCommerce ===
 Stable tag: 1.1.1
 Requires at least: 6.5
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html

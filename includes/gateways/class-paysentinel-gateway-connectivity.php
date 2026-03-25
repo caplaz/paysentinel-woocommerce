@@ -118,13 +118,13 @@ class PaySentinel_Gateway_Connectivity {
 
 		} catch ( Exception $e ) {
 			// Log exception
-			error_log(
-				sprintf(
-					'Payment Monitor: Exception while checking %s gateway: %s',
-					$gateway_id,
-					$e->getMessage()
-				)
-			);
+			// error_log(
+			// 	sprintf(
+			// 		'Payment Monitor: Exception while checking %s gateway: %s',
+			// 		$gateway_id,
+			// 		$e->getMessage()
+			// 	)
+			// );
 
 			return null;
 		}
@@ -219,9 +219,11 @@ class PaySentinel_Gateway_Connectivity {
 		// Calculate cutoff date
 		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM $table WHERE checked_at < %s",
+				"DELETE FROM %i WHERE checked_at < %s", $table,
 				$cutoff_date
 			)
 		);

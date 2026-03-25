@@ -419,6 +419,8 @@ class PaySentinel_Alert_Checker {
 		$table_name = $this->database->get_alerts_table();
 		$time_limit = date_create( current_time( 'mysql' ) )->modify( '-' . self::RATE_LIMIT_WINDOW . ' seconds' )->format( 'Y-m-d H:i:s' );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$recent_alert = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT id FROM {$table_name} 
@@ -497,6 +499,8 @@ class PaySentinel_Alert_Checker {
 
 		$table_name = $this->database->get_alerts_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$updated = $wpdb->update(
 			$table_name,
 			array(
@@ -531,6 +535,7 @@ class PaySentinel_Alert_Checker {
 
 		$table_name = $this->database->get_alerts_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$inserted = $wpdb->insert(
 			$table_name,
 			$alert_record,

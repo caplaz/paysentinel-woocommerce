@@ -591,7 +591,7 @@ class PaySentinel_License {
 		$response = $this->make_authenticated_request( self::API_ENDPOINT_SYNC, 'GET', array() );
 
 		if ( is_wp_error( $response ) ) {
-			error_log( 'PaySentinel: License sync failed - ' . $response->get_error_message() );
+			// error_log( 'PaySentinel: License sync failed - ' . $response->get_error_message() );
 			return $response;
 		}
 

@@ -220,6 +220,7 @@ class PaySentinel_Health {
 		);
 
 		// Always insert a new record to maintain history
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->insert( $table_name, $data, $format );
 
 		return $result !== false;
@@ -473,6 +474,8 @@ class PaySentinel_Health {
 
 		$table_name = $this->database->get_gateway_health_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$stats = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT 

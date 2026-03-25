@@ -96,6 +96,8 @@ class PaySentinel_Database {
 		global $wpdb;
 
 		// Drop legacy unique index if it exists (dbDelta won't do this)
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$index_exists = $wpdb->get_results(
 			$wpdb->prepare(
 				"SHOW INDEX FROM %i WHERE KEY_NAME = %s",
@@ -250,6 +252,8 @@ class PaySentinel_Database {
 		);
 
 		foreach ( $tables as $table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 			if ( $result !== $table ) {
 				return false;
@@ -405,6 +409,8 @@ class PaySentinel_Database {
 
 		foreach ( $tables_info as $table => $info ) {
 			// Check if table exists
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 			if ( ! $table_exists ) {
 				$errors[] = "Table $table does not exist";
@@ -448,24 +454,36 @@ class PaySentinel_Database {
 		$stats = array();
 
 		// Transactions statistics
-		$trans_count           = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->transactions_table}" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$trans_count           = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i", $this->transactions_table ) );
 		$stats['transactions'] = array(
 			'total_records' => intval( $trans_count ),
-			'table_size'    => $wpdb->get_var( "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->transactions_table}'" ),
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			'table_size'    => $wpdb->get_var( $wpdb->prepare( "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = %s", $this->transactions_table ) ),
 		);
 
 		// Gateway health statistics
-		$health_count            = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->gateway_health_table}" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$health_count            = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i", $this->gateway_health_table ) );
 		$stats['gateway_health'] = array(
 			'total_records' => intval( $health_count ),
-			'table_size'    => $wpdb->get_var( "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->gateway_health_table}'" ),
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			'table_size'    => $wpdb->get_var( $wpdb->prepare( "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = %s", $this->gateway_health_table ) ),
 		);
 
 		// Alerts statistics
-		$alerts_count    = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->alerts_table}" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$alerts_count    = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i", $this->alerts_table ) );
 		$stats['alerts'] = array(
 			'total_records' => intval( $alerts_count ),
-			'table_size'    => $wpdb->get_var( "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$this->alerts_table}'" ),
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			'table_size'    => $wpdb->get_var( $wpdb->prepare( "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = %s", $this->alerts_table ) ),
 		);
 
 		return $stats;
@@ -487,9 +505,11 @@ class PaySentinel_Database {
 
 		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$this->transactions_table} WHERE created_at < %s",
+				"DELETE FROM %i WHERE created_at < %s", $this->transactions_table,
 				$cutoff_date
 			)
 		);
@@ -542,7 +562,9 @@ class PaySentinel_Database {
 		$results = array();
 
 		foreach ( $tables as $table ) {
-			$result            = $wpdb->query( "OPTIMIZE TABLE {$table}" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$result            = $wpdb->query( $wpdb->prepare( "OPTIMIZE TABLE %i", $table ) );
 			$results[ $table ] = $result !== false;
 		}
 

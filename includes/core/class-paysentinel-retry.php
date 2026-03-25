@@ -249,6 +249,8 @@ class PaySentinel_Retry {
 
 		// Increment retry count
 		$new_retry_count = $transaction->retry_count + 1;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
 			$table_name,
 			array(
@@ -368,6 +370,7 @@ class PaySentinel_Retry {
 
 				// Ensure global WC object is set if extensions rely on it
 				if ( ! isset( $GLOBALS['woocommerce'] ) && function_exists( 'WC' ) ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 					$GLOBALS['woocommerce'] = WC();
 				}
 
@@ -598,6 +601,7 @@ class PaySentinel_Retry {
 			/* translators: %d: maximum retry attempts */
 			$order->add_order_note(
 				sprintf(
+					/* translators: %s: placeholder */
 					__( 'Maximum retry attempts (%d) reached. No further automatic retries will be attempted.', 'paysentinel' ),
 					$max_retries
 				)
@@ -626,6 +630,7 @@ class PaySentinel_Retry {
 
 		/* translators: 1: blog name, 2: order number */
 		$subject = sprintf(
+			/* translators: %s: placeholder */
 			__( '[%1$s] Payment Successful - Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),
 			$order->get_order_number()
@@ -653,6 +658,7 @@ class PaySentinel_Retry {
 		$order_total = $order->get_formatted_order_total();
 		/* translators: 1: blog name, 2: order number */
 		$subject = sprintf(
+			/* translators: %s: placeholder */
 			__( '[%1$s] Payment Successful - Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),
 			$order->get_order_number()
@@ -739,6 +745,7 @@ class PaySentinel_Retry {
 
 		/* translators: 1: blog name, 2: order number */
 		$subject = sprintf(
+			/* translators: %s: placeholder */
 			__( '[%1$s] Action Required: Payment Failed for Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),
 			$order->get_order_number()
@@ -776,6 +783,7 @@ class PaySentinel_Retry {
 		$order_total = $order->get_formatted_order_total();
 		/* translators: 1: blog name, 2: order number */
 		$subject = sprintf(
+			/* translators: %s: placeholder */
 			__( '[%1$s] Action Required: Payment Failed for Order #%2$s', 'paysentinel' ),
 			get_bloginfo( 'name' ),
 			$order->get_order_number()

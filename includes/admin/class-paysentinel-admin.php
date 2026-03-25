@@ -215,20 +215,20 @@ class PaySentinel_Admin {
 		}
 
 		if ( ! $order_id ) {
-			wp_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error' ) );
 			exit;
 		}
 
 		// Get retry instance
 		if ( ! isset( PaySentinel::get_instance()->retry ) ) {
-			wp_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Retry component not available.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Retry component not available.', 'paysentinel' ) ) . '&type=error' ) );
 			exit;
 		}
 
 		$result = PaySentinel::get_instance()->retry->manual_retry( $order_id );
 		$type   = $result['success'] ? 'success' : 'error';
 
-		wp_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( $result['message'] ) . '&type=' . $type ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( $result['message'] ) . '&type=' . $type ) );
 		exit;
 	}
 
@@ -246,25 +246,25 @@ class PaySentinel_Admin {
 		}
 
 		if ( ! $order_id ) {
-			wp_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error' ) );
 			exit;
 		}
 
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
-			wp_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Order not found.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Order not found.', 'paysentinel' ) ) . '&type=error' ) );
 			exit;
 		}
 
 		// Get retry instance
 		if ( ! isset( PaySentinel::get_instance()->retry ) ) {
-			wp_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Retry component not available.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Retry component not available.', 'paysentinel' ) ) . '&type=error' ) );
 			exit;
 		}
 
 		PaySentinel::get_instance()->retry->send_recovery_email( $order );
 
-		wp_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Recovery email sent successfully.', 'paysentinel' ) ) . '&type=success' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Recovery email sent successfully.', 'paysentinel' ) ) . '&type=success' ) );
 		exit;
 	}
 
@@ -281,7 +281,7 @@ class PaySentinel_Admin {
 		// Deactivate license
 		$this->license->deactivate_license();
 
-		wp_redirect( admin_url( 'admin.php?page=paysentinel-settings&tab=license&message=' . urlencode( __( 'License deactivated successfully.', 'paysentinel' ) ) . '&type=info' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-settings&tab=license&message=' . urlencode( __( 'License deactivated successfully.', 'paysentinel' ) ) . '&type=info' ) );
 		exit;
 	}
 

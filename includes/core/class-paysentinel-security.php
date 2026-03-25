@@ -298,8 +298,12 @@ class PaySentinel_Security {
 
 			// Execute prepared query
 			if ( strpos( strtoupper( trim( $query ) ), 'SELECT' ) === 0 ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				return $wpdb->get_results( $prepared, $output );
 			} else {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				return $wpdb->query( $prepared );
 			}
 		} catch ( Exception $e ) {

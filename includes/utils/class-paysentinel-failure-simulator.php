@@ -321,11 +321,11 @@ class PaySentinel_Failure_Simulator {
 		// partial activation even when the tables were never actually created. tables_exist() does
 		// the authoritative SHOW TABLES check.
 		if ( $this->database->needs_update() || ! $this->database->tables_exist() ) {
-			error_log( '[PaySentinel] upsert_simulated_failure_transaction: tables missing or outdated — running create_tables().' );
+			// error_log( '[PaySentinel] upsert_simulated_failure_transaction: tables missing or outdated — running create_tables().' );
 			$this->database->create_tables();
 		}
 
-		error_log( '[PaySentinel] upsert_simulated_failure_transaction: writing record for order #' . $order_id . ', table=' . $table_name );
+		// error_log( '[PaySentinel] upsert_simulated_failure_transaction: writing record for order #' . $order_id . ', table=' . $table_name );
 
 		// Check if a record already exists for this order (the hook may have already logged it).
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -354,7 +354,7 @@ class PaySentinel_Failure_Simulator {
 			);
 
 			if ( false === $result && $wpdb->last_error ) {
-				error_log( '[PaySentinel] upsert_simulated_failure_transaction UPDATE failed for order #' . $order_id . ': ' . $wpdb->last_error );
+				// error_log( '[PaySentinel] upsert_simulated_failure_transaction UPDATE failed for order #' . $order_id . ': ' . $wpdb->last_error );
 			}
 		} else {
 			// Insert a new record so get_simulated_failure_order_ids() can find this order.
@@ -382,7 +382,7 @@ class PaySentinel_Failure_Simulator {
 			);
 
 			if ( false === $result && $wpdb->last_error ) {
-				error_log( '[PaySentinel] upsert_simulated_failure_transaction INSERT failed for order #' . $order_id . ': ' . $wpdb->last_error );
+				// error_log( '[PaySentinel] upsert_simulated_failure_transaction INSERT failed for order #' . $order_id . ': ' . $wpdb->last_error );
 			}
 		}
 	}
@@ -490,7 +490,9 @@ class PaySentinel_Failure_Simulator {
 			array(
 				'post_type'      => 'product',
 				'posts_per_page' => 1,
+				// phpcs:ignore WordPress.DB.SlowDBQuery
 				'meta_key'       => '_paysentinel_test_product',
+				// phpcs:ignore WordPress.DB.SlowDBQuery
 				'meta_value'     => '1',
 				'post_status'    => 'publish',
 			)

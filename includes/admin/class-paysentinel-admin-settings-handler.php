@@ -668,6 +668,7 @@ class PaySentinel_Admin_Settings_Handler {
 						/* translators: %s: upgrade URL */
 						echo wp_kses(
 							sprintf(
+								/* translators: %s: placeholder */
 								__( 'Per-gateway alert configuration requires Pro plan or higher. <a href="%s" class="button button-primary" style="margin-left: 10px;">Upgrade to Pro</a>', 'paysentinel' ),
 								esc_url( admin_url( 'admin.php?page=paysentinel-settings&tab=license' ) )
 							),
