@@ -541,11 +541,10 @@ class PaySentinel_Diagnostics {
 		if ( ! empty( $orphaned_alert_ids ) ) {
 			$placeholders   = implode( ',', array_fill( 0, count( $orphaned_alert_ids ), '%d' ) );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$deleted_alerts = $wpdb->query(
 				$wpdb->prepare(
-					"DELETE FROM %i WHERE id IN ({$placeholders})", $alerts_table,
-					$orphaned_alert_ids
+					"DELETE FROM %i WHERE id IN ({$placeholders})",
+					array_merge( array( $alerts_table ), $orphaned_alert_ids )
 				)
 			);
 		}

@@ -669,8 +669,9 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
                  AND calculated_at <= %s
                  GROUP BY DATE_FORMAT(calculated_at, %s)
                  ORDER BY calculated_at ASC
-                 LIMIT %d", $table_name,
+                 LIMIT %d",
 				$date_format,
+				$table_name,
 				$gateway_id,
 				$start_date,
 				$end_date,
