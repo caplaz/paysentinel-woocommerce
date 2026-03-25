@@ -264,7 +264,6 @@ class PaySentinel_Logger {
 
 		// Check if transaction already exists for this order
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$existing_transaction = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT id FROM %i WHERE order_id = %d',
@@ -278,7 +277,6 @@ class PaySentinel_Logger {
 			$transaction_data['updated_at'] = current_time( 'mysql' );
 			unset( $transaction_data['created_at'] ); // Don't update created_at
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->update(
 				$table_name,
@@ -343,7 +341,6 @@ class PaySentinel_Logger {
 		$table_name = $this->database->get_transactions_table();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table_name,
 			array(
@@ -371,7 +368,6 @@ class PaySentinel_Logger {
 		$table_name = $this->database->get_transactions_table();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE order_id = %d',
@@ -395,7 +391,6 @@ class PaySentinel_Logger {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -422,7 +417,6 @@ class PaySentinel_Logger {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -478,7 +472,6 @@ class PaySentinel_Logger {
 		$start_time = date_create( current_time( 'mysql' ) )->modify( "-{$period_seconds} seconds" )->format( 'Y-m-d H:i:s' );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$stats = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT 
@@ -519,7 +512,6 @@ class PaySentinel_Logger {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete(
 			$table_name,

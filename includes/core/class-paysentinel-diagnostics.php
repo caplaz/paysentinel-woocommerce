@@ -492,7 +492,6 @@ class PaySentinel_Diagnostics {
 
 		// Find orphaned transaction records using wc_get_order() (HPOS-compatible).
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$order_ids = $wpdb->get_col(
 			$wpdb->prepare( 'SELECT DISTINCT order_id FROM %i WHERE order_id > 0', $table_name )
 		);
@@ -519,7 +518,6 @@ class PaySentinel_Diagnostics {
 		// Clean orphaned alerts (gateway_error alerts referencing deleted orders).
 		// Also uses wc_get_order() for HPOS compatibility.
 		$deleted_alerts = 0;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$potential_alerts = $wpdb->get_results(
 			$wpdb->prepare(
@@ -611,7 +609,6 @@ class PaySentinel_Diagnostics {
 			$message = __( 'Reset health metrics for all gateways.', 'paysentinel' );
 		} else {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$deleted = $wpdb->delete( $table_name, array( 'gateway_id' => $gateway_id ) );
 			/* translators: %s: gateway ID */
 			$message = sprintf( __( 'Reset health metrics for gateway: %s', 'paysentinel' ), $gateway_id );
@@ -641,7 +638,6 @@ class PaySentinel_Diagnostics {
 
 		// For now, we'll just delete old records
 		// In a production system, you might want to export to a separate archive table
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
@@ -719,7 +715,6 @@ class PaySentinel_Diagnostics {
 
 		// Failures by gateway
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$by_gateway = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT gateway_id, COUNT(*) as count
@@ -734,7 +729,6 @@ class PaySentinel_Diagnostics {
 		);
 
 		// Failures by reason
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$by_reason = $wpdb->get_results(
 			$wpdb->prepare(
@@ -752,7 +746,6 @@ class PaySentinel_Diagnostics {
 
 		// Hourly failure pattern
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$hourly_pattern = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT HOUR(created_at) as hour, COUNT(*) as count
@@ -767,7 +760,6 @@ class PaySentinel_Diagnostics {
 		);
 
 		// Total failures
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$total_failures = $wpdb->get_var(
 			$wpdb->prepare(

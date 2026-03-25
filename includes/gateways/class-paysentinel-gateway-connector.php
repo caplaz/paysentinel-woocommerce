@@ -134,7 +134,6 @@ abstract class PaySentinel_Gateway_Connector {
 		$table = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE gateway_id = %s ORDER BY checked_at DESC LIMIT 1',
@@ -156,7 +155,6 @@ abstract class PaySentinel_Gateway_Connector {
 
 		$table = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(

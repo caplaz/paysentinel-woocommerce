@@ -250,7 +250,6 @@ class PaySentinel_Retry {
 		// Increment retry count
 		$new_retry_count = $transaction->retry_count + 1;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
 			$table_name,
 			array(
