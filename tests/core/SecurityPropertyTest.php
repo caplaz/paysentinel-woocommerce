@@ -113,11 +113,12 @@ if ( ! function_exists( 'get_transient' ) ) {
 		}
 	}
 
-	// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound
+	// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound, Generic.Classes.DuplicateClassName.Found
 	/**
 	 * Stub WP_Error class for tests.
 	 */
 	class WP_Error {
+	// phpcs:enable Generic.Files.OneObjectStructurePerFile.MultipleFound, Generic.Classes.DuplicateClassName.Found
 
 		/**
 		 * Errors collection.
