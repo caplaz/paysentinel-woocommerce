@@ -1,8 +1,12 @@
 <?php
+/**
+ * Unit tests for PaySentinel_Diagnostics class.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Unit tests for PaySentinel_Diagnostics class
- * Tests diagnostic functionality and bug fixes
+ * Class DiagnosticsTest
  */
 class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 
@@ -98,8 +102,8 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		$api = new PaySentinel_API_Diagnostics();
 		$this->assertTrue( method_exists( $api, 'register_routes' ) );
 
-		// Test that the register_routes method exists and is callable
-		// Note: We don't actually call it here to avoid REST API registration warnings in tests
+		// Test that the register_routes method exists and is callable.
+		// Note: We don't actually call it here to avoid REST API registration warnings in tests.
 		$this->assertTrue( is_callable( array( $api, 'register_routes' ) ) );
 	}
 
@@ -129,11 +133,11 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		$database    = new PaySentinel_Database();
 		$table_name  = $database->get_transactions_table();
 
-		// Create a mock transaction with non-existent order ID
-		$wpdb->insert(
+		// Create a mock transaction with non-existent order ID.
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
-				'order_id'       => 999999, // Non-existent order
+				'order_id'       => 999999, // Non-existent order.
 				'gateway_id'     => 'stripe',
 				'amount'         => 100.00,
 				'currency'       => 'USD',
@@ -144,22 +148,30 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		);
 		$inserted_id = $wpdb->insert_id;
 
-		// Verify the record was inserted
-		$record = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$table_name} WHERE id = %d", $inserted_id )
+		// Verify the record was inserted.
+		$record = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$table_name} WHERE id = %d",
+				$inserted_id
+			)
 		);
 		$this->assertNotNull( $record );
 
-		// Run cleanup
+		// Run cleanup.
 		$result = $diagnostics->clean_orphaned_records();
 
-		// Verify the orphaned transaction was deleted
+		// Verify the orphaned transaction was deleted.
 		$this->assertGreaterThanOrEqual( 1, $result['transactions_deleted'] );
 		$this->assertGreaterThanOrEqual( 1, $result['deleted'] );
 
-		// Verify the record is gone
-		$record_after = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$table_name} WHERE id = %d", $inserted_id )
+		// Verify the record is gone.
+		$record_after = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$table_name} WHERE id = %d",
+				$inserted_id
+			)
 		);
 		$this->assertNull( $record_after );
 	}
@@ -174,16 +186,16 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		$database     = new PaySentinel_Database();
 		$alerts_table = $database->get_alerts_table();
 
-		// Create a mock alert with non-existent order ID in metadata
-		$metadata = json_encode(
+		// Create a mock alert with non-existent order ID in metadata.
+		$metadata = wp_json_encode(
 			array(
-				'order_id'       => 999999, // Non-existent order
+				'order_id'       => 999999, // Non-existent order.
 				'failure_reason' => 'Test failure',
 				'error_type'     => 'Connection Error',
 			)
 		);
 
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$alerts_table,
 			array(
 				'alert_type'  => 'gateway_error',
@@ -197,22 +209,30 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		);
 		$inserted_id = $wpdb->insert_id;
 
-		// Verify the alert was inserted
-		$alert = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$alerts_table} WHERE id = %d", $inserted_id )
+		// Verify the alert was inserted.
+		$alert = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$alerts_table} WHERE id = %d",
+				$inserted_id
+			)
 		);
 		$this->assertNotNull( $alert );
 
-		// Run cleanup
+		// Run cleanup.
 		$result = $diagnostics->clean_orphaned_records();
 
-		// Verify the orphaned alert was deleted
+		// Verify the orphaned alert was deleted.
 		$this->assertGreaterThanOrEqual( 1, $result['alerts_deleted'] );
 		$this->assertGreaterThanOrEqual( 1, $result['deleted'] );
 
-		// Verify the alert is gone
-		$alert_after = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$alerts_table} WHERE id = %d", $inserted_id )
+		// Verify the alert is gone.
+		$alert_after = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$alerts_table} WHERE id = %d",
+				$inserted_id
+			)
 		);
 		$this->assertNull( $alert_after );
 	}
@@ -227,8 +247,8 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		$database     = new PaySentinel_Database();
 		$alerts_table = $database->get_alerts_table();
 
-		// Create a mock alert without order_id in metadata (performance-based alert)
-		$metadata = json_encode(
+		// Create a mock alert without order_id in metadata (performance-based alert).
+		$metadata = wp_json_encode(
 			array(
 				'success_rate'        => 85.5,
 				'total_transactions'  => 100,
@@ -236,7 +256,7 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 			)
 		);
 
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$alerts_table,
 			array(
 				'alert_type'  => 'low_success_rate',
@@ -250,20 +270,24 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		);
 		$inserted_id = $wpdb->insert_id;
 
-		// Run cleanup
+		// Run cleanup.
 		$result = $diagnostics->clean_orphaned_records();
 
-		// Verify the alert was NOT deleted
+		// Verify the alert was NOT deleted.
 		$this->assertEquals( 0, $result['alerts_deleted'] );
 
-		// Verify the alert still exists
-		$alert_after = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$alerts_table} WHERE id = %d", $inserted_id )
+		// Verify the alert still exists.
+		$alert_after = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$alerts_table} WHERE id = %d",
+				$inserted_id
+			)
 		);
 		$this->assertNotNull( $alert_after );
 
-		// Clean up
-		$wpdb->delete( $alerts_table, array( 'id' => $inserted_id ) );
+		// Clean up.
+		$wpdb->delete( $alerts_table, array( 'id' => $inserted_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	}
 
 	/**
@@ -276,14 +300,14 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		$database     = new PaySentinel_Database();
 		$alerts_table = $database->get_alerts_table();
 
-		// Create a valid order first
+		// Create a valid order first.
 		$order = wc_create_order();
 		$order->set_status( 'completed' );
 		$order->save();
 		$order_id = $order->get_id();
 
-		// Create a mock alert with valid order ID in metadata
-		$metadata = json_encode(
+		// Create a mock alert with valid order ID in metadata.
+		$metadata = wp_json_encode(
 			array(
 				'order_id'       => $order_id,
 				'failure_reason' => 'Test failure',
@@ -291,7 +315,7 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 			)
 		);
 
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$alerts_table,
 			array(
 				'alert_type'  => 'gateway_error',
@@ -305,20 +329,24 @@ class DiagnosticsTest extends PHPUnit\Framework\TestCase {
 		);
 		$inserted_id = $wpdb->insert_id;
 
-		// Run cleanup
+		// Run cleanup.
 		$result = $diagnostics->clean_orphaned_records();
 
-		// Verify the alert was NOT deleted
+		// Verify the alert was NOT deleted.
 		$this->assertEquals( 0, $result['alerts_deleted'] );
 
-		// Verify the alert still exists
-		$alert_after = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$alerts_table} WHERE id = %d", $inserted_id )
+		// Verify the alert still exists.
+		$alert_after = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$alerts_table} WHERE id = %d",
+				$inserted_id
+			)
 		);
 		$this->assertNotNull( $alert_after );
 
-		// Clean up
-		$wpdb->delete( $alerts_table, array( 'id' => $inserted_id ) );
+		// Clean up.
+		$wpdb->delete( $alerts_table, array( 'id' => $inserted_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( $order ) {
 			$order->delete( true );
 		}

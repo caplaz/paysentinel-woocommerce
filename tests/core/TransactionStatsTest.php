@@ -1,12 +1,25 @@
 <?php
+/**
+ * Real integration tests for logger statistics.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Real Integration Tests for Logger Statistics
+ * Class TransactionStatsTest
  */
 class TransactionStatsTest extends WP_UnitTestCase {
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var PaySentinel_Logger
+	 */
 	private $logger;
 
+	/**
+	 * Set up test fixtures.
+	 */
 	public function setUp(): void {
 		parent::setUp();
 
@@ -20,18 +33,21 @@ class TransactionStatsTest extends WP_UnitTestCase {
 
 		$this->logger = new PaySentinel_Logger();
 
-		// Clean up table for isolated tests
+		// Clean up table for isolated tests.
 		global $wpdb;
 		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
-		$wpdb->query( "TRUNCATE TABLE {$table_name}" );
+		$wpdb->query( "TRUNCATE TABLE {$table_name}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
 	}
 
+	/**
+	 * Tear down test fixtures.
+	 */
 	public function tearDown(): void {
 		parent::tearDown();
-		// Clean up table after tests
+		// Clean up table after tests.
 		global $wpdb;
 		$table_name = ( new PaySentinel_Database() )->get_transactions_table();
-		$wpdb->query( "TRUNCATE TABLE {$table_name}" );
+		$wpdb->query( "TRUNCATE TABLE {$table_name}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
 	}
 
 	/**
@@ -43,12 +59,12 @@ class TransactionStatsTest extends WP_UnitTestCase {
 
 		$gateway_id = 'test_gateway_stats';
 
-		// Simulating an order created 3 days ago
+		// Simulating an order created 3 days ago.
 		$three_days_ago = date_create( current_time( 'mysql' ) )->modify( '-3 days' )->format( 'Y-m-d H:i:s' );
 
-		// 1. Transaction created old, but failed NOW (updated_at)
+		// 1. Transaction created old, but failed NOW (updated_at).
 		$now = current_time( 'mysql' );
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'order_id'   => 9901,
@@ -61,8 +77,8 @@ class TransactionStatsTest extends WP_UnitTestCase {
 			)
 		);
 
-		// 2. Transaction created old, successfully updated old (should not be in recent stats)
-		$wpdb->insert(
+		// 2. Transaction created old, successfully updated old (should not be in recent stats).
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'order_id'   => 9902,
@@ -75,10 +91,10 @@ class TransactionStatsTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Get stats for the last hour
+		// Get stats for the last hour.
 		$stats = $this->logger->get_transaction_stats( $gateway_id, 3600 );
 
-		// It should find exactly 1 transaction because the failed one was updated recently
+		// It should find exactly 1 transaction because the failed one was updated recently.
 		$this->assertEquals( 1, $stats['total_transactions'], 'Failed transaction with recent updated_at should be returned' );
 		$this->assertEquals( 1, $stats['failed_transactions'] );
 		$this->assertEquals( 0, $stats['successful_transactions'] );

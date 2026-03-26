@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -57,16 +57,16 @@ class PaySentinel_Alert_Notifier {
 	 * @return bool Success.
 	 */
 	public function send_notifications( $alert_data, $alert_id ) {
+		unset( $alert_id ); // Alert ID is not needed for the API-based notification path.
 		$settings = get_option( 'paysentinel_settings', array() );
 
-		// Check if site is registered - alerts only work for registered sites
+		// Check if site is registered - alerts only work for registered sites.
 		$license = new PaySentinel_License();
 		if ( ! $license->is_site_registered() ) {
-			// error_log( 'PaySentinel: Cannot send alert - site not registered with license' );
 			return false;
 		}
 
-		// Send through API so they appear in the SaaS dashboard - SaaS will handle all email/slack channel deliveries
+		// Send through API so they appear in the SaaS dashboard - SaaS will handle all email/slack channel deliveries.
 		return $this->send_to_api( $alert_data, $settings );
 	}
 
@@ -78,21 +78,20 @@ class PaySentinel_Alert_Notifier {
 	 * @return bool Success.
 	 */
 	private function send_to_api( $alert_data, $settings ) {
+		unset( $settings ); // Settings are not used; channel config is handled server-side.
 		$license     = new PaySentinel_License();
 		$license_key = $license->get_license_key();
 
 		if ( empty( $license_key ) ) {
-			// error_log( 'PaySentinel: Cannot send alert to API - no license key' );
 			return false;
 		}
 
-		// Check if site is registered - alerts only work for registered sites
+		// Check if site is registered - alerts only work for registered sites.
 		if ( ! $license->is_site_registered() ) {
-			// error_log( 'PaySentinel: Cannot send alert to API - site not registered with license' );
 			return false;
 		}
 
-		// Prepare alert payload according to API spec
+		// Prepare alert payload according to API spec.
 		$message = $this->template_manager->create_alert_message( $alert_data );
 
 		$payload = array(
@@ -115,7 +114,7 @@ class PaySentinel_Alert_Notifier {
 			$payload['channels'] = $alert_data['channels'];
 		}
 
-		// Send to API
+		// Send to API.
 		$license  = new PaySentinel_License();
 		$response = $license->make_authenticated_request(
 			PaySentinel_License::API_ENDPOINT_ALERTS,
@@ -125,7 +124,6 @@ class PaySentinel_Alert_Notifier {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			// error_log( 'PaySentinel API Error: ' . $response->get_error_message() );
 			return false;
 		}
 
@@ -133,37 +131,30 @@ class PaySentinel_Alert_Notifier {
 		$response_body = wp_remote_retrieve_body( $response );
 		$response_data = json_decode( $response_body, true );
 
-		// Handle different response codes per API spec
+		// Handle different response codes per API spec.
 		if ( 200 === $response_code ) {
-			// Success - alert delivered
+			// Success - alert delivered.
 			return true;
 		} elseif ( 400 === $response_code ) {
-			// Bad request - missing required fields
-			$error_msg = isset( $response_data['error'] ) ? $response_data['error'] : 'Bad request - missing required fields';
-			// error_log( 'PaySentinel: Alert API error (400) - ' . $error_msg );
+			// Bad request - missing required fields.
+			unset( $response_data ); // Error details not surfaced to caller.
 			return false;
 		} elseif ( 401 === $response_code ) {
-			// Unauthorized - invalid HMAC signature
-			// error_log( 'PaySentinel: Invalid HMAC signature for API alerts' );
+			// Unauthorized - invalid HMAC signature.
 			return false;
 		} elseif ( 403 === $response_code ) {
-			// Quota exceeded or invalid license
-			$error_msg = isset( $response_data['error'] ) ? $response_data['error'] : 'Quota exceeded or invalid license';
-			// error_log( 'PaySentinel: ' . $error_msg );
+			// Quota exceeded or invalid license.
 			update_option( 'paysentinel_quota_exceeded', true );
 			return false;
 		} elseif ( 429 === $response_code ) {
-			// Rate limit exceeded
-			$retry_after = wp_remote_retrieve_header( $response, 'Retry-After' );
-			// error_log( 'PaySentinel: Rate limit exceeded. Retry after: ' . ( $retry_after ? $retry_after . ' seconds' : 'unknown' ) );
+			// Rate limit exceeded.
 			return false;
 		} elseif ( 502 === $response_code ) {
-			// Integration service error (Slack/Email provider failure)
-			// error_log( 'PaySentinel: Integration service error (Slack/Email provider failure)' );
+			// Integration service error (Slack/Email provider failure).
 			return false;
 		} else {
-			// Other error
-			// error_log( 'PaySentinel API Error: HTTP ' . $response_code . ' - ' . $response_body );
+			// Other error.
+			// error_log( 'PaySentinel API Error: HTTP ' . $response_code . ' - ' . $response_body );.
 			return false;
 		}
 	}

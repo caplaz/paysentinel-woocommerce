@@ -2,10 +2,11 @@
 /**
  * Alert system tests across license tiers.
  *
- * Tests the bug fix for alert creation logic working correctly
- * with the corrected config key references.
- *
- * @package PaySentinel\Tests\Integration
+ * @package PaySentinel
+ */
+
+/**
+ * Class AlertLicenseTierTest
  */
 class AlertLicenseTierTest extends WP_UnitTestCase {
 
@@ -31,7 +32,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 	 * @param array|null $per_gateway_config Optional per-gateway config array.
 	 */
 	private function setup_with_license( $plan, $per_gateway_config = null ) {
-		// Reset the static singleton to force reload from options
+		// Reset the static singleton to force reload from options.
 		$reflection = new ReflectionClass( 'PaySentinel_Config' );
 		$property   = $reflection->getProperty( 'instance' );
 		$property->setAccessible( true );
@@ -40,6 +41,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		// Clean up.
 		global $wpdb;
 		$this->database = new PaySentinel_Database();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( "DELETE FROM {$this->database->get_alerts_table()}" );
 
 		delete_option( 'paysentinel_options' );
@@ -59,7 +61,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 
 		// Setup settings in paysentinel_options (this is what get_all() reads from).
 		$settings = array(
-			PaySentinel_Settings_Constants::ALERT_THRESHOLD => 85,  // Global default.
+			PaySentinel_Settings_Constants::ALERT_THRESHOLD => 85, // phpcs:ignore Squiz.PHP.CommentedOutCode.Found -- Global default.
 		);
 
 		if ( null !== $per_gateway_config ) {
@@ -80,10 +82,14 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		$this->checker = $property->getValue( $alerts );
 	}
 
+	/**
+	 * Tear down test environment.
+	 */
 	public function tearDown(): void {
 		parent::tearDown();
 		global $wpdb;
 		if ( $this->database ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( "DELETE FROM {$this->database->get_alerts_table()}" );
 		}
 	}
@@ -94,7 +100,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 	public function test_free_tier_creates_alerts() {
 		$this->setup_with_license( 'free', null );
 
-		// 0% success rate triggers alert (below 85% global threshold)
+		// 0% success rate triggers alert (below 85% global threshold).
 		$health_data = array(
 			'current' => array(
 				'success_rate'        => 0.0,
@@ -108,8 +114,10 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $this->database->get_alerts_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert = $wpdb->get_row(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT * FROM {$table} WHERE gateway_id = %s AND alert_type = 'low_success_rate'",
 				'stripe'
 			)
@@ -125,7 +133,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 	public function test_starter_tier_creates_alerts() {
 		$this->setup_with_license( 'starter', null );
 
-		// 80% success triggers alert (below 85% threshold)
+		// 80% success triggers alert (below 85% threshold).
 		$health_data = array(
 			'current' => array(
 				'success_rate'        => 80.0,
@@ -139,8 +147,10 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $this->database->get_alerts_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert = $wpdb->get_row(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT * FROM {$table} WHERE gateway_id = %s AND alert_type = 'low_success_rate'",
 				'paypal'
 			)
@@ -163,7 +173,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 
 		$this->setup_with_license( 'agency', $per_gateway_config );
 
-		// 0% success rate triggers alert
+		// 0% success rate triggers alert.
 		$health_data = array(
 			'current' => array(
 				'success_rate'        => 0.0,
@@ -177,8 +187,10 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $this->database->get_alerts_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert = $wpdb->get_row(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT * FROM {$table} 
 				WHERE gateway_id = %s AND alert_type = 'low_success_rate'",
 				'klarna'
@@ -197,7 +209,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 	public function test_agency_tier_per_gateway_disabled() {
 		$per_gateway_config = array(
 			'paypal' => array(
-				PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED => false,  // Disabled
+				PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED => false, // Disabled.
 				PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD => 85,
 				PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS => array( 'email' ),
 			),
@@ -205,7 +217,7 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 
 		$this->setup_with_license( 'agency', $per_gateway_config );
 
-		// Even with 0% success, should NOT alert (disabled)
+		// Even with 0% success, should NOT alert (disabled).
 		$health_data = array(
 			'current' => array(
 				'success_rate'        => 0.0,
@@ -219,8 +231,10 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $this->database->get_alerts_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert_count = $wpdb->get_var(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT COUNT(*) FROM {$table} WHERE gateway_id = %s",
 				'paypal'
 			)
@@ -236,14 +250,14 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		$per_gateway_config = array(
 			'klarna' => array(
 				PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED => true,
-				PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD => 50,  // Only config Klarna
+				PaySentinel_Settings_Constants::GATEWAY_CONFIG_THRESHOLD => 50, // Only config Klarna.
 				PaySentinel_Settings_Constants::GATEWAY_CONFIG_CHANNELS => array( 'email' ),
 			),
 		);
 
 		$this->setup_with_license( 'agency', $per_gateway_config );
 
-		// Test unconfigured gateway stripe at 80% (should use global 85%)
+		// Test unconfigured gateway stripe at 80% (should use global 85%).
 		$health_data = array(
 			'current' => array(
 				'success_rate'        => 80.0,
@@ -257,8 +271,10 @@ class AlertLicenseTierTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $this->database->get_alerts_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert = $wpdb->get_row(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT * FROM {$table} WHERE gateway_id = %s AND alert_type = 'low_success_rate'",
 				'stripe'
 			)

@@ -29,7 +29,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		$database = new PaySentinel_Database();
 		$database->create_tables();
 		$wpdb = $GLOBALS['wpdb'];
-		$wpdb->query( 'TRUNCATE TABLE ' . $database->get_gateway_connectivity_table() );
+		$wpdb->query( 'TRUNCATE TABLE ' . $database->get_gateway_connectivity_table() ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 	}
 
 	/**
@@ -275,7 +275,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		// 1. Unconfigured.
 		$this->assertEquals( 'unconfigured', $connector->test_connection()['status'] );
 
-		// 2. Success
+		// 2. Success.
 		update_option(
 			'woocommerce_square_credit_card_settings',
 			array(
@@ -344,10 +344,10 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 	public function test_wc_payments_connector() {
 		$connector = new PaySentinel_WC_Payments_Connector();
 
-		// 1. Unconfigured
+		// 1. Unconfigured.
 		$this->assertEquals( 'unconfigured', $connector->test_connection()['status'] );
 
-		// 2. Disabled
+		// 2. Disabled.
 		update_option(
 			'woocommerce_payments_settings',
 			array(
@@ -357,7 +357,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		);
 		$this->assertEquals( 'unconfigured', $connector->test_connection()['status'] );
 
-		// 3. Plugin missing (Offline)
+		// 3. Plugin missing (Offline).
 		update_option(
 			'woocommerce_payments_settings',
 			array(
@@ -367,7 +367,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		);
 		$result = $connector->test_connection();
 		$this->assertEquals( 'offline', $result['status'] );
-		// Accept either the legacy "plugin not found" message or an
+		// Accept either the legacy "plugin not found" message or an.
 		// authentication failure message from the API client.
 		$this->assertTrue(
 			( false !== stripos( $result['message'], 'plugin not found' ) ) ||
@@ -405,7 +405,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		update_option( 'woocommerce_stripe_settings', array( 'secret_key' => 'sk_live_test' ) );
 		add_filter(
 			'pre_http_request',
-			function ( $pre, $args, $url ) {
+			function ( $_pre, $_args, $_url ) { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 				return array(
 					'response' => array( 'code' => 200 ),
 					'body'     => wp_json_encode( array( 'object' => 'balance' ) ),
@@ -418,7 +418,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		$results = $connectivity->check_all_gateways();
 
 		$this->assertGreaterThanOrEqual( 1, $results['checked_gateways'] );
-		$this->assertTrue( in_array( 'stripe', $results['online_gateways'] ) );
+		$this->assertTrue( in_array( 'stripe', $results['online_gateways'], true ) );
 
 		$last_check = $connectivity->get_last_check( 'stripe' );
 		$this->assertEquals( 'online', $last_check->status );
@@ -437,8 +437,8 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		$connectivity = new PaySentinel_Gateway_Connectivity();
 		$table        = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
 
-		// Add old record
-			$wpdb->insert(
+		// Add old record.
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$table,
 				array(
 					'gateway_id' => 'stripe',
@@ -447,8 +447,8 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 				)
 			);
 
-		// Add recent record
-		$wpdb->insert(
+		// Add recent record.
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id' => 'stripe',
@@ -460,6 +460,7 @@ class GatewayConnectorsTest extends WP_UnitTestCase {
 		$deleted = $connectivity->cleanup_old_checks( 30 );
 		$this->assertEquals( 1, $deleted );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$remaining = $wpdb->get_var( "SELECT COUNT(*) FROM $table" );
 		$this->assertEquals( 1, $remaining );
 	}

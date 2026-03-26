@@ -1,10 +1,12 @@
 <?php
+/**
+ * Tests file.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Property-based tests for REST API endpoints.
- * Tests universal correctness properties with 100+ iterations.
- *
- * @package PaySentinel\Tests\API
+ * Class APIResponsePropertyTest
  */
 class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 
@@ -60,15 +62,15 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 		for ( $i = 0; $i < 100; $i++ ) {
 			// Test gateway health response types.
 			$gateway_health = array(
-				'gateway_id'              => 'stripe_' . rand( 1, 100 ),
+				'gateway_id'              => 'stripe_' . wp_rand( 1, 100 ),
 				'gateway_name'            => 'Stripe Gateway',
-				'period'                  => 'sample_' . rand( 1, 100 ),
-				'success_rate'            => rand( 0, 10000 ) / 100,
-				'total_transactions'      => rand( 0, 10000 ),
-				'successful_transactions' => rand( 0, 10000 ),
-				'failed_transactions'     => rand( 0, 10000 ),
+				'period'                  => 'sample_' . wp_rand( 1, 100 ),
+				'success_rate'            => wp_rand( 0, 10000 ) / 100,
+				'total_transactions'      => wp_rand( 0, 10000 ),
+				'successful_transactions' => wp_rand( 0, 10000 ),
+				'failed_transactions'     => wp_rand( 0, 10000 ),
 				'status'                  => 'healthy',
-				'last_updated'            => date( 'Y-m-d H:i:s' ),
+				'last_updated'            => gmdate( 'Y-m-d H:i:s' ),
 			);
 
 			// Validate types.
@@ -84,14 +86,14 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 
 			// Test transaction response types.
 			$transaction = array(
-				'id'            => rand( 1, 100000 ),
-				'order_id'      => rand( 1, 100000 ),
-				'gateway_id'    => 'stripe_' . rand( 1, 100 ),
+				'id'            => wp_rand( 1, 100000 ),
+				'order_id'      => wp_rand( 1, 100000 ),
+				'gateway_id'    => 'stripe_' . wp_rand( 1, 100 ),
 				'status'        => 'success',
-				'amount'        => rand( 1, 1000000 ) / 100,
+				'amount'        => wp_rand( 1, 1000000 ) / 100,
 				'currency'      => 'USD',
 				'error_message' => null,
-				'timestamp'     => date( 'Y-m-d H:i:s' ),
+				'timestamp'     => gmdate( 'Y-m-d H:i:s' ),
 				'response_data' => array( 'some' => 'data' ),
 			);
 
@@ -125,7 +127,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 
 		for ( $i = 0; $i < 100; $i++ ) {
 			$error_code  = $error_codes[ array_rand( $error_codes ) ];
-			$http_status = rand( 400, 599 );
+			$http_status = wp_rand( 400, 599 );
 
 			// Simulate error response.
 			$error_response = array(
@@ -213,16 +215,16 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 	public function test_property_api_numeric_value_ranges() {
 		for ( $i = 0; $i < 100; $i++ ) {
 			// Success rate must be 0-100.
-			$success_rate = rand( 0, 10000 ) / 100;
+			$success_rate = wp_rand( 0, 10000 ) / 100;
 			$this->assertGreaterThanOrEqual( 0, $success_rate );
 			$this->assertLessThanOrEqual( 100, $success_rate );
 
 			// Transaction amounts must be positive.
-			$amount = rand( 1, 1000000 ) / 100;
+			$amount = wp_rand( 1, 1000000 ) / 100;
 			$this->assertGreaterThan( 0, $amount );
 
 			// Transaction counts must be non-negative integers.
-			$count = rand( 0, 100000 );
+			$count = wp_rand( 0, 100000 );
 			$this->assertGreaterThanOrEqual( 0, $count );
 			$this->assertIsInt( $count );
 		}
@@ -236,7 +238,7 @@ class APIResponsePropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_api_date_format_consistency() {
 		for ( $i = 0; $i < 50; $i++ ) {
-			$timestamp = date( 'Y-m-d H:i:s' );
+			$timestamp = gmdate( 'Y-m-d H:i:s' );
 
 			// Verify format.
 			$this->assertIsString( $timestamp );

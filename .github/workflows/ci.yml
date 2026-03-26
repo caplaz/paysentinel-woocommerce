@@ -9,6 +9,25 @@ on:
     types: [published]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run PHPCS
+        run: vendor/bin/phpcs --report=full
+
   test:
     runs-on: ubuntu-latest
 
@@ -66,7 +85,7 @@ jobs:
   build-release:
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
-    needs: test
+    needs: [lint, test]
 
     steps:
       - name: Checkout code

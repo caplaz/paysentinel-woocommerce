@@ -1,22 +1,31 @@
 <?php
 /**
  * Payment retry engine class
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_Retry.
+ */
 class PaySentinel_Retry {
 
 	/**
 	 * Database instance
+	 *
+	 * @var PaySentinel_Database
 	 */
 	private $database;
 
 	/**
 	 * Logger instance
+	 *
+	 * @var PaySentinel_Logger
 	 */
 	private $logger;
 
@@ -43,26 +52,27 @@ class PaySentinel_Retry {
 	 * Initialize WordPress hooks
 	 */
 	private function init_hooks() {
-		// Hook into local failure event (fired by Logger) to schedule retries
+		// Hook into local failure event (fired by Logger) to schedule retries.
 		add_action( 'paysentinel_payment_failed', array( $this, 'schedule_retry_on_failure' ), 10, 2 );
 
-		// Register retry action scheduler
+		// Register retry action scheduler.
 		add_action( 'paysentinel_retry_payment', array( $this, 'attempt_retry_action' ), 10, 1 );
 	}
 
 	/**
 	 * Schedule retry when payment fails
 	 *
-	 * @param int    $order_id   Order ID
-	 * @param string $old_status Previous order status
+	 * @param int    $order_id   Order ID.
+	 * @param string $old_status Previous order status.
 	 */
 	public function schedule_retry_on_failure( $order_id, $old_status = '' ) {
-		// Check if auto-retry is enabled
+		unset( $old_status ); // Required by WooCommerce hook signature; not used by this handler.
+		// Check if auto-retry is enabled.
 		if ( ! PaySentinel_Config::instance()->is_retry_enabled() ) {
 			return;
 		}
 
-		// Auto-retry is a Starter+ feature
+		// Auto-retry is a Starter+ feature.
 		if ( ! $this->is_retry_feature_available() ) {
 			return;
 		}
@@ -72,40 +82,40 @@ class PaySentinel_Retry {
 			return;
 		}
 
-		// Check if order has a stored payment method
+		// Check if order has a stored payment method.
 		if ( ! $this->has_stored_payment_method( $order ) ) {
-			// No stored method, send recovery email immediately
+			// No stored method, send recovery email immediately.
 			$this->send_recovery_email( $order );
 			return;
 		}
 
-		// Get transaction record
+		// Get transaction record.
 		$transaction = $this->logger->get_transaction_by_order_id( $order_id );
 		if ( ! $transaction ) {
 			return;
 		}
 
-		// Don't schedule retry if already at max attempts
+		// Don't schedule retry if already at max attempts.
 		$max_retries = PaySentinel_Config::instance()->get_max_retry_attempts();
 		if ( $transaction->retry_count >= $max_retries ) {
 			return;
 		}
 
-		// Analyze failure reason to decide if we should retry
+		// Analyze failure reason to decide if we should retry.
 		if ( ! $this->analyze_failure_reason( $transaction->failure_reason ) ) {
-			// Hard decline: Send recovery email instead of retrying
+			// Hard decline: Send recovery email instead of retrying.
 			$this->send_recovery_email( $order );
 			return;
 		}
 
-		// Schedule the first retry
+		// Schedule the first retry.
 		$this->schedule_retry( $transaction->id );
 	}
 
 	/**
 	 * Analyze failure reason to determine if retry is worthwhile
 	 *
-	 * @param string $reason Failure reason/message
+	 * @param string $reason Failure reason/message.
 	 *
 	 * @return bool True if retry should be attempted
 	 */
@@ -116,7 +126,7 @@ class PaySentinel_Retry {
 
 		$reason = strtolower( $reason );
 
-		// List of keywords that indicate permanent failures
+		// List of keywords that indicate permanent failures.
 		$permanent_failures = array(
 			'fraud',
 			'do not honor',
@@ -143,7 +153,7 @@ class PaySentinel_Retry {
 	/**
 	 * Schedule retry attempts for a transaction
 	 *
-	 * @param int $transaction_id Transaction ID
+	 * @param int $transaction_id Transaction ID.
 	 *
 	 * @return bool Success
 	 */
@@ -152,7 +162,7 @@ class PaySentinel_Retry {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// Get transaction details
+		// Get transaction details.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$transaction = $wpdb->get_row(
 			$wpdb->prepare(
@@ -169,15 +179,15 @@ class PaySentinel_Retry {
 			return false;
 		}
 
-		// Get retry schedule from settings
+		// Get retry schedule from settings.
 		$settings       = $config->get_all();
 		$retry_schedule = isset( $settings[ PaySentinel_Settings_Constants::RETRY_SCHEDULE ] ) ? $settings[ PaySentinel_Settings_Constants::RETRY_SCHEDULE ] : self::DEFAULT_RETRY_SCHEDULE;
 
-		// Calculate next retry time
+		// Calculate next retry time.
 		$retry_attempt = $transaction->retry_count;
 		if ( $retry_attempt >= count( $retry_schedule ) ) {
 			// Fallback if we run out of schedule slots but haven't hit max retries:
-			// Just use the last schedule interval or a default
+			// Just use the last schedule interval or a default.
 			$retry_delay = end( $retry_schedule );
 		} else {
 			$retry_delay = $retry_schedule[ $retry_attempt ];
@@ -185,7 +195,7 @@ class PaySentinel_Retry {
 
 		$retry_time = time() + $retry_delay;
 
-		// Schedule with Action Scheduler
+		// Schedule with Action Scheduler.
 		if ( function_exists( 'as_schedule_single_action' ) ) {
 			as_schedule_single_action( $retry_time, 'paysentinel_retry_payment', array( $transaction_id ) );
 			return true;
@@ -197,7 +207,7 @@ class PaySentinel_Retry {
 	/**
 	 * Action callback for retry payment cron
 	 *
-	 * @param int $transaction_id Transaction ID
+	 * @param int $transaction_id Transaction ID.
 	 */
 	public function attempt_retry_action( $transaction_id ) {
 		$this->attempt_retry( $transaction_id );
@@ -206,7 +216,7 @@ class PaySentinel_Retry {
 	/**
 	 * Attempt to retry a payment
 	 *
-	 * @param int $transaction_id Transaction ID
+	 * @param int $transaction_id Transaction ID.
 	 *
 	 * @return bool Success
 	 */
@@ -215,7 +225,7 @@ class PaySentinel_Retry {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// Get transaction details
+		// Get transaction details.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$transaction = $wpdb->get_row(
 			$wpdb->prepare(
@@ -231,23 +241,23 @@ class PaySentinel_Retry {
 
 		$max_retries = PaySentinel_Config::instance()->get_max_retry_attempts();
 
-		// Check retry limits
+		// Check retry limits.
 		if ( $transaction->retry_count >= $max_retries ) {
 			return false;
 		}
 
-		// Get the order
+		// Get the order.
 		$order = wc_get_order( $transaction->order_id );
 		if ( ! $order ) {
 			return false;
 		}
 
-		// Check if order is still in failed status
+		// Check if order is still in failed status.
 		if ( $order->get_status() !== 'failed' ) {
 			return false;
 		}
 
-		// Increment retry count
+		// Increment retry count.
 		$new_retry_count = $transaction->retry_count + 1;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
@@ -262,22 +272,22 @@ class PaySentinel_Retry {
 			array( '%d' )
 		);
 
-		// Attempt the payment retry
+		// Attempt the payment retry.
 		$retry_result = $this->process_payment_retry( $order, $transaction );
 
 		if ( $retry_result['success'] ) {
-			// Retry succeeded
+			// Retry succeeded.
 			$this->handle_successful_retry( $order, $transaction, $retry_result );
 			return true;
 		} else {
-			// Retry failed
+			// Retry failed.
 			$this->handle_failed_retry( $order, $transaction, $retry_result, $new_retry_count );
 
-			// Check if we should schedule another
+			// Check if we should schedule another.
 			if ( $new_retry_count < $max_retries ) {
 				$this->schedule_retry( $transaction_id );
 			} else {
-				// Max retries reached, send recovery email
+				// Max retries reached, send recovery email.
 				$this->send_recovery_email( $order );
 			}
 			return false;
@@ -287,14 +297,14 @@ class PaySentinel_Retry {
 	/**
 	 * Process payment retry using stored payment method
 	 *
-	 * @param WC_Order $order       Order object
-	 * @param object   $transaction Transaction record
+	 * @param WC_Order $order       Order object.
+	 * @param object   $transaction Transaction record.
 	 *
 	 * @return array Retry result
 	 */
 	private function process_payment_retry( $order, $transaction ) {
 		try {
-			// Get payment gateway
+			// Get payment gateway.
 			$gateway_id = $transaction->gateway_id;
 			$gateways   = WC_Payment_Gateways::instance();
 			$gateway    = $gateways->get_available_payment_gateways()[ $gateway_id ] ?? null;
@@ -306,7 +316,7 @@ class PaySentinel_Retry {
 				);
 			}
 
-			// Check if gateway supports retry functionality
+			// Check if gateway supports retry functionality.
 			if ( ! $this->gateway_supports_retry( $gateway ) ) {
 				return array(
 					'success' => false,
@@ -314,7 +324,7 @@ class PaySentinel_Retry {
 				);
 			}
 
-			// Get stored payment method
+			// Get stored payment method.
 			$payment_method = $this->get_stored_payment_method( $order );
 			if ( ! $payment_method ) {
 				return array(
@@ -326,7 +336,7 @@ class PaySentinel_Retry {
 			$settings    = get_option( 'paysentinel_options', array() );
 			$max_retries = isset( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ? intval( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) : self::MAX_RETRY_ATTEMPTS;
 
-			// Prepare order for retry
+			// Prepare order for retry.
 			$order->add_order_note(
 				sprintf(
 				/* translators: 1: blog name, 2: current retry number, 3: max retries */
@@ -337,7 +347,7 @@ class PaySentinel_Retry {
 				)
 			);
 
-			// Process the payment
+			// Process the payment.
 			$result = $this->process_gateway_payment( $gateway, $order, $payment_method );
 
 			return $result;
@@ -353,31 +363,31 @@ class PaySentinel_Retry {
 	/**
 	 * Process payment through gateway
 	 *
-	 * @param WC_Payment_Gateway $gateway        Payment gateway
-	 * @param WC_Order           $order          Order object
-	 * @param array              $payment_method Payment method data
+	 * @param WC_Payment_Gateway $gateway        Payment gateway.
+	 * @param WC_Order           $order          Order object.
+	 * @param array              $payment_method Payment method data.
 	 *
 	 * @return array Processing result
 	 */
 	private function process_gateway_payment( $gateway, $order, $payment_method ) {
-		// Attempt to use official extensions' off-session mechanisms first (e.g. Subscriptions support)
+		// Attempt to use official extensions' off-session mechanisms first (e.g. Subscriptions support).
 		if ( method_exists( $gateway, 'scheduled_subscription_payment' ) ) {
 			try {
-				// The scheduled_subscription_payment method typically returns void
+				// The scheduled_subscription_payment method typically returns void.
 				// and throws an exception on failure, or updates order status.
 				// We need to check the order status after the call.
 
-				// Ensure global WC object is set if extensions rely on it
+				// Ensure global WC object is set if extensions rely on it.
 				if ( ! isset( $GLOBALS['woocommerce'] ) && function_exists( 'WC' ) ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 					$GLOBALS['woocommerce'] = WC();
 				}
 
-				// Trigger the payment
+				// Trigger the payment.
 				$gateway->scheduled_subscription_payment( $order->get_total(), $order );
 
-				// Refresh order to check status changes made by the gateway
-				$order = wc_get_order( $order->get_id() ); // Force reload
+				// Refresh order to check status changes made by the gateway.
+				$order = wc_get_order( $order->get_id() ); // Force reload.
 
 				if ( $order->has_status( 'processing' ) || $order->has_status( 'completed' ) ) {
 					return array(
@@ -386,7 +396,7 @@ class PaySentinel_Retry {
 						'message'        => __( 'Payment retry successful', 'paysentinel' ),
 					);
 				} else {
-					// Retrieve error from order notes or logic
+					// Retrieve error from order notes or logic.
 					return $this->capture_gateway_error( $order );
 				}
 			} catch ( Exception $e ) {
@@ -397,31 +407,31 @@ class PaySentinel_Retry {
 			}
 		}
 
-		// Fallback: Standard Process Payment with a Token (if supported)
-		// This is riskier as process_payment often assumes a user session (nonces, redirects)
+		// Fallback: Standard Process Payment with a Token (if supported).
+		// This is riskier as process_payment often assumes a user session (nonces, redirects).
 		// but many token-capable gateways handle it gracefully if token_id is present in $_POST or passed props.
 
 		try {
-			// Some gateways look for $_POST['payment_token']
+			// Some gateways look for $_POST['payment_token'].
 			if ( ! empty( $payment_method['token_id'] ) ) {
 				$_POST['payment_token'] = $payment_method['token_id'];
 			}
 
-			// Capture any potential output from the gateway to avoid header errors
+			// Capture any potential output from the gateway to avoid header errors.
 			ob_start();
 			$result = $gateway->process_payment( $order->get_id() );
 			ob_end_clean();
 
-			// Clean up
+			// Clean up.
 			unset( $_POST['payment_token'] );
 
 			if ( isset( $result['result'] ) && 'success' === $result['result'] ) {
-				// Success
-				// Note: process_payment might require a redirect URL, but since we are
+				// Success.
+				// Note: process_payment might require a redirect URL, but since we are.
 				// in background, we care if the payment itself succeeded.
 				// We check if order status moved to processing/completed.
 
-				$order = wc_get_order( $order->get_id() ); // Reload
+				$order = wc_get_order( $order->get_id() ); // Reload.
 				if ( $order->has_status( 'processing' ) || $order->has_status( 'completed' ) ) {
 					return array(
 						'success'        => true,
@@ -431,7 +441,7 @@ class PaySentinel_Retry {
 				}
 			}
 
-			// If we got here, it failed or is pending redirect (which counts as failed for background retry)
+			// If we got here, it failed or is pending redirect (which counts as failed for background retry).
 			return $this->capture_gateway_error( $order );
 
 		} catch ( Exception $e ) {
@@ -445,14 +455,14 @@ class PaySentinel_Retry {
 	/**
 	 * Capture specific gateway error details from order
 	 *
-	 * @param WC_Order $order Order Object
+	 * @param WC_Order $order Order Object.
 	 *
 	 * @return array Failure details
 	 */
 	private function capture_gateway_error( $order ) {
-		// 1. Check Order Meta for known gateway error keys
+		// 1. Check Order Meta for known gateway error keys.
 
-		// Stripe specific error capture
+		// Stripe specific error capture.
 		if ( $order->get_meta( '_stripe_error_message' ) ) {
 			return array(
 				'success' => false,
@@ -461,7 +471,7 @@ class PaySentinel_Retry {
 			);
 		}
 
-		// Stripe Intent errors
+		// Stripe Intent errors.
 		if ( $order->get_meta( '_stripe_intent_error_message' ) ) {
 			return array(
 				'success' => false,
@@ -470,11 +480,11 @@ class PaySentinel_Retry {
 			);
 		}
 
-		// PayPal specific error capture (often stored as _paypal_status associated meta)
+		// PayPal specific error capture (often stored as _paypal_status associated meta).
 		// Assuming standard logs or meta if available.
 
-		// 2. Fallback: Parse recent Order Notes
-		// We look for notices added by gateways "Payment failed: [Reason]"
+		// 2. Fallback: Parse recent Order Notes.
+		// We look for notices added by gateways "Payment failed: [Reason]".
 		$notes = wc_get_order_notes(
 			array(
 				'order_id' => $order->get_id(),
@@ -486,7 +496,7 @@ class PaySentinel_Retry {
 
 		if ( ! empty( $notes ) ) {
 			foreach ( $notes as $note ) {
-				// Look for failure language
+				// Look for failure language.
 				if ( stripos( $note->content, 'failed' ) !== false || stripos( $note->content, 'declined' ) !== false ) {
 					return array(
 						'success' => false,
@@ -497,7 +507,7 @@ class PaySentinel_Retry {
 			}
 		}
 
-		// 3. Fallback generic message
+		// 3. Fallback generic message.
 		return array(
 			'success' => false,
 			'message' => __( 'Payment retry failed. Please check gateway logs for details.', 'paysentinel' ),
@@ -508,16 +518,16 @@ class PaySentinel_Retry {
 	/**
 	 * Handle successful retry
 	 *
-	 * @param WC_Order $order        Order object
-	 * @param object   $transaction  Transaction record
-	 * @param array    $retry_result Retry result
+	 * @param WC_Order $order        Order object.
+	 * @param object   $transaction  Transaction record.
+	 * @param array    $retry_result Retry result.
 	 */
 	private function handle_successful_retry( $order, $transaction, $retry_result ) {
 		global $wpdb;
 
 		$table_name = $this->database->get_transactions_table();
 
-		// Update transaction record
+		// Update transaction record.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
 			$table_name,
@@ -533,7 +543,7 @@ class PaySentinel_Retry {
 			array( '%d' )
 		);
 
-		// Update order status
+		// Update order status.
 		$order->payment_complete( $retry_result['transaction_id'] );
 		$order->add_order_note(
 			sprintf(
@@ -544,30 +554,30 @@ class PaySentinel_Retry {
 			)
 		);
 
-		// Send success notification to customer
+		// Send success notification to customer.
 		$this->send_retry_success_email( $order );
 
-		// Track retry success for monitoring
+		// Track retry success for monitoring.
 		$this->track_retry_success( $transaction->gateway_id, $transaction->retry_count + 1 );
 
-		// Fire action hook
+		// Fire action hook.
 		do_action( 'paysentinel_retry_successful', $order, $transaction, $retry_result );
 	}
 
 	/**
 	 * Handle failed retry
 	 *
-	 * @param WC_Order $order        Order object
-	 * @param object   $transaction  Transaction record
-	 * @param array    $retry_result Retry result
-	 * @param int      $retry_count  Current retry count
+	 * @param WC_Order $order        Order object.
+	 * @param object   $transaction  Transaction record.
+	 * @param array    $retry_result Retry result.
+	 * @param int      $retry_count  Current retry count.
 	 */
 	private function handle_failed_retry( $order, $transaction, $retry_result, $retry_count ) {
 		global $wpdb;
 
 		$table_name = $this->database->get_transactions_table();
 
-		// Update transaction record
+		// Update transaction record.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
 			$table_name,
@@ -581,7 +591,7 @@ class PaySentinel_Retry {
 			array( '%d' )
 		);
 
-		// Add order note
+		// Add order note.
 		/* translators: 1: retry count, 2: error message */
 		$order->add_order_note(
 			sprintf(
@@ -595,7 +605,7 @@ class PaySentinel_Retry {
 		$settings    = get_option( 'paysentinel_options', array() );
 		$max_retries = isset( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ? intval( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) : self::MAX_RETRY_ATTEMPTS;
 
-		// If max attempts reached, add final note
+		// If max attempts reached, add final note.
 		if ( $retry_count >= $max_retries ) {
 			/* translators: %d: maximum retry attempts */
 			$order->add_order_note(
@@ -607,17 +617,17 @@ class PaySentinel_Retry {
 			);
 		}
 
-		// Track retry failure for monitoring
+		// Track retry failure for monitoring.
 		$this->track_retry_failure( $transaction->gateway_id, $retry_count );
 
-		// Fire action hook
+		// Fire action hook.
 		do_action( 'paysentinel_retry_failed', $order, $transaction, $retry_result, $retry_count );
 	}
 
 	/**
 	 * Send retry success email to customer
 	 *
-	 * @param WC_Order $order Order object
+	 * @param WC_Order $order Order object.
 	 *
 	 * @return bool Success
 	 */
@@ -648,7 +658,7 @@ class PaySentinel_Retry {
 	/**
 	 * Create retry success email template
 	 *
-	 * @param WC_Order $order Order object
+	 * @param WC_Order $order Order object.
 	 *
 	 * @return string HTML email content
 	 */
@@ -726,12 +736,12 @@ class PaySentinel_Retry {
 	/**
 	 * Send recovery email to customer (Manual Payment Link)
 	 *
-	 * @param WC_Order $order Order object
+	 * @param WC_Order $order Order object.
 	 *
 	 * @return bool Success
 	 */
 	public function send_recovery_email( $order ) {
-		// Prevent spamming recovery emails (debounce: 5 minutes)
+		// Prevent spamming recovery emails (debounce: 5 minutes).
 		$last_sent = $order->get_meta( '_paysentinel_recovery_sent' );
 		if ( $last_sent && ( time() - intval( $last_sent ) < 300 ) ) {
 			return false;
@@ -757,14 +767,14 @@ class PaySentinel_Retry {
 			'From: ' . get_bloginfo( 'name' ) . ' <' . get_option( 'admin_email' ) . '>',
 		);
 
-		// Flag as sent before adding note to avoid potential race conditions or loops
+		// Flag as sent before adding note to avoid potential race conditions or loops.
 		$order->update_meta_data( '_paysentinel_recovery_sent', time() );
 		$order->save();
 
-		// Add order note via WooCommerce
+		// Add order note via WooCommerce.
 		$order->add_order_note( __( 'Sent payment recovery email to customer.', 'paysentinel' ) );
 
-		// Ensure the email is actually sent
+		// Ensure the email is actually sent.
 		$sent = wp_mail( $customer_email, $subject, $message, $headers );
 
 		return $sent;
@@ -773,7 +783,7 @@ class PaySentinel_Retry {
 	/**
 	 * Create recovery email template
 	 *
-	 * @param WC_Order $order Order object
+	 * @param WC_Order $order Order object.
 	 *
 	 * @return string HTML email content
 	 */
@@ -848,18 +858,18 @@ class PaySentinel_Retry {
 	/**
 	 * Check if order has stored payment method
 	 *
-	 * @param WC_Order $order Order object
+	 * @param WC_Order $order Order object.
 	 *
 	 * @return bool Has stored payment method
 	 */
 	private function has_stored_payment_method( $order ) {
-		// Check for WooCommerce Subscriptions payment tokens
+		// Check for WooCommerce Subscriptions payment tokens.
 		$payment_tokens = WC_Payment_Tokens::get_order_tokens( $order->get_id() );
 		if ( ! empty( $payment_tokens ) ) {
 			return true;
 		}
 
-		// Check for gateway-specific stored payment methods
+		// Check for gateway-specific stored payment methods.
 		$payment_method = $order->get_payment_method();
 		$stored_methods = WC_Payment_Tokens::get_customer_tokens( $order->get_customer_id(), $payment_method );
 
@@ -869,12 +879,12 @@ class PaySentinel_Retry {
 	/**
 	 * Get stored payment method for order
 	 *
-	 * @param WC_Order $order Order object
+	 * @param WC_Order $order Order object.
 	 *
 	 * @return array|null Payment method data
 	 */
 	private function get_stored_payment_method( $order ) {
-		// Get payment tokens for the order
+		// Get payment tokens for the order.
 		$payment_tokens = WC_Payment_Tokens::get_order_tokens( $order->get_id() );
 
 		if ( ! empty( $payment_tokens ) ) {
@@ -887,7 +897,7 @@ class PaySentinel_Retry {
 			);
 		}
 
-		// Fallback to customer's default payment method
+		// Fallback to customer's default payment method.
 		$customer_id = $order->get_customer_id();
 		if ( $customer_id ) {
 			$payment_method = $order->get_payment_method();
@@ -910,19 +920,19 @@ class PaySentinel_Retry {
 	/**
 	 * Check if gateway supports retry functionality
 	 *
-	 * @param WC_Payment_Gateway $gateway Payment gateway
+	 * @param WC_Payment_Gateway $gateway Payment gateway.
 	 *
 	 * @return bool Supports retry
 	 */
 	private function gateway_supports_retry( $gateway ) {
-		// Check if gateway supports tokenization (required for retry)
+		// Check if gateway supports tokenization (required for retry).
 		if ( ! $gateway->supports( 'tokenization' ) ) {
 			return false;
 		}
 
-		// Check if gateway supports saved payment methods
+		// Check if gateway supports saved payment methods.
 		if ( ! $gateway->supports( 'subscriptions' ) && ! $gateway->supports( 'subscription_cancellation' ) ) {
-			// For non-subscription gateways, check if they support add_payment_method
+			// For non-subscription gateways, check if they support add_payment_method.
 			if ( ! $gateway->supports( 'add_payment_method' ) ) {
 				return false;
 			}
@@ -934,11 +944,11 @@ class PaySentinel_Retry {
 	/**
 	 * Track retry success for monitoring
 	 *
-	 * @param string $gateway_id     Gateway ID
-	 * @param int    $attempt_number Attempt number
+	 * @param string $gateway_id     Gateway ID.
+	 * @param int    $attempt_number Attempt number.
 	 */
 	private function track_retry_success( $gateway_id, $attempt_number ) {
-		// Store retry success statistics
+		// Store retry success statistics.
 		$stats = get_option( 'paysentinel_retry_stats', array() );
 
 		if ( ! isset( $stats[ $gateway_id ] ) ) {
@@ -968,11 +978,11 @@ class PaySentinel_Retry {
 	/**
 	 * Track retry failure for monitoring
 	 *
-	 * @param string $gateway_id     Gateway ID
-	 * @param int    $attempt_number Attempt number
+	 * @param string $gateway_id     Gateway ID.
+	 * @param int    $attempt_number Attempt number.
 	 */
 	private function track_retry_failure( $gateway_id, $attempt_number ) {
-		// Store retry failure statistics
+		// Store retry failure statistics.
 		$stats = get_option( 'paysentinel_retry_stats', array() );
 
 		if ( ! isset( $stats[ $gateway_id ] ) ) {
@@ -1000,7 +1010,7 @@ class PaySentinel_Retry {
 	/**
 	 * Get retry statistics
 	 *
-	 * @param string $gateway_id Optional gateway filter
+	 * @param string $gateway_id Optional gateway filter.
 	 *
 	 * @return array Retry statistics
 	 */
@@ -1017,14 +1027,14 @@ class PaySentinel_Retry {
 	/**
 	 * Get retry success rate
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return float Success rate percentage
 	 */
 	public function get_retry_success_rate( $gateway_id ) {
 		$stats = $this->get_retry_stats( $gateway_id );
 
-		if ( empty( $stats ) || $stats['total_retries'] == 0 ) {
+		if ( empty( $stats ) || 0 === (int) $stats['total_retries'] ) {
 			return 0.0;
 		}
 
@@ -1034,12 +1044,12 @@ class PaySentinel_Retry {
 	/**
 	 * Manual retry trigger for admin
 	 *
-	 * @param int $order_id Order ID
+	 * @param int $order_id Order ID.
 	 *
 	 * @return array Result
 	 */
 	public function manual_retry( $order_id ) {
-		// Auto-retry is a Starter+ feature
+		// Auto-retry is a Starter+ feature.
 		if ( ! $this->is_retry_feature_available() ) {
 			return array(
 				'success' => false,
@@ -1074,7 +1084,7 @@ class PaySentinel_Retry {
 			);
 		}
 
-		// Attempt immediate retry
+		// Attempt immediate retry.
 		$result = $this->attempt_retry( $transaction->id );
 
 		return array(
@@ -1094,14 +1104,14 @@ class PaySentinel_Retry {
 		$license = new PaySentinel_License();
 		$tier    = $license->get_license_tier();
 
-		// Auto-retry is available for Starter, Pro, and Agency tiers
+		// Auto-retry is available for Starter, Pro, and Agency tiers.
 		return in_array( $tier, array( 'starter', 'pro', 'agency' ), true );
 	}
 
 	/**
 	 * Clear retry statistics
 	 *
-	 * @param string $gateway_id Optional gateway filter
+	 * @param string $gateway_id Optional gateway filter.
 	 *
 	 * @return bool Success
 	 */

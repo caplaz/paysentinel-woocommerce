@@ -1,15 +1,12 @@
 <?php
-
 /**
- * Integration tests for the Failure Simulator
- *
- * Tests the failure simulator functionality including:
- * - Creating simulated failures
- * - Clearing simulated failures (regression test)
- * - Getting simulation statistics
- * - Meta data is properly set on orders
+ * Integration tests for the Failure Simulator.
  *
  * @package PaySentinel
+ */
+
+/**
+ * Class FailureSimulatorTest
  */
 class FailureSimulatorTest extends WP_UnitTestCase {
 
@@ -44,7 +41,7 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$this->logger    = new PaySentinel_Logger();
 		$this->simulator = new PaySentinel_Failure_Simulator();
 
-		// Clean up any test orders
+		// Clean up any test orders.
 		$this->cleanup_test_orders();
 	}
 
@@ -65,9 +62,9 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		global $wpdb;
 
 		$table_name = $this->database->get_transactions_table();
-		$sql        = 'SELECT DISTINCT order_id FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0';
+		$sql        = 'SELECT DISTINCT order_id FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0'; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
-		return $wpdb->get_col( $wpdb->prepare( $sql, '[SIMULATED FAILURE]%' ) );
+		return $wpdb->get_col( $wpdb->prepare( $sql, '[SIMULATED FAILURE]%' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	}
 
 	/**
@@ -78,10 +75,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 	private function cleanup_test_orders() {
 		global $wpdb;
 
-		// Get all orders with simulated failures from the transactions table
+		// Get all orders with simulated failures from the transactions table.
 		$table_name = $this->database->get_transactions_table();
-		$sql        = 'SELECT DISTINCT order_id FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0';
-		$order_ids  = $wpdb->get_col( $wpdb->prepare( $sql, '[SIMULATED FAILURE]%' ) );
+		$sql        = 'SELECT DISTINCT order_id FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0'; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$order_ids  = $wpdb->get_col( $wpdb->prepare( $sql, '[SIMULATED FAILURE]%' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		foreach ( $order_ids as $order_id ) {
 			$order = wc_get_order( $order_id );
@@ -91,8 +88,9 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		}
 
 		// Also remove transaction records so they don't bleed into subsequent tests.
-		$wpdb->query(
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"DELETE FROM {$table_name} WHERE failure_reason LIKE %s",
 				'[SIMULATED FAILURE]%'
 			)
@@ -103,27 +101,27 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 	 * Test that simulate_failure_for_order properly adds metadata
 	 */
 	public function test_simulate_failure_for_order_adds_metadata() {
-		// Create a test order
+		// Create a test order.
 		$order    = wc_create_order();
 		$order_id = $order->get_id();
 
-		// Simulate a failure
+		// Simulate a failure.
 		$result = $this->simulator->simulate_failure_for_order( $order_id, 'card_declined' );
 
-		// Verify success
+		// Verify success.
 		$this->assertTrue( $result['success'] );
 		$this->assertStringContainsString( 'Successfully simulated', $result['message'] );
 
-		// Reload order to verify metadata
+		// Reload order to verify metadata.
 		$order = wc_get_order( $order_id );
 
-		// Verify metadata exists
+		// Verify metadata exists.
 		$this->assertTrue( (bool) $order->get_meta( '_paysentinel_simulated_failure' ) );
 		$this->assertEquals( 'card_declined', $order->get_meta( '_paysentinel_failure_scenario' ) );
 		$this->assertNotEmpty( $order->get_meta( '_paysentinel_failure_message' ) );
 		$this->assertNotEmpty( $order->get_meta( '_paysentinel_failure_code' ) );
 
-		// Verify order status is failed
+		// Verify order status is failed.
 		$this->assertEquals( 'failed', $order->get_status() );
 	}
 
@@ -135,36 +133,36 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 	 * of wc_get_orders().
 	 */
 	public function test_clear_simulated_failures_removes_orders() {
-		// Create multiple test orders with simulated failures
+		// Create multiple test orders with simulated failures.
 		$order_ids = array();
 		for ( $i = 0; $i < 3; $i++ ) {
 			$order       = wc_create_order();
 			$order_id    = $order->get_id();
 			$order_ids[] = $order_id;
 
-			// Simulate a failure
+			// Simulate a failure.
 			$this->simulator->simulate_failure_for_order( $order_id, 'card_declined' );
 		}
 
-		// Verify orders exist
+		// Verify orders exist.
 		$check_orders = $this->get_simulated_orders();
 		$this->assertCount( 3, $check_orders );
 
-		// Clear simulated failures
+		// Clear simulated failures.
 		$result = $this->simulator->clear_simulated_failures();
 
-		// Verify result
+		// Verify result.
 		$this->assertTrue( $result['success'] );
 		$this->assertEquals( 3, $result['deleted_orders'] );
 		$this->assertStringNotContainsString( 'Cleared 0', $result['message'] );
 
-		// Verify orders are deleted
+		// Verify orders are deleted.
 		foreach ( $order_ids as $order_id ) {
 			$order = wc_get_order( $order_id );
 			$this->assertFalse( $order );
 		}
 
-		// Verify no orders remain with the metadata
+		// Verify no orders remain with the metadata.
 		$remaining_orders = $this->get_simulated_orders();
 		$this->assertCount( 0, $remaining_orders );
 	}
@@ -173,13 +171,13 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 	 * Test clear_simulated_failures returns 0 when no simulated orders exist
 	 */
 	public function test_clear_simulated_failures_with_no_orders() {
-		// Clear any existing simulated orders
+		// Clear any existing simulated orders.
 		$this->cleanup_test_orders();
 
-		// Clear simulated failures
+		// Clear simulated failures.
 		$result = $this->simulator->clear_simulated_failures();
 
-		// Verify result
+		// Verify result.
 		$this->assertTrue( $result['success'] );
 		$this->assertEquals( 0, $result['deleted_orders'] );
 		$this->assertEquals( 0, $result['deleted_transactions'] );
@@ -192,21 +190,21 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 	public function test_create_test_order_with_failure() {
 		$result = $this->simulator->create_test_order_with_failure( 'insufficient_funds', 'stripe' );
 
-		// Verify success
+		// Verify success.
 		$this->assertTrue( $result['success'] );
 		$this->assertArrayHasKey( 'order_id', $result );
 
 		$order_id = $result['order_id'];
 		$order    = wc_get_order( $order_id );
 
-		// Verify order exists
+		// Verify order exists.
 		$this->assertNotFalse( $order );
 
-		// Verify metadata
+		// Verify metadata.
 		$this->assertTrue( (bool) $order->get_meta( '_paysentinel_simulated_failure' ) );
 		$this->assertEquals( 'insufficient_funds', $order->get_meta( '_paysentinel_failure_scenario' ) );
 
-		// Verify order status
+		// Verify order status.
 		$this->assertEquals( 'failed', $order->get_status() );
 	}
 
@@ -214,9 +212,9 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 	 * Test get_simulation_stats returns correct counts
 	 */
 	public function test_get_simulation_stats() {
-		global $wpdb;
+		global $wpdb; // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 
-		// Create multiple orders with different failure scenarios
+		// Create multiple orders with different failure scenarios.
 		$scenarios = array( 'card_declined', 'expired_card', 'insufficient_funds' );
 
 		foreach ( $scenarios as $scenario ) {
@@ -226,14 +224,14 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 			}
 		}
 
-		// Get statistics
+		// Get statistics.
 		$stats = $this->simulator->get_simulation_stats();
 
-		// Verify total count
+		// Verify total count.
 		$this->assertEquals( 6, $stats['total_simulated'] );
 
-		// Verify scenario breakdown
-		// Note: failure_code in database is uppercase with underscores removed
+		// Verify scenario breakdown.
+		// Note: failure_code in database is uppercase with underscores removed.
 		$expected_codes = array(
 			'CARDDECLINED',
 			'EXPIREDCARD',
@@ -252,7 +250,7 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 	public function test_get_all_scenarios() {
 		$scenarios = $this->simulator->get_all_scenarios();
 
-		// Verify expected scenarios exist
+		// Verify expected scenarios exist.
 		$expected_scenarios = array(
 			'card_declined',
 			'insufficient_funds',
@@ -282,7 +280,7 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 	 * Ensures that clear_simulated_failures works regardless of order status
 	 */
 	public function test_clear_simulated_failures_with_various_statuses() {
-		// Create orders with simulated failures
+		// Create orders with simulated failures.
 		$order1 = wc_create_order();
 		$this->simulator->simulate_failure_for_order( $order1->get_id(), 'card_declined' );
 
@@ -291,17 +289,17 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$order2->set_status( 'pending' );
 		$order2->save();
 
-		// Verify we have 2 orders
+		// Verify we have 2 orders.
 		$orders_before = $this->get_simulated_orders();
 		$this->assertCount( 2, $orders_before );
 
-		// Clear all
+		// Clear all.
 		$result = $this->simulator->clear_simulated_failures();
 
-		// Verify both were deleted
+		// Verify both were deleted.
 		$this->assertEquals( 2, $result['deleted_orders'] );
 
-		// Verify no orders remain
+		// Verify no orders remain.
 		$orders_after = $this->get_simulated_orders();
 		$this->assertCount( 0, $orders_after );
 	}
@@ -312,18 +310,18 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 	public function test_simulate_failure_for_order_with_object() {
 		$order = wc_create_order();
 
-		// Pass order object instead of ID
+		// Pass order object instead of ID.
 		$result = $this->simulator->simulate_failure_for_order( $order, 'network_error' );
 
 		$this->assertTrue( $result['success'] );
 
-		// Verify metadata
+		// Verify metadata.
 		$order = wc_get_order( $order->get_id() );
 		$this->assertEquals( 'network_error', $order->get_meta( '_paysentinel_failure_scenario' ) );
 	}
 
 	// -------------------------------------------------------------------------
-	// Transaction table record tests (core regression prevention)
+	// Transaction table record tests (core regression prevention).
 	// -------------------------------------------------------------------------
 
 	/**
@@ -343,8 +341,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$this->simulator->simulate_failure_for_order( $order_id, 'card_declined' );
 
 		$table_name = $this->database->get_transactions_table();
-		$row        = $wpdb->get_row(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT * FROM {$table_name} WHERE order_id = %d",
 				$order_id
 			)
@@ -377,8 +377,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$this->simulator->simulate_failure_for_order( $order_id, 'expired_card' );
 
 		$table_name = $this->database->get_transactions_table();
-		$count      = (int) $wpdb->get_var(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = (int) $wpdb->get_var(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT COUNT(*) FROM {$table_name} WHERE order_id = %d",
 				$order_id
 			)
@@ -388,8 +390,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$this->assertEquals( 1, $count, 'Calling simulate twice must not create duplicate transaction rows.' );
 
 		// The record must reflect the latest scenario.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$reason = $wpdb->get_var(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT failure_reason FROM {$table_name} WHERE order_id = %d",
 				$order_id
 			)
@@ -409,7 +413,7 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$real_order_id = $real_order->get_id();
 		$table_name    = $this->database->get_transactions_table();
 
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'order_id'       => $real_order_id,
@@ -441,8 +445,9 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		// clear_simulated_failures must NOT delete the real transaction record.
 		$this->simulator->clear_simulated_failures();
 
-		$real_row = $wpdb->get_row(
+		$real_row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT id FROM {$table_name} WHERE order_id = %d",
 				$real_order_id
 			)
@@ -450,6 +455,7 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$this->assertNotNull( $real_row, 'clear_simulated_failures must not delete non-simulated transaction records.' );
 
 		// Clean up the real order.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $table_name, array( 'order_id' => $real_order_id ), array( '%d' ) );
 		$real_order->delete( true );
 	}
@@ -470,8 +476,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$table_name = $this->database->get_transactions_table();
 
 		// Confirm the record exists before clearing.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$before = (int) $wpdb->get_var(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT COUNT(*) FROM {$table_name} WHERE failure_reason LIKE %s",
 				'[SIMULATED FAILURE]%'
 			)
@@ -481,8 +489,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$this->simulator->clear_simulated_failures();
 
 		// Confirm the record is gone after clearing.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$after = (int) $wpdb->get_var(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT COUNT(*) FROM {$table_name} WHERE failure_reason LIKE %s",
 				'[SIMULATED FAILURE]%'
 			)
@@ -517,8 +527,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		// No transaction record should have been written.
 		global $wpdb;
 		$table_name = $this->database->get_transactions_table();
-		$count      = (int) $wpdb->get_var(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = (int) $wpdb->get_var(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT COUNT(*) FROM {$table_name} WHERE order_id = %d",
 				$order->get_id()
 			)
@@ -549,8 +561,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 				"simulate_failure_for_order must succeed for scenario '{$scenario_key}'."
 			);
 
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$reason = $wpdb->get_var(
 				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					"SELECT failure_reason FROM {$table_name} WHERE order_id = %d",
 					$order_id
 				)
@@ -563,6 +577,7 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 			);
 
 			// Clean up immediately so counter doesn't bleed.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->delete( $table_name, array( 'order_id' => $order_id ), array( '%d' ) );
 			$order->delete( true );
 		}
@@ -584,8 +599,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$table_name = $this->database->get_transactions_table();
 
 		foreach ( $results['order_ids'] as $order_id ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$reason = $wpdb->get_var(
 				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					"SELECT failure_reason FROM {$table_name} WHERE order_id = %d",
 					$order_id
 				)
@@ -613,8 +630,10 @@ class FailureSimulatorTest extends WP_UnitTestCase {
 		$order_id   = $result['order_id'];
 		$table_name = $this->database->get_transactions_table();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT * FROM {$table_name} WHERE order_id = %d",
 				$order_id
 			)

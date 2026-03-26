@@ -1,11 +1,13 @@
 <?php
-
 /**
  * Abstract Gateway Connector Base Class
  *
  * Defines the interface for payment gateway connectivity checks.
  * Subclasses implement specific gateway APIs (Stripe, PayPal, WooCommerce Payments).
+ *
+ * @package PaySentinel
  */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }

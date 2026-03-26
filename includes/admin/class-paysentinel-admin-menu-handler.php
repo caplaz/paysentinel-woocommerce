@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -46,7 +46,7 @@ class PaySentinel_Admin_Menu_Handler {
 	 * Adds the main menu page and all submenu pages for the Payment Monitor plugin.
 	 */
 	public function register_menu_pages() {
-		// Check user capability
+		// Check user capability.
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			return;
 		}
@@ -54,22 +54,22 @@ class PaySentinel_Admin_Menu_Handler {
 		// Custom SVG icon matching PaySentinel logo (Shield + Pulse). Inner pulse line made bolder by separating into its own path and giving it a stroke.
 		$icon_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">'
 			. '<path fill="currentColor" fill-rule="evenodd" d="M10 1L2 4v7c0 5 3.5 9 8 10 4.5-1 8-5 8-10V4l-8-3z"/>'
-			// inner pulse line with stroke for extra weight
+			// inner pulse line with stroke for extra weight.
 			. '<path fill="none" stroke="currentColor" stroke-width="1" d="M16 10.5H11L9.5 14.5L8 6.5L6.5 10.5H4v1H6.5L8 7.5L9.5 15.5L11 11.5H16v-1z"/>'
 			. '</svg>';
 
-		// Add main menu page
+		// Add main menu page.
 		add_menu_page(
 			__( 'PaySentinel', 'paysentinel' ),
 			__( 'PaySentinel', 'paysentinel' ),
 			'manage_woocommerce',
 			'paysentinel',
 			array( $this->page_renderer, 'render_dashboard_page' ),
-			'data:image/svg+xml;base64,' . base64_encode( $icon_svg ),
+			'data:image/svg+xml;base64,' . base64_encode( $icon_svg ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- SVG icon encoded as data URI for WordPress admin menu.
 			56
 		);
 
-		// Add dashboard submenu
+		// Add dashboard submenu.
 		add_submenu_page(
 			'paysentinel',
 			__( 'Dashboard', 'paysentinel' ),
@@ -79,7 +79,7 @@ class PaySentinel_Admin_Menu_Handler {
 			array( $this->page_renderer, 'render_dashboard_page' )
 		);
 
-		// Add gateway health submenu
+		// Add gateway health submenu.
 		add_submenu_page(
 			'paysentinel',
 			__( 'Gateway Health', 'paysentinel' ),
@@ -89,7 +89,7 @@ class PaySentinel_Admin_Menu_Handler {
 			array( $this->page_renderer, 'render_health_page' )
 		);
 
-		// Add transaction logs submenu
+		// Add transaction logs submenu.
 		add_submenu_page(
 			'paysentinel',
 			__( 'Transactions', 'paysentinel' ),
@@ -99,7 +99,7 @@ class PaySentinel_Admin_Menu_Handler {
 			array( $this->page_renderer, 'render_transactions_page' )
 		);
 
-		// Add analytics submenu
+		// Add analytics submenu.
 		add_submenu_page(
 			'paysentinel',
 			__( 'Analytics', 'paysentinel' ),
@@ -109,7 +109,7 @@ class PaySentinel_Admin_Menu_Handler {
 			array( $this->page_renderer, 'render_analytics_page' )
 		);
 
-		// Add alerts submenu
+		// Add alerts submenu.
 		add_submenu_page(
 			'paysentinel',
 			__( 'Alerts', 'paysentinel' ),
@@ -119,7 +119,7 @@ class PaySentinel_Admin_Menu_Handler {
 			array( $this->page_renderer, 'render_alerts_page' )
 		);
 
-		// Add diagnostic tools submenu
+		// Add diagnostic tools submenu.
 		add_submenu_page(
 			'paysentinel',
 			__( 'Diagnostic Tools', 'paysentinel' ),
@@ -129,7 +129,7 @@ class PaySentinel_Admin_Menu_Handler {
 			array( $this->page_renderer, 'render_diagnostics_page' )
 		);
 
-		// Add settings submenu
+		// Add settings submenu.
 		add_submenu_page(
 			'paysentinel',
 			__( 'Settings', 'paysentinel' ),
@@ -139,7 +139,7 @@ class PaySentinel_Admin_Menu_Handler {
 			array( $this->page_renderer, 'render_settings_page' )
 		);
 
-		// Add Remote Dashboard submenu (external link)
+		// Add Remote Dashboard submenu (external link).
 		add_submenu_page(
 			'paysentinel',
 			__( 'Remote Dashboard', 'paysentinel' ),
@@ -149,12 +149,12 @@ class PaySentinel_Admin_Menu_Handler {
 			array( $this, 'redirect_to_help' )
 		);
 
-		// Do not modify the registered submenu slug; tests expect the slug
-		// `paysentinel-help` to be present. We'll update the link in the
-		// admin footer script instead so the visible anchor points to the
+		// Do not modify the registered submenu slug; tests expect the slug.
+		// `paysentinel-help` to be present. We'll update the link in the.
+		// admin footer script instead so the visible anchor points to the.
 		// external site while the registered slug remains intact.
 
-		// Ensure the menu link opens in a new tab by adding a small script
+		// Ensure the menu link opens in a new tab by adding a small script.
 		// to the admin footer that sets target and rel attributes on the anchor.
 		add_action( 'admin_print_footer_scripts', array( $this, 'make_remote_dashboard_open_new_tab' ) );
 	}
@@ -178,7 +178,7 @@ class PaySentinel_Admin_Menu_Handler {
 					a.setAttribute('target', '_blank');
 					a.setAttribute('rel', 'noopener noreferrer');
 				}
-				// Also handle fully-qualified hrefs that may include the admin URL
+				// Also handle fully-qualified hrefs that may include the admin URL.
 				if (a.href && a.href.indexOf('admin.php?page=paysentinel-help') !== -1) {
 					a.href = helpUrl;
 					a.setAttribute('target', '_blank');
@@ -190,7 +190,7 @@ class PaySentinel_Admin_Menu_Handler {
 		<?php
 	}
 
-	// The old `redirect_to_help()` method was removed because the submenu
-	// now points directly to the external help URL. Keeping this class focused
+	// The old `redirect_to_help()` method was removed because the submenu.
+	// now points directly to the external help URL. Keeping this class focused.
 	// on menu registration only.
 }

@@ -1,8 +1,12 @@
 <?php
+/**
+ * Unit tests for PaySentinel_Database class.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Unit tests for PaySentinel_Database class
- * Tests database schema and operations
+ * Class DatabaseOperationsTest
  */
 class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 
@@ -17,7 +21,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 		);
 
 		foreach ( $table_names as $table ) {
-			// Table names should use underscores
+			// Table names should use underscores.
 			$this->assertStringContainsString( 'payment_monitor', $table );
 			$this->assertMatchesRegularExpression( '/^[a-z_]+$/', $table );
 			$this->assertGreaterThan( 0, strlen( $table ) );
@@ -134,12 +138,12 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 	 * data types, and indexes for data integrity and performance
 	 */
 	public function test_database_storage_structure() {
-		// Create mock database class for testing
-		$database = $this->getMockBuilder( 'PaySentinel_Database' )
+		// Create mock database class for testing.
+		$database = $this->getMockBuilder( 'PaySentinel_Database' ) // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 			->disableOriginalConstructor()
 			->getMock();
 
-		// Test 1: Verify transactions table structure
+		// Test 1: Verify transactions table structure.
 		$trans_columns = array(
 			'id'             => 'BIGINT UNSIGNED PRIMARY KEY',
 			'order_id'       => 'BIGINT UNSIGNED NOT NULL',
@@ -163,7 +167,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 			$this->assertStringContainsString( 'id', strtolower( $column ) . '|gateway_id|order_id|amount|status|created', 'Should have meaningful column names' );
 		}
 
-		// Test 2: Verify gateway health table structure
+		// Test 2: Verify gateway health table structure.
 		$health_columns = array(
 			'id'                      => 'BIGINT UNSIGNED PRIMARY KEY',
 			'gateway_id'              => 'VARCHAR(50) NOT NULL',
@@ -182,7 +186,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 			$this->assertNotEmpty( $type );
 		}
 
-		// Test 3: Verify alerts table structure
+		// Test 3: Verify alerts table structure.
 		$alert_columns = array(
 			'id'          => 'BIGINT UNSIGNED PRIMARY KEY',
 			'alert_type'  => 'ENUM(gateway_down,low_success_rate,high_failure_count,gateway_error) NOT NULL',
@@ -200,7 +204,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 			$this->assertNotEmpty( $column );
 		}
 
-		// Test 4: Verify primary key constraint on all tables
+		// Test 4: Verify primary key constraint on all tables.
 		$tables = array(
 			'transactions'   => 'id',
 			'gateway_health' => 'id',
@@ -212,7 +216,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 			$this->assertEquals( 'id', $pk, 'Primary key should be named "id"' );
 		}
 
-		// Test 5: Verify indexes for performance
+		// Test 5: Verify indexes for performance.
 		$required_indexes = array(
 			'transactions'   => array( 'order_id', 'gateway_id', 'status', 'created_at', 'gateway_id_status_created' ),
 			'gateway_health' => array( 'gateway_id', 'period' ),
@@ -224,18 +228,18 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 			$this->assertGreaterThan( 0, count( $indexes ), "Table $table should have indexes" );
 		}
 
-		// Test 6: Verify numeric column ranges for success rates
+		// Test 6: Verify numeric column ranges for success rates.
 		$success_rate_min = 0;
 		$success_rate_max = 100;
 		$this->assertLessThanOrEqual( $success_rate_min, 0 );
 		$this->assertGreaterThanOrEqual( $success_rate_max, 100 );
 
-		// Test 7: Verify decimal precision for financial data
+		// Test 7: Verify decimal precision for financial data.
 		$amount_example = 9999.99;
 		$this->assertLessThanOrEqual( 9999.99, $amount_example );
 		$this->assertGreaterThanOrEqual( 0, $amount_example );
 
-		// Test 8: Verify enum values consistency
+		// Test 8: Verify enum values consistency.
 		$transaction_statuses = array( 'success', 'failed', 'pending', 'retry' );
 		$alert_severities     = array( 'info', 'warning', 'critical' );
 		$health_periods       = array( '1hour', '24hour', '7day' );
@@ -255,7 +259,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 			$this->assertNotEmpty( $period );
 		}
 
-		// Test 9: Verify composite indexes exist
+		// Test 9: Verify composite indexes exist.
 		$composite_indexes = array(
 			'transactions'   => 'gateway_id, status, created_at',
 			'gateway_health' => 'gateway_id, period',
@@ -267,7 +271,7 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 			$this->assertGreaterThan( 1, count( $cols ), "Should have composite index on $table" );
 		}
 
-		// Test 10: Verify timestamp columns on all tables
+		// Test 10: Verify timestamp columns on all tables.
 		$timestamp_requirements = array(
 			'transactions'   => array( 'created_at', 'updated_at' ),
 			'gateway_health' => array( 'calculated_at' ),
@@ -279,15 +283,15 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 			$this->assertGreaterThan( 0, count( $timestamp_cols ), "Table $table should have timestamp columns" );
 		}
 
-		// Test 11: Verify data integrity constraints
+		// Test 11: Verify data integrity constraints.
 		$this->assertTrue( true, 'All constraints verified' );
 
-		// Test 12: Verify migration compatibility
+		// Test 12: Verify migration compatibility.
 		$db_version = '1.0.0';
 		$parts      = explode( '.', $db_version );
 		$this->assertEquals( 3, count( $parts ), 'Version should be semantic' );
 
-		// Test 13: Verify table naming convention
+		// Test 13: Verify table naming convention.
 		$table_prefix = 'payment_monitor';
 		$test_tables  = array(
 			'payment_monitor_transactions',
@@ -299,15 +303,15 @@ class DatabaseOperationsTest extends PHPUnit\Framework\TestCase {
 			$this->assertStringStartsWith( $table_prefix, $table, 'Table should use standard prefix' );
 		}
 
-		// Test 14: Verify VARCHAR length for IDs and codes
-		$id_field_max_length   = 100;
+		// Test 14: Verify VARCHAR length for IDs and codes.
+		$id_field_max_length   = 100; // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 		$gateway_id_length     = 50;
 		$transaction_id_length = 100;
 
 		$this->assertGreaterThanOrEqual( 50, $gateway_id_length );
 		$this->assertGreaterThanOrEqual( 100, $transaction_id_length );
 
-		// Test 15: Verify default values are sane
+		// Test 15: Verify default values are sane.
 		$default_values = array(
 			'total_transactions' => 0,
 			'success_rate'       => 0.00,

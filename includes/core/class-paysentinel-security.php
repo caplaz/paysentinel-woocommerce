@@ -1,14 +1,18 @@
 <?php
-
 /**
  * Security utilities and validation class
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_Security.
+ */
 class PaySentinel_Security {
 
 	/**
@@ -18,6 +22,8 @@ class PaySentinel_Security {
 
 	/**
 	 * Sensitive data fields to exclude
+	 *
+	 * @var string[]
 	 */
 	private static $sensitive_fields = array(
 		'password',
@@ -41,7 +47,7 @@ class PaySentinel_Security {
 	/**
 	 * Encrypt sensitive data using WordPress native functions
 	 *
-	 * @param string $data Data to encrypt
+	 * @param string $data Data to encrypt.
 	 *
 	 * @return string|false Encrypted data or false on failure
 	 */
@@ -50,21 +56,21 @@ class PaySentinel_Security {
 			return false;
 		}
 
-		// Get encryption key from WordPress
+		// Get encryption key from WordPress.
 		$key = self::get_encryption_key();
 		if ( ! $key ) {
 			return false;
 		}
 
 		try {
-			// Generate IV
+			// Generate IV.
 			$iv = openssl_random_pseudo_bytes( openssl_cipher_iv_length( self::ENCRYPTION_METHOD ) );
 
 			if ( $iv === false ) {
 				return false;
 			}
 
-			// Encrypt data
+			// Encrypt data.
 			$encrypted = openssl_encrypt(
 				$data,
 				self::ENCRYPTION_METHOD,
@@ -77,9 +83,9 @@ class PaySentinel_Security {
 				return false;
 			}
 
-			// Combine IV and encrypted data, then base64 encode
+			// Combine IV and encrypted data, then base64 encode.
 			$combined = $iv . $encrypted;
-			return base64_encode( $combined );
+			return base64_encode( $combined ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- legitimate AES-256 encryption output encoding.
 		} catch ( Exception $e ) {
 			return false;
 		}
@@ -88,7 +94,7 @@ class PaySentinel_Security {
 	/**
 	 * Decrypt sensitive data
 	 *
-	 * @param string $encrypted_data Encrypted data to decrypt
+	 * @param string $encrypted_data Encrypted data to decrypt.
 	 *
 	 * @return string|false Decrypted data or false on failure
 	 */
@@ -97,25 +103,25 @@ class PaySentinel_Security {
 			return false;
 		}
 
-		// Get encryption key
+		// Get encryption key.
 		$key = self::get_encryption_key();
 		if ( ! $key ) {
 			return false;
 		}
 
 		try {
-			// Base64 decode
-			$combined = base64_decode( $encrypted_data, true );
+			// Base64 decode.
+			$combined = base64_decode( $encrypted_data, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- legitimate AES-256 decryption input decoding.
 			if ( $combined === false ) {
 				return false;
 			}
 
-			// Extract IV
+			// Extract IV.
 			$iv_length = openssl_cipher_iv_length( self::ENCRYPTION_METHOD );
 			$iv        = substr( $combined, 0, $iv_length );
 			$encrypted = substr( $combined, $iv_length );
 
-			// Decrypt
+			// Decrypt.
 			$decrypted = openssl_decrypt(
 				$encrypted,
 				self::ENCRYPTION_METHOD,
@@ -137,9 +143,9 @@ class PaySentinel_Security {
 	/**
 	 * Generate HMAC signature for SaaS API requests
 	 *
-	 * @param mixed  $payload     Request body (array, object, or JSON string)
-	 * @param int    $timestamp   Current Unix timestamp
-	 * @param string $site_secret The site secret from license validation
+	 * @param mixed  $payload     Request body (array, object, or JSON string).
+	 * @param int    $timestamp   Current Unix timestamp.
+	 * @param string $site_secret The site secret from license validation.
 	 *
 	 * @return string HMAC-SHA256 signature
 	 */
@@ -154,8 +160,8 @@ class PaySentinel_Security {
 			$payload_string = $payload;
 		}
 
-		// The SaaS expects: timestamp.request_body
-		// For empty body, just timestamp (no dot)
+		// The SaaS expects: timestamp.request_body.
+		// For empty body, just timestamp (no dot).
 		$data_to_sign = $timestamp . ( ! empty( $payload_string ) ? '.' . $payload_string : '' );
 
 		return hash_hmac( 'sha256', $data_to_sign, $site_secret );
@@ -164,16 +170,16 @@ class PaySentinel_Security {
 	/**
 	 * Recursively sort array keys
 	 *
-	 * @param array $array Array to sort
+	 * @param array $input_array Array to sort.
 	 */
-	public static function recursive_ksort( &$array ) {
-		if ( ! is_array( $array ) ) {
+	public static function recursive_ksort( &$input_array ) {
+		if ( ! is_array( $input_array ) ) {
 			return;
 		}
 
-		ksort( $array );
+		ksort( $input_array );
 
-		foreach ( $array as &$value ) {
+		foreach ( $input_array as &$value ) {
 			if ( is_array( $value ) ) {
 				self::recursive_ksort( $value );
 			}
@@ -187,21 +193,21 @@ class PaySentinel_Security {
 	 * @return string|false Encryption key or false on failure
 	 */
 	private static function get_encryption_key() {
-		// Try to get from transient first (performance)
+		// Try to get from transient first (performance).
 		$cached_key = get_transient( 'paysentinel_encryption_key' );
 		if ( $cached_key !== false ) {
 			return $cached_key;
 		}
 
-		// Generate key based on WordPress constants
+		// Generate key based on WordPress constants.
 		if ( ! defined( 'AUTH_KEY' ) || empty( AUTH_KEY ) ) {
 			return false;
 		}
 
-		// Create a consistent key based on site URL and AUTH_KEY
+		// Create a consistent key based on site URL and AUTH_KEY.
 		$key = hash( 'sha256', AUTH_KEY . get_site_url(), true );
 
-		// Cache for performance (but not persistently)
+		// Cache for performance (but not persistently).
 		set_transient( 'paysentinel_encryption_key', $key, HOUR_IN_SECONDS );
 
 		return $key;
@@ -210,8 +216,8 @@ class PaySentinel_Security {
 	/**
 	 * Check if user has required WordPress capability
 	 *
-	 * @param string $capability WordPress capability to check
-	 * @param int    $user_id    Optional user ID (defaults to current user)
+	 * @param string $capability WordPress capability to check.
+	 * @param int    $user_id    Optional user ID (defaults to current user).
 	 *
 	 * @return bool True if user has capability, false otherwise
 	 */
@@ -224,7 +230,7 @@ class PaySentinel_Security {
 			return false;
 		}
 
-		// Use WordPress user_can function for proper capability checking
+		// Use WordPress user_can function for proper capability checking.
 		return user_can( $user_id, $capability );
 	}
 
@@ -232,15 +238,15 @@ class PaySentinel_Security {
 	 * Validate and sanitize SQL query parameters
 	 * Uses prepared statements for SQL injection prevention
 	 *
-	 * @param string $query  SQL query with placeholders
-	 * @param array  $params Parameters to bind to query
+	 * @param string $query  SQL query with placeholders.
+	 * @param array  $params Parameters to bind to query.
 	 *
 	 * @return string|WP_Error Prepared query or error
 	 */
 	public static function prepare_sql_query( $query, $params = array() ) {
 		global $wpdb;
 
-		// Validate inputs
+		// Validate inputs.
 		if ( empty( $query ) ) {
 			return new WP_Error(
 				'empty_query',
@@ -252,13 +258,13 @@ class PaySentinel_Security {
 			$params = array();
 		}
 
-		// Use WordPress $wpdb->prepare for safe SQL preparation
+		// Use WordPress $wpdb->prepare for safe SQL preparation.
 		try {
 			if ( empty( $params ) ) {
 				return $query;
 			}
 
-			// Prepare query with parameters
+			// Prepare query with parameters.
 			$prepared = $wpdb->prepare( $query, ...$params ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( $prepared === false ) {
@@ -280,9 +286,9 @@ class PaySentinel_Security {
 	/**
 	 * Execute prepared SQL query safely
 	 *
-	 * @param string $query  SQL query with placeholders
-	 * @param array  $params Parameters to bind
-	 * @param string $output Optional output type (OBJECT, ARRAY_A, ARRAY_N)
+	 * @param string $query  SQL query with placeholders.
+	 * @param array  $params Parameters to bind.
+	 * @param string $output Optional output type (OBJECT, ARRAY_A, ARRAY_N).
 	 *
 	 * @return array|object|null Query results or null on failure
 	 */
@@ -296,13 +302,11 @@ class PaySentinel_Security {
 				return null;
 			}
 
-			// Execute prepared query
+			// Execute prepared query.
 			if ( strpos( strtoupper( trim( $query ) ), 'SELECT' ) === 0 ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				return $wpdb->get_results( $prepared, $output ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+				return $wpdb->get_results( $prepared, $output ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			} else {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				return $wpdb->query( $prepared ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+				return $wpdb->query( $prepared ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			}
 		} catch ( Exception $e ) {
 			return null;
@@ -313,7 +317,7 @@ class PaySentinel_Security {
 	 * Exclude sensitive fields from response data
 	 * Removes sensitive information
 	 *
-	 * @param array $data Data to filter
+	 * @param array $data Data to filter.
 	 *
 	 * @return array Filtered data with sensitive fields removed
 	 */
@@ -325,13 +329,13 @@ class PaySentinel_Security {
 		$filtered = array();
 
 		foreach ( $data as $key => $value ) {
-			// Check if this is a sensitive field
+			// Check if this is a sensitive field.
 			if ( self::is_sensitive_field( $key ) ) {
-				// Skip sensitive fields
+				// Skip sensitive fields.
 				continue;
 			}
 
-			// Recursively filter nested arrays
+			// Recursively filter nested arrays.
 			if ( is_array( $value ) ) {
 				$filtered[ $key ] = self::exclude_sensitive_data( $value );
 			} else {
@@ -346,7 +350,7 @@ class PaySentinel_Security {
 	 * Mask sensitive fields instead of removing them
 	 * Useful when field presence is important
 	 *
-	 * @param array $data Data to filter
+	 * @param array $data Data to filter.
 	 *
 	 * @return array Data with sensitive fields masked
 	 */
@@ -359,10 +363,10 @@ class PaySentinel_Security {
 
 		foreach ( $data as $key => $value ) {
 			if ( self::is_sensitive_field( $key ) ) {
-				// Mask with asterisks, preserving structure
+				// Mask with asterisks, preserving structure.
 				$filtered[ $key ] = '***REDACTED***';
 			} elseif ( is_array( $value ) ) {
-				// Recursively filter nested arrays
+				// Recursively filter nested arrays.
 				$filtered[ $key ] = self::mask_sensitive_data( $value );
 			} else {
 				$filtered[ $key ] = $value;
@@ -375,14 +379,14 @@ class PaySentinel_Security {
 	/**
 	 * Check if a field name is sensitive
 	 *
-	 * @param string $field_name Field name to check
+	 * @param string $field_name Field name to check.
 	 *
 	 * @return bool True if field is sensitive, false otherwise
 	 */
 	private static function is_sensitive_field( $field_name ) {
 		$field_lower = strtolower( $field_name );
 
-		// Check exact matches
+		// Check exact matches.
 		foreach ( self::$sensitive_fields as $sensitive ) {
 			if ( strpos( $field_lower, $sensitive ) !== false ) {
 				return true;
@@ -401,19 +405,19 @@ class PaySentinel_Security {
 		$test_data = 'test_credential_validation_' . time();
 
 		try {
-			// Try to encrypt
+			// Try to encrypt.
 			$encrypted = self::encrypt_credential( $test_data );
 			if ( $encrypted === false ) {
 				return false;
 			}
 
-			// Try to decrypt
+			// Try to decrypt.
 			$decrypted = self::decrypt_credential( $encrypted );
 			if ( $decrypted === false ) {
 				return false;
 			}
 
-			// Verify decrypted matches original
+			// Verify decrypted matches original.
 			return $decrypted === $test_data;
 		} catch ( Exception $e ) {
 			return false;
@@ -426,19 +430,19 @@ class PaySentinel_Security {
 	 * @return void
 	 */
 	public static function add_security_headers() {
-		// Prevent clickjacking
+		// Prevent clickjacking.
 		header( 'X-Frame-Options: DENY' );
 
-		// Prevent MIME sniffing
+		// Prevent MIME sniffing.
 		header( 'X-Content-Type-Options: nosniff' );
 
-		// Enable XSS protection
+		// Enable XSS protection.
 		header( 'X-XSS-Protection: 1; mode=block' );
 
-		// Prevent search indexing of sensitive endpoints
+		// Prevent search indexing of sensitive endpoints.
 		header( 'X-Robots-Tag: noindex, nofollow' );
 
-		// Content Security Policy
+		// Content Security Policy.
 		header( 'Content-Security-Policy: default-src \'self\'' );
 	}
 
@@ -448,7 +452,7 @@ class PaySentinel_Security {
 	 * @return bool|WP_Error True if authenticated, error otherwise
 	 */
 	public static function validate_api_authentication() {
-		// Check if user is logged in
+		// Check if user is logged in.
 		if ( ! is_user_logged_in() ) {
 			return new WP_Error(
 				'not_authenticated',
@@ -457,7 +461,7 @@ class PaySentinel_Security {
 			);
 		}
 
-		// Check required capability
+		// Check required capability.
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			return new WP_Error(
 				'insufficient_permissions',
@@ -472,7 +476,7 @@ class PaySentinel_Security {
 	/**
 	 * Sanitize and validate admin settings
 	 *
-	 * @param array $settings Settings to validate
+	 * @param array $settings Settings to validate.
 	 *
 	 * @return array Validated and merged settings
 	 */
@@ -481,7 +485,7 @@ class PaySentinel_Security {
 			return array();
 		}
 
-		// Get existing settings to prevent data loss across tabs
+		// Get existing settings to prevent data loss across tabs.
 		$old_settings = get_option( 'paysentinel_options', array() );
 		$current_tab  = isset( $settings[ PaySentinel_Settings_Constants::CURRENT_TAB ] ) ? sanitize_key( $settings[ PaySentinel_Settings_Constants::CURRENT_TAB ] ) : '';
 		unset( $settings[ PaySentinel_Settings_Constants::CURRENT_TAB ] );
@@ -489,15 +493,15 @@ class PaySentinel_Security {
 		$validated = array();
 
 		foreach ( $settings as $key => $value ) {
-			// Reject if key contains SQL or suspicious patterns
+			// Reject if key contains SQL or suspicious patterns.
 			if ( self::contains_sql_injection( $key ) ) {
 				continue;
 			}
 
-			// Sanitize key
+			// Sanitize key.
 			$clean_key = sanitize_key( $key );
 
-			// Sanitize value based on type
+			// Sanitize value based on type.
 			if ( is_array( $value ) ) {
 				$validated[ $clean_key ] = self::sanitize_recursive( $value );
 			} elseif ( is_numeric( $value ) ) {
@@ -507,10 +511,10 @@ class PaySentinel_Security {
 			}
 		}
 
-		// Merge with old settings
+		// Merge with old settings.
 		$final_settings = array_merge( $old_settings, $validated );
 
-		// Handle checkboxes (which are missing from $_POST when unchecked)
+		// Handle checkboxes (which are missing from $_POST when unchecked).
 		if ( 'general' === $current_tab ) {
 			if ( ! isset( $validated[ PaySentinel_Settings_Constants::ENABLE_MONITORING ] ) ) {
 				$final_settings[ PaySentinel_Settings_Constants::ENABLE_MONITORING ] = 0;
@@ -530,12 +534,12 @@ class PaySentinel_Security {
 	/**
 	 * Sanitize array recursively
 	 *
-	 * @param array $array Array to sanitize
+	 * @param array $input_array Array to sanitize.
 	 * @return array Sanitized array
 	 */
-	private static function sanitize_recursive( $array ) {
+	private static function sanitize_recursive( $input_array ) {
 		$sanitized = array();
-		foreach ( $array as $key => $value ) {
+		foreach ( $input_array as $key => $value ) {
 			$clean_key = sanitize_key( $key );
 			if ( is_array( $value ) ) {
 				$sanitized[ $clean_key ] = self::sanitize_recursive( $value );
@@ -549,11 +553,11 @@ class PaySentinel_Security {
 	/**
 	 * Check if string contains SQL injection patterns
 	 *
-	 * @param string $string String to check
+	 * @param string $input_string String to check.
 	 *
 	 * @return bool True if suspicious patterns found, false otherwise
 	 */
-	private static function contains_sql_injection( $string ) {
+	private static function contains_sql_injection( $input_string ) {
 		$dangerous_patterns = array(
 			'/(\b(UNION|SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b)/i',
 			'/(--|;|\'|"|\*|\/)/i',
@@ -561,7 +565,7 @@ class PaySentinel_Security {
 		);
 
 		foreach ( $dangerous_patterns as $pattern ) {
-			if ( preg_match( $pattern, $string ) ) {
+			if ( preg_match( $pattern, $input_string ) ) {
 				return true;
 			}
 		}

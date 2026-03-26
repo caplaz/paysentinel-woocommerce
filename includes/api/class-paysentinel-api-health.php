@@ -1,22 +1,25 @@
 <?php
-
 /**
  * Gateway health REST API endpoints
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_API_Health.
+ */
 class PaySentinel_API_Health extends PaySentinel_API_Base {
-
 
 	/**
 	 * Register REST routes for health endpoints
 	 */
 	public function register_routes() {
-		// Get all gateway health data
+		// Get all gateway health data.
 		register_rest_route(
 			$this->namespace,
 			'/health/gateways',
@@ -41,7 +44,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			)
 		);
 
-		// Get specific gateway health data
+		// Get specific gateway health data.
 		register_rest_route(
 			$this->namespace,
 			'/health/gateways/(?P<gateway_id>[^/]+)',
@@ -65,7 +68,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			)
 		);
 
-		// Get gateway health history
+		// Get gateway health history.
 		register_rest_route(
 			$this->namespace,
 			'/health/gateways/(?P<gateway_id>[^/]+)/history',
@@ -103,7 +106,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			)
 		);
 
-		// Trigger on-demand health recalculation for all gateways
+		// Trigger on-demand health recalculation for all gateways.
 		register_rest_route(
 			$this->namespace,
 			'/health/recalculate',
@@ -140,7 +143,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			}
 		}
 
-		// Fallback: enabled/available gateways only
+		// Fallback: enabled/available gateways only.
 		if ( method_exists( $manager, 'get_available_payment_gateways' ) ) {
 			$available = $manager->get_available_payment_gateways();
 			return is_array( $available ) ? $available : array();
@@ -169,7 +172,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			return is_array( $available ) ? $available : array();
 		}
 
-		// Fallback: if only full list is available, return that
+		// Fallback: if only full list is available, return that.
 		if ( method_exists( $manager, 'payment_gateways' ) ) {
 			$all = $manager->payment_gateways();
 			return is_array( $all ) ? $all : array();
@@ -181,14 +184,14 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 	/**
 	 * Get all gateway health data
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_all_gateway_health( $request ) {
 		$period = $this->get_string_param( $request, 'period', '24h' );
 
-		// Map frontend period format (24h, 7d, 30d, 90d) to backend format (1hour, 24hour, 7day, 30day, 90day)
+		// Map frontend period format (24h, 7d, 30d, 90d) to backend format (1hour, 24hour, 7day, 30day, 90day).
 		$period_map     = array(
 			'24h' => '24hour',
 			'7d'  => '7day',
@@ -197,7 +200,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		);
 		$backend_period = isset( $period_map[ $period ] ) ? $period_map[ $period ] : '24hour';
 
-		// Validate period and license
+		// Validate period and license.
 		$license = new PaySentinel_License();
 		$tier    = $license->get_license_tier();
 
@@ -219,7 +222,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		}
 
 		try {
-			// Get WooCommerce gateways based on requested scope (default: enabled)
+			// Get WooCommerce gateways based on requested scope (default: enabled).
 			$scope    = $this->get_string_param( $request, 'scope', 'enabled' );
 			$gateways = ( 'all' === $scope ) ? $this->get_wc_gateways_all() : $this->get_wc_gateways_enabled();
 
@@ -234,7 +237,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				);
 			}
 
-			// Initialize connectivity checker
+			// Initialize connectivity checker.
 			$connectivity = new PaySentinel_Gateway_Connectivity();
 
 			$health_data   = array();
@@ -246,20 +249,20 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				$is_locked  = $count >= $gateway_limit;
 				++$count;
 
-				// Get health metrics for this gateway
+				// Get health metrics for this gateway.
 				$health = $this->get_gateway_health_data( $gateway_id, $backend_period );
 				if ( ! $health ) {
 					$health = $this->ensure_health_row( $gateway_id, $backend_period );
 				}
 
-				// Get real-time transaction counts (all-time) for consistency with Recent Transactions
+				// Get real-time transaction counts (all-time) for consistency with Recent Transactions.
 				$realtime_stats = $this->get_realtime_transaction_stats( $gateway_id );
 
-				// Get last connectivity check
+				// Get last connectivity check.
 				$last_check = $connectivity->get_last_check( $gateway_id );
 
 				if ( $health ) {
-					// Get historical trend data
+					// Get historical trend data.
 					$trend_data = $is_locked ? array() : $this->get_gateway_trend_data( $gateway_id, $period );
 
 					$item = array(
@@ -280,7 +283,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 						'is_locked'               => $is_locked,
 					);
 
-					// Add connectivity status if available
+					// Add connectivity status if available.
 					if ( $last_check ) {
 						$item['connectivity_status']           = $is_locked ? 'locked' : $last_check->status;
 						$item['connectivity_message']          = $is_locked ? 'Unlock PRO for more gateways' : $last_check->message;
@@ -315,7 +318,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 	/**
 	 * Get specific gateway health data
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -323,10 +326,10 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		$gateway_id = $request->get_param( 'gateway_id' );
 		$period     = $this->get_string_param( $request, 'period', '24h' );
 
-		// Sanitize gateway ID
+		// Sanitize gateway ID.
 		$gateway_id = sanitize_text_field( $gateway_id );
 
-		// Map frontend period format (24h, 7d, 30d, 90d) to backend format (1hour, 24hour, 7day, 30day, 90day)
+		// Map frontend period format (24h, 7d, 30d, 90d) to backend format (1hour, 24hour, 7day, 30day, 90day).
 		$period_map     = array(
 			'24h' => '24hour',
 			'7d'  => '7day',
@@ -335,7 +338,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		);
 		$backend_period = isset( $period_map[ $period ] ) ? $period_map[ $period ] : '24hour';
 
-		// Validate period and license
+		// Validate period and license.
 		$license = new PaySentinel_License();
 		$tier    = $license->get_license_tier();
 
@@ -357,7 +360,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		}
 
 		try {
-			// Get gateway (enabled by default unless scope=all)
+			// Get gateway (enabled by default unless scope=all).
 			$scope    = $this->get_string_param( $request, 'scope', 'enabled' );
 			$gateways = ( 'all' === $scope ) ? $this->get_wc_gateways_all() : $this->get_wc_gateways_enabled();
 
@@ -369,15 +372,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				);
 			}
 
-			$gateway = $gateways[ $gateway_id ];
-
-			// Check if gateway is within license limits
-			$gateway_limit = PaySentinel_License::GATEWAY_LIMITS[ $tier ];
-			$gateway_ids   = array_keys( $gateways );
-			$index         = array_search( $gateway_id, $gateway_ids, true );
-			$is_locked     = ( $index !== false && $index >= $gateway_limit );
-
-			// Get health metrics
+			// Get health metrics.
 			$health = $this->get_gateway_health_data( $gateway_id, $backend_period );
 			if ( ! $health ) {
 				$health = $this->ensure_health_row( $gateway_id, $backend_period );
@@ -391,7 +386,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				);
 			}
 
-			// Initialize connectivity checker
+			// Initialize connectivity checker.
 			$connectivity = new PaySentinel_Gateway_Connectivity();
 			$last_check   = $connectivity->get_last_check( $gateway_id );
 
@@ -413,7 +408,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				'trend_data'              => $this->get_gateway_trend_data( $gateway_id, '24h' ),
 			);
 
-			// Add connectivity status
+			// Add connectivity status.
 			if ( $last_check ) {
 				$response_data['connectivity_status']           = $last_check->status;
 				$response_data['connectivity_message']          = $last_check->message;
@@ -439,7 +434,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 	/**
 	 * Get gateway health history
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -447,17 +442,17 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		$gateway_id = $request->get_param( 'gateway_id' );
 		$days       = $this->get_int_param( $request, 'days', 7 );
 
-		// Sanitize gateway ID
+		// Sanitize gateway ID.
 		$gateway_id = sanitize_text_field( $gateway_id );
 
-		// Validate days
+		// Validate days.
 		$days = ( $days > 0 && $days <= 30 ) ? $days : 7;
 
-		// Get pagination params
+		// Get pagination params.
 		$pagination = $this->validate_pagination( $request );
 
 		try {
-			// Get gateway
+			// Get gateway.
 			$gateways = WC()->payment_gateways()->get_available_payment_gateways();
 
 			if ( ! isset( $gateways[ $gateway_id ] ) ) {
@@ -471,7 +466,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			global $wpdb;
 			$table_name = $wpdb->prefix . 'payment_monitor_gateway_health';
 
-			// Check if table exists
+			// Check if table exists.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 				return $this->get_paginated_response(
@@ -482,11 +477,11 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				);
 			}
 
-			// Calculate date range
+			// Calculate date range.
 			$end_date   = current_time( 'mysql' );
 			$start_date = date_create( current_time( 'mysql' ) )->modify( "-{$days} days" )->format( 'Y-m-d H:i:s' );
 
-			// Get total count
+			// Get total count.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$total_count = $wpdb->get_var(
 				$wpdb->prepare(
@@ -498,7 +493,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				)
 			);
 
-			// Get paginated results
+			// Get paginated results.
 			$offset = $this->calculate_offset( $pagination['page'], $pagination['per_page'] );
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -523,10 +518,10 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				$results = array();
 			}
 
-			// Format results
+			// Format results.
 			$history_data = array_map(
 				function ( $row ) {
-					// Derive a simple status from success_rate for history presentation
+					// Derive a simple status from success_rate for history presentation.
 					$status = 'unknown';
 					if ( isset( $row->success_rate ) ) {
 						$rate = floatval( $row->success_rate );
@@ -571,8 +566,8 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 	/**
 	 * Get gateway health data from database
 	 *
-	 * @param string $gateway_id Payment gateway ID
-	 * @param string $period     Health period (1hour, 24hour, 7day)
+	 * @param string $gateway_id Payment gateway ID.
+	 * @param string $period     Health period (1hour, 24hour, 7day).
 	 *
 	 * @return object|null Health data or null if not found
 	 */
@@ -580,7 +575,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'payment_monitor_gateway_health';
 
-		// Check if table exists
+		// Check if table exists.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 			return null;
@@ -607,8 +602,8 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 	/**
 	 * Get gateway health trend data for historical visualization
 	 *
-	 * @param string $gateway_id Payment gateway ID
-	 * @param string $period     Time period (24h, 7d, 30d)
+	 * @param string $gateway_id Payment gateway ID.
+	 * @param string $period     Time period (24h, 7d, 30d).
 	 *
 	 * @return array Array of trend data points with timestamp and health score
 	 */
@@ -616,16 +611,16 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'payment_monitor_gateway_health';
 
-		// Check if table exists
+		// Check if table exists.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 			return array();
 		}
 
-		// Determine date range and aggregation based on period
+		// Determine date range and aggregation based on period.
 		$end_date    = current_time( 'mysql' );
-		$data_limit  = 24; // Default to 24 points
-		$date_format = '%Y-%m-%d %H:00:00'; // Hourly grouping
+		$data_limit  = 24; // Default to 24 points.
+		$date_format = '%Y-%m-%d %H:00:00'; // Hourly grouping.
 
 		switch ( $period ) {
 			case '24h':
@@ -652,7 +647,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 				$start_date = date_create( current_time( 'mysql' ) )->modify( '-24 hours' )->format( 'Y-m-d H:i:s' );
 		}
 
-		// Get aggregated health data for the period
+		// Get aggregated health data for the period.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -680,7 +675,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			return array();
 		}
 
-		// Format results for frontend
+		// Format results for frontend.
 		return array_map(
 			function ( $row ) {
 				return array(
@@ -695,8 +690,8 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 	/**
 	 * Attempt to calculate and persist health data on-demand when missing
 	 *
-	 * @param string $gateway_id Gateway ID
-	 * @param string $period     Backend health period (1hour, 24hour, 7day)
+	 * @param string $gateway_id Gateway ID.
+	 * @param string $period     Backend health period (1hour, 24hour, 7day).
 	 *
 	 * @return object|null Newly fetched health row or null
 	 */
@@ -705,7 +700,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 			$health_engine = new PaySentinel_Health();
 			$health_engine->calculate_health( $gateway_id );
 
-			// Re-fetch the row after calculation
+			// Re-fetch the row after calculation.
 			return $this->get_gateway_health_data( $gateway_id, $period );
 		} catch ( Exception $e ) {
 			return null;
@@ -715,11 +710,12 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 	/**
 	 * Trigger on-demand health recalculation for all gateways
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function recalculate_all_health( $request ) {
+		unset( $request ); // No request parameters needed for this endpoint.
 		try {
 			$health_engine = new PaySentinel_Health();
 			$gateways      = $this->get_wc_gateways_enabled();
@@ -730,21 +726,17 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 					$health_engine->calculate_health( $gateway->id );
 					++$recalculated;
 				} catch ( Exception $e ) {
-					// Log but continue with other gateways
-					// error_log(
-					// 'Payment Monitor: Error recalculating health for gateway ' . $gateway->id . ': ' . $e->getMessage()
-					// );
+					// Log but continue with other gateways.
+					unset( $e ); // Error intentionally swallowed; we continue processing remaining gateways.
 				}
 			}
 
-			// Also trigger connectivity checks for enabled gateways
+			// Also trigger connectivity checks for enabled gateways.
 			try {
 				$connectivity = new PaySentinel_Gateway_Connectivity();
 				$connectivity->check_all_gateways();
 			} catch ( Exception $e ) {
-				// error_log(
-				// 'Payment Monitor: Error during connectivity checks: ' . $e->getMessage()
-				// );
+				unset( $e ); // Error intentionally swallowed; connectivity check failure is non-fatal.
 			}
 
 			return $this->get_success_response(
@@ -772,7 +764,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 	 *
 	 * This provides consistent data with the Recent Transactions table
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return array Statistics array with total, successful, failed counts
 	 */
@@ -781,7 +773,7 @@ class PaySentinel_API_Health extends PaySentinel_API_Base {
 
 		$table_name = $wpdb->prefix . 'payment_monitor_transactions';
 
-		// Check if table exists
+		// Check if table exists.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 			return array(

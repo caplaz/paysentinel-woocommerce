@@ -2,25 +2,26 @@
 /**
  * Integration tests for admin page header consistency.
  *
- * Requires a full WordPress + WooCommerce environment (runs via `make test`).
- * Covers:
- * - WordPress sidebar menu label ("PaySentinel", not "Payment Monitor")
- * - All expected submenu slugs are registered
- * - Submenu page_title and menu_title are consistent with each other
- * - Every render_*_page() method outputs an h1 matching its sidebar label
- *
- * @package PaySentinel\Tests\Integration
+ * @package PaySentinel
+ */
+
+/**
+ * Class AdminPageHeaderIntegrationTest
  */
 class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 
 
 
 	/**
+	 * Page renderer instance.
+	 *
 	 * @var PaySentinel_Admin_Page_Renderer
 	 */
 	private $renderer;
 
 	/**
+	 * Menu handler instance.
+	 *
 	 * @var PaySentinel_Admin_Menu_Handler
 	 */
 	private $menu_handler;
@@ -49,14 +50,14 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 		$mp->setAccessible( true );
 		$this->menu_handler = $mp->getValue( $admin );
 
-		// Create an admin user and grant the WooCommerce capability used by the menu
+		// Create an admin user and grant the WooCommerce capability used by the menu.
 		$this->admin_user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->admin_user_id );
 		wp_get_current_user()->add_cap( 'manage_woocommerce' );
 	}
 
 	// -------------------------------------------------------------------------
-	// Sidebar menu label
+	// Sidebar menu label.
 	// -------------------------------------------------------------------------
 
 	/**
@@ -91,7 +92,7 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// Submenu registration
+	// Submenu registration.
 	// -------------------------------------------------------------------------
 
 	/**
@@ -124,7 +125,7 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 			);
 		}
 
-		// verify the label for the help entry has been updated
+		// verify the label for the help entry has been updated.
 		$help_entry = null;
 		foreach ( $submenu['paysentinel'] as $entry ) {
 			if ( 'paysentinel-help' === $entry[2] ) {
@@ -148,7 +149,8 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 		$this->assertNotEmpty( $submenu['paysentinel'] );
 
 		foreach ( $submenu['paysentinel'] as $entry ) {
-			// $entry format: [0] => menu_title, [1] => capability, [2] => menu_slug, [3] => page_title
+			// phpcs:ignore Squiz.PHP.CommentedOutCode.Found
+			// $entry format: [0] => menu_title, [1] => capability, [2] => menu_slug, [3] => page_title.
 			$this->assertSame(
 				$entry[3],
 				$entry[0],
@@ -163,13 +165,15 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// Page h1 titles
+	// Page h1 titles.
 	// -------------------------------------------------------------------------
 
 	/**
 	 * Each render method must output an h1 matching the expected title.
 	 *
 	 * @dataProvider page_title_provider
+	 * @param string $method         The method to test.
+	 * @param string $expected_title The expected title.
 	 */
 	public function test_page_h1_title_matches_expected( string $method, string $expected_title ) {
 		$output = $this->capture( $method );
@@ -189,6 +193,8 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Data provider for page title tests.
+	 *
 	 * @return array<string, array{string, string}>
 	 */
 	public function page_title_provider(): array {
@@ -205,17 +211,20 @@ class AdminPageHeaderIntegrationTest extends WP_UnitTestCase {
 
 
 	// -------------------------------------------------------------------------
-	// Helper
+	// Helper.
 	// -------------------------------------------------------------------------
 
 	/**
 	 * Capture buffered output from a renderer method.
+	 *
+	 * @param string $method The renderer method name.
+	 * @return string
 	 */
 	private function capture( string $method ): string {
 		ob_start();
 		try {
 			$this->renderer->$method();
-		} catch ( \Throwable $e ) {
+		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 			// Swallow — some methods may call wp_die() before finishing output.
 		}
 		return ob_get_clean();

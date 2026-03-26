@@ -9,7 +9,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -99,15 +99,15 @@ class PaySentinel_Config {
 	/**
 	 * Get a setting value from main options
 	 *
-	 * @param string $key     Setting key.
-	 * @param mixed  $default Default value if setting not found.
+	 * @param string $key           Setting key.
+	 * @param mixed  $default_value Default value if setting not found.
 	 * @return mixed Setting value or default.
 	 */
-	public function get( $key, $default = null ) {
+	public function get( $key, $default_value = null ) {
 		if ( isset( $this->cache['options'][ $key ] ) ) {
 			return $this->cache['options'][ $key ];
 		}
-		return $default;
+		return $default_value;
 	}
 
 	/**
@@ -149,15 +149,15 @@ class PaySentinel_Config {
 	/**
 	 * Get a setting from the settings option
 	 *
-	 * @param string $key     Setting key.
-	 * @param mixed  $default Default value if setting not found.
+	 * @param string $key           Setting key.
+	 * @param mixed  $default_value Default value if setting not found.
 	 * @return mixed Setting value or default.
 	 */
-	public function get_setting( $key, $default = null ) {
+	public function get_setting( $key, $default_value = null ) {
 		if ( isset( $this->cache['settings'][ $key ] ) ) {
 			return $this->cache['settings'][ $key ];
 		}
-		return $default;
+		return $default_value;
 	}
 
 	/**

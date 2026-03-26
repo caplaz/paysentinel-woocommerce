@@ -1,23 +1,27 @@
 <?php
+/**
+ * Integration tests for Diagnostics API response format.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Integration tests for Diagnostics API response format
- *
- * Ensures that diagnostics and maintenance endpoints return data in a structure
- * consistent with what the JavaScript frontend expects, preventing "undefined" errors.
- *
- * @package PaySentinel\Tests\Integration
+ * Class DiagnosticsAPIIntegrationTest
  */
 class DiagnosticsAPIIntegrationTest extends WP_UnitTestCase {
 
 
 	/**
-	 * Diagnostics API instance
+	 * Diagnostics API instance.
+	 *
+	 * @var PaySentinel_API_Diagnostics
 	 */
 	private $api;
 
 	/**
-	 * Admin user instance
+	 * Admin user instance.
+	 *
+	 * @var int
 	 */
 	private $admin_user;
 
@@ -94,7 +98,7 @@ class DiagnosticsAPIIntegrationTest extends WP_UnitTestCase {
 	 * Test that Full Diagnostics returns the expected structure for table rendering
 	 */
 	public function test_full_diagnostics_returns_expected_structure() {
-		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/diagnostics/full' );
+		$request = new WP_REST_Request( 'GET', '/paysentinel/v1/diagnostics/full' ); // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 
 		$response = $this->api->get_full_diagnostics();
 		$data     = $response->get_data();

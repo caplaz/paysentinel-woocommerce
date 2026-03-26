@@ -1,39 +1,53 @@
 <?php
-
 /**
  * Diagnostic and Recovery Tools
  *
  * Provides tools for diagnosing and recovering from payment failures
+ *
+ * @package PaySentinel
  */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_Diagnostics.
+ */
 class PaySentinel_Diagnostics {
-
 
 	/**
 	 * Database instance
+	 *
+	 * @var PaySentinel_Database
 	 */
 	private $database;
 
 	/**
 	 * Logger instance
+	 *
+	 * @var PaySentinel_Logger
 	 */
 	private $logger;
 
 	/**
 	 * Retry instance
+	 *
+	 * @var PaySentinel_Retry
 	 */
 	private $retry;
 
 	/**
 	 * Health instance
+	 *
+	 * @var PaySentinel_Health
 	 */
 	private $health;
 
 	/**
 	 * Connectivity checker instance
+	 *
+	 * @var PaySentinel_Gateway_Connectivity
 	 */
 	private $connectivity;
 
@@ -109,7 +123,7 @@ class PaySentinel_Diagnostics {
 			$results['total_records'] += $count;
 		}
 
-		// Check for orphaned records
+		// Check for orphaned records.
 		$orphaned = $this->find_orphaned_transactions();
 		if ( $orphaned > 0 ) {
 			/* translators: %d: number of orphaned records */
@@ -128,7 +142,7 @@ class PaySentinel_Diagnostics {
 			)
 		);
 
-		// Handle null or non-numeric values
+		// Handle null or non-numeric values.
 		$size                     = $size !== null ? floatval( $size ) : 0.0;
 		$results['total_size_mb'] = round( $size, 2 );
 
@@ -180,7 +194,7 @@ class PaySentinel_Diagnostics {
 				);
 			}
 
-			// Check for poor health
+			// Check for poor health.
 			if ( isset( $health_data['24hour']['success_rate'] ) && $health_data['24hour']['success_rate'] < 90 ) {
 				$results['status'] = 'warning';
 				/* translators: 1: gateway ID, 2: success rate percentage */
@@ -199,7 +213,7 @@ class PaySentinel_Diagnostics {
 	/**
 	 * Get recent payment failures
 	 *
-	 * @param int $limit Number of failures to retrieve
+	 * @param int $limit Number of failures to retrieve.
 	 *
 	 * @return array Recent failures
 	 */
@@ -217,8 +231,7 @@ class PaySentinel_Diagnostics {
 			$limit
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$failures = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$failures = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 		return array(
 			'count'    => count( $failures ),
@@ -236,7 +249,7 @@ class PaySentinel_Diagnostics {
 
 		$issues = array();
 
-		// Find orders failed more than 24 hours ago with no retry attempts
+		// Find orders failed more than 24 hours ago with no retry attempts.
 		$failed_orders = wc_get_orders(
 			array(
 				'status'       => 'failed',
@@ -262,7 +275,7 @@ class PaySentinel_Diagnostics {
 			);
 		}
 
-		// Find orders stuck in pending payment
+		// Find orders stuck in pending payment.
 		$pending_orders = wc_get_orders(
 			array(
 				'status'       => 'pending',
@@ -288,7 +301,7 @@ class PaySentinel_Diagnostics {
 			);
 		}
 
-		// Find orders with max retries exhausted
+		// Find orders with max retries exhausted.
 		$table_name  = $this->database->get_transactions_table();
 		$max_retries = PaySentinel_Retry::MAX_RETRY_ATTEMPTS;
 
@@ -327,7 +340,7 @@ class PaySentinel_Diagnostics {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// Count pending retries
+		// Count pending retries.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$pending = $wpdb->get_var(
 			$wpdb->prepare(
@@ -339,10 +352,10 @@ class PaySentinel_Diagnostics {
 			)
 		);
 
-		// Get next scheduled retry
+		// Get next scheduled retry.
 		$next_retry = wp_next_scheduled( 'paysentinel_process_retries' );
 
-		// Transactions older than 30 days
+		// Transactions older than 30 days.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$old_records = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -353,7 +366,7 @@ class PaySentinel_Diagnostics {
 			)
 		);
 
-		// Missing failure reasons
+		// Missing failure reasons.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$missing_reasons = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -363,7 +376,7 @@ class PaySentinel_Diagnostics {
 			)
 		);
 
-		// Transactions with max retries
+		// Transactions with max retries.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$max_retries = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -374,7 +387,7 @@ class PaySentinel_Diagnostics {
 			)
 		);
 
-		// Count recent retry attempts
+		// Count recent retry attempts.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$recent_retries = $wpdb->get_var(
 			$wpdb->prepare(
@@ -385,7 +398,7 @@ class PaySentinel_Diagnostics {
 			)
 		);
 
-		// Count successful retries
+		// Count successful retries.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$successful_retries = $wpdb->get_var(
 			$wpdb->prepare(
@@ -452,8 +465,7 @@ class PaySentinel_Diagnostics {
 	private function find_orphaned_transactions() {
 		global $wpdb;
 
-		$table_name        = $this->database->get_transactions_table();
-		$alerts_table_name = $this->database->get_alerts_table();
+		$table_name = $this->database->get_transactions_table();
 		// Get all distinct order IDs from our transactions table.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$order_ids = (array) $wpdb->get_col(
@@ -569,7 +581,7 @@ class PaySentinel_Diagnostics {
 	/**
 	 * Force retry for a specific order
 	 *
-	 * @param int $order_id Order ID
+	 * @param int $order_id Order ID.
 	 *
 	 * @return array Result
 	 */
@@ -582,7 +594,7 @@ class PaySentinel_Diagnostics {
 			);
 		}
 
-		// Attempt the retry
+		// Attempt the retry.
 		$success = $this->retry->attempt_retry( $order_id );
 
 		return array(
@@ -595,7 +607,7 @@ class PaySentinel_Diagnostics {
 	/**
 	 * Reset gateway health metrics
 	 *
-	 * @param string $gateway_id Gateway ID (empty for all)
+	 * @param string $gateway_id Gateway ID (empty for all).
 	 *
 	 * @return array Result
 	 */
@@ -614,7 +626,7 @@ class PaySentinel_Diagnostics {
 			$message = sprintf( __( 'Reset health metrics for gateway: %s', 'paysentinel' ), $gateway_id );
 		}
 
-		// Recalculate health
+		// Recalculate health.
 		$this->health->calculate_all_gateway_health();
 
 		return array(
@@ -627,7 +639,7 @@ class PaySentinel_Diagnostics {
 	/**
 	 * Archive old transactions
 	 *
-	 * @param int $days Age in days
+	 * @param int $days Age in days.
 	 *
 	 * @return array Result
 	 */
@@ -636,8 +648,8 @@ class PaySentinel_Diagnostics {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// For now, we'll just delete old records
-		// In a production system, you might want to export to a separate archive table
+		// For now, we'll just delete old records.
+		// In a production system, you might want to export to a separate archive table.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
@@ -679,7 +691,7 @@ class PaySentinel_Diagnostics {
 	/**
 	 * Test gateway connectivity
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return array Result
 	 */
@@ -704,7 +716,7 @@ class PaySentinel_Diagnostics {
 	/**
 	 * Get payment failure analysis
 	 *
-	 * @param int $days Number of days to analyze
+	 * @param int $days Number of days to analyze.
 	 *
 	 * @return array Analysis results
 	 */
@@ -713,7 +725,7 @@ class PaySentinel_Diagnostics {
 
 		$table_name = $this->database->get_transactions_table();
 
-		// Failures by gateway
+		// Failures by gateway.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$by_gateway = $wpdb->get_results(
 			$wpdb->prepare(
@@ -728,7 +740,7 @@ class PaySentinel_Diagnostics {
 			)
 		);
 
-		// Failures by reason
+		// Failures by reason.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$by_reason = $wpdb->get_results(
 			$wpdb->prepare(
@@ -744,7 +756,7 @@ class PaySentinel_Diagnostics {
 			)
 		);
 
-		// Hourly failure pattern
+		// Hourly failure pattern.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$hourly_pattern = $wpdb->get_results(
 			$wpdb->prepare(
@@ -759,7 +771,7 @@ class PaySentinel_Diagnostics {
 			)
 		);
 
-		// Total failures
+		// Total failures.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$total_failures = $wpdb->get_var(
 			$wpdb->prepare(
@@ -809,8 +821,8 @@ class PaySentinel_Diagnostics {
 		// This is storage-model agnostic and always reliable.
 		$table_name = $this->database->get_transactions_table();
 
-		// Verify the transactions table itself exists — a missing table is the most common cause
-		// of "Cleared 0" because needs_update() returns false when the DB version option is set
+		// Verify the transactions table itself exists — a missing table is the most common cause.
+		// of "Cleared 0" because needs_update() returns false when the DB version option is set.
 		// from a prior partial activation, even if the tables were never actually created.
 		$transactions_table_exists                       = $this->database->tables_exist();
 		$results['details']['transactions_table_exists'] = $transactions_table_exists;
@@ -823,7 +835,7 @@ class PaySentinel_Diagnostics {
 			return $results;
 		}
 
-		// @codingStandardsIgnoreStart
+		// @codingStandardsIgnoreStart.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$count_sql = 'SELECT COUNT(DISTINCT order_id) FROM ' . $table_name . ' WHERE failure_reason LIKE %s AND order_id > 0';
 		$simulated_order_count = (int) $wpdb->get_var(
@@ -835,7 +847,7 @@ class PaySentinel_Diagnostics {
 		$sample_orders = $wpdb->get_col(
 			$wpdb->prepare($sample_sql, '[SIMULATED FAILURE]%')
 		);
-		// @codingStandardsIgnoreEnd
+		// @codingStandardsIgnoreEnd.
 
 		$results['total_simulated']                        = $simulated_order_count;
 		$results['details']['simulated_transaction_count'] = $simulated_order_count;
@@ -845,13 +857,13 @@ class PaySentinel_Diagnostics {
 		}
 
 		// Secondary check: postmeta count (informational).
-		// @codingStandardsIgnoreStart
+		// @codingStandardsIgnoreStart.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$postmeta_sql = 'SELECT COUNT(DISTINCT post_id) FROM ' . $wpdb->postmeta . ' WHERE meta_key = %s';
 		$postmeta_count = (int) $wpdb->get_var(
 			$wpdb->prepare($postmeta_sql, '_paysentinel_simulated_failure')
 		);
-		// @codingStandardsIgnoreEnd
+		// @codingStandardsIgnoreEnd.
 
 		$results['details']['postmeta_count'] = $postmeta_count;
 
@@ -859,24 +871,24 @@ class PaySentinel_Diagnostics {
 		if ( $using_hpos ) {
 			$hpos_meta_table = $wpdb->prefix . 'woocommerce_orders_meta';
 
-			// @codingStandardsIgnoreStart
+			// @codingStandardsIgnoreStart.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_exists = $wpdb->get_var(
 				$wpdb->prepare('SHOW TABLES LIKE %s', $hpos_meta_table)
 			) === $hpos_meta_table;
-			// @codingStandardsIgnoreEnd
+			// @codingStandardsIgnoreEnd.
 
 			$results['details']['hpos_meta_table_exists'] = $table_exists;
 			$hpos_count                                   = 0;
 
 			if ( $table_exists ) {
-				// @codingStandardsIgnoreStart
+				// @codingStandardsIgnoreStart.
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$hpos_sql = 'SELECT COUNT(DISTINCT order_id) FROM ' . $hpos_meta_table . ' WHERE meta_key = %s';
 				$hpos_count = (int) $wpdb->get_var(
 					$wpdb->prepare($hpos_sql, '_paysentinel_simulated_failure')
 				);
-				// @codingStandardsIgnoreEnd
+				// @codingStandardsIgnoreEnd.
 			}
 
 			$results['details']['hpos_count'] = $hpos_count;

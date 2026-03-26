@@ -1,34 +1,45 @@
 <?php
-
 /**
  * PRO tier advanced analytics
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_Analytics_Pro.
+ */
 class PaySentinel_Analytics_Pro {
-
 
 	/**
 	 * Database instance
+	 *
+	 * @var PaySentinel_Database
 	 */
 	private $database;
 
 	/**
 	 * Logger instance
+	 *
+	 * @var PaySentinel_Logger
 	 */
 	private $logger;
 
 	/**
 	 * Health instance
+	 *
+	 * @var PaySentinel_Health
 	 */
 	private $health;
 
 	/**
 	 * License instance
+	 *
+	 * @var PaySentinel_License
 	 */
 	private $license;
 
@@ -55,7 +66,7 @@ class PaySentinel_Analytics_Pro {
 	/**
 	 * Get comparative analytics across multiple periods
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return array Comparative analytics data
 	 */
@@ -86,7 +97,7 @@ class PaySentinel_Analytics_Pro {
 			}
 		}
 
-		// Calculate trends (comparing periods)
+		// Calculate trends (comparing periods).
 		$analytics['trends'] = $this->calculate_trends( $analytics['periods'] );
 
 		return $analytics;
@@ -95,14 +106,14 @@ class PaySentinel_Analytics_Pro {
 	/**
 	 * Calculate trends between periods
 	 *
-	 * @param array $periods Period data
+	 * @param array $periods Period data.
 	 *
 	 * @return array Trend calculations
 	 */
 	private function calculate_trends( $periods ) {
 		$trends = array();
 
-		// Compare 24hour vs 7day
+		// Compare 24hour vs 7day.
 		if ( isset( $periods['24hour'], $periods['7day'] ) ) {
 			$trends['24h_vs_7d'] = array(
 				'success_rate_change' => $periods['24hour']['success_rate'] - $periods['7day']['success_rate'],
@@ -110,7 +121,7 @@ class PaySentinel_Analytics_Pro {
 			);
 		}
 
-		// Compare 7day vs 30day
+		// Compare 7day vs 30day.
 		if ( isset( $periods['7day'], $periods['30day'] ) ) {
 			$trends['7d_vs_30d'] = array(
 				'success_rate_change' => $periods['7day']['success_rate'] - $periods['30day']['success_rate'],
@@ -118,7 +129,7 @@ class PaySentinel_Analytics_Pro {
 			);
 		}
 
-		// Compare 30day vs 90day
+		// Compare 30day vs 90day.
 		if ( isset( $periods['30day'], $periods['90day'] ) ) {
 			$trends['30d_vs_90d'] = array(
 				'success_rate_change' => $periods['30day']['success_rate'] - $periods['90day']['success_rate'],
@@ -132,15 +143,15 @@ class PaySentinel_Analytics_Pro {
 	/**
 	 * Get daily failure trends
 	 *
-	 * @param string $gateway_id Gateway ID
-	 * @param int    $days       Number of days
+	 * @param string $gateway_id Gateway ID.
+	 * @param int    $days       Number of days.
 	 *
 	 * @return array Daily trends
 	 */
 	public function get_daily_trends( $gateway_id, $days = 30 ) {
 		global $wpdb;
 		$table_name  = $this->database->get_transactions_table();
-		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days", current_time( 'timestamp' ) ) );
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days", time() ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
@@ -169,8 +180,8 @@ class PaySentinel_Analytics_Pro {
 	/**
 	 * Get failure pattern analysis (PRO feature)
 	 *
-	 * @param string $gateway_id Gateway ID
-	 * @param int    $days       Number of days to analyze (default: 30)
+	 * @param string $gateway_id Gateway ID.
+	 * @param int    $days       Number of days to analyze (default: 30).
 	 *
 	 * @return array Failure pattern analysis
 	 */
@@ -184,9 +195,9 @@ class PaySentinel_Analytics_Pro {
 
 		global $wpdb;
 		$table_name  = $this->database->get_transactions_table();
-		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days", current_time( 'timestamp' ) ) );
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days", time() ) );
 
-		// Get failure reasons grouped by frequency
+		// Get failure reasons grouped by frequency.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$failure_reasons = $wpdb->get_results(
 			$wpdb->prepare(
@@ -206,7 +217,7 @@ class PaySentinel_Analytics_Pro {
 			ARRAY_A
 		);
 
-		// Get hourly failure distribution
+		// Get hourly failure distribution.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$hourly_distribution = $wpdb->get_results(
 			$wpdb->prepare(
@@ -224,7 +235,7 @@ class PaySentinel_Analytics_Pro {
 			ARRAY_A
 		);
 
-		// Get daily failure trends
+		// Get daily failure trends.
 		$daily_trends = $this->get_daily_trends( $gateway_id, $days );
 
 		return array(
@@ -270,7 +281,7 @@ class PaySentinel_Analytics_Pro {
 			if ( ! isset( $comparative['error'] ) ) {
 				$summary[ PaySentinel_Settings_Constants::GATEWAY_METRICS ][ $gateway_id ] = $comparative;
 
-				// Added revenue metrics to summary
+				// Added revenue metrics to summary.
 				$trends = $this->get_daily_trends( $gateway_id, 30 );
 				foreach ( $trends as $day ) {
 					$summary['revenue_summary']['total_lost']      += floatval( $day['lost_revenue'] );
@@ -285,8 +296,8 @@ class PaySentinel_Analytics_Pro {
 	/**
 	 * Get extended historical data (PRO feature - up to 90 days)
 	 *
-	 * @param string $gateway_id Gateway ID
-	 * @param int    $days       Number of days (max 90 for PRO)
+	 * @param string $gateway_id Gateway ID.
+	 * @param int    $days       Number of days (max 90 for PRO).
 	 *
 	 * @return array Historical data
 	 */
@@ -298,7 +309,7 @@ class PaySentinel_Analytics_Pro {
 			);
 		}
 
-		// Ensure days doesn't exceed PRO limit
+		// Ensure days doesn't exceed PRO limit.
 		$tier     = $this->license->get_license_tier();
 		$max_days = PaySentinel_License::RETENTION_LIMITS[ $tier ];
 		$days     = min( $days, $max_days );
@@ -354,7 +365,7 @@ class PaySentinel_Analytics_Pro {
 			}
 		}
 
-		// Rank gateways by 24h success rate
+		// Rank gateways by 24h success rate.
 		$rankings = array();
 		foreach ( $comparison['gateways'] as $gateway_id => $data ) {
 			$rankings[ $gateway_id ] = $data['24hour']['success_rate'];

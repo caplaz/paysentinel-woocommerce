@@ -1,10 +1,12 @@
 <?php
-
 /**
  * PayPal Gateway Connector
  *
  * Handles connectivity checks with PayPal API
+ *
+ * @package PaySentinel
  */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -47,10 +49,10 @@ class PaySentinel_PayPal_Connector extends PaySentinel_Gateway_Connector {
 			return array();
 		}
 
-		// Determine if sandbox or live
+		// Determine if sandbox or live.
 		$sandbox = isset( $paypal_settings['sandbox'] ) && 'yes' === $paypal_settings['sandbox'];
 
-		// Get credentials based on mode
+		// Get credentials based on mode.
 		$client_id = $sandbox ? $paypal_settings['sandbox_client_id'] ?? '' : $paypal_settings['client_id'] ?? '';
 		$secret    = $sandbox ? $paypal_settings['sandbox_secret'] ?? '' : $paypal_settings['secret'] ?? '';
 
@@ -88,7 +90,7 @@ class PaySentinel_PayPal_Connector extends PaySentinel_Gateway_Connector {
 	 * @return array
 	 */
 	public function test_connection() {
-		// Validate credentials first
+		// Validate credentials first.
 		$validation = $this->validate_credentials();
 		if ( ! $validation['valid'] ) {
 			return $this->response_unconfigured();
@@ -97,10 +99,10 @@ class PaySentinel_PayPal_Connector extends PaySentinel_Gateway_Connector {
 		$credentials = $this->get_credentials();
 		$api_base    = $credentials['sandbox'] ? self::PAYPAL_SANDBOX_API : self::PAYPAL_LIVE_API;
 
-		// Prepare Basic Auth header
-		$auth_header = base64_encode( $credentials['client_id'] . ':' . $credentials['secret'] );
+		// Prepare Basic Auth header (RFC 7617 requires base64 encoding of credentials).
+		$auth_header = base64_encode( $credentials['client_id'] . ':' . $credentials['secret'] ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- required by PayPal OAuth Basic Auth spec.
 
-		// Make request to PayPal OAuth token endpoint
+		// Make request to PayPal OAuth token endpoint.
 		$response = $this->make_http_request(
 			$api_base . '/v1/oauth2/token',
 			array(
@@ -125,7 +127,7 @@ class PaySentinel_PayPal_Connector extends PaySentinel_Gateway_Connector {
 		$http_code = wp_remote_retrieve_response_code( $response['response'] );
 		$body      = json_decode( wp_remote_retrieve_body( $response['response'] ), true );
 
-		// PayPal returns 200 OK with access_token for successful authentication
+		// PayPal returns 200 OK with access_token for successful authentication.
 		if ( 200 === $http_code && isset( $body['access_token'] ) ) {
 			return $this->response_online(
 				'Successfully connected to PayPal',
@@ -134,7 +136,7 @@ class PaySentinel_PayPal_Connector extends PaySentinel_Gateway_Connector {
 			);
 		}
 
-		// Check for error response
+		// Check for error response.
 		if ( isset( $body['error_description'] ) ) {
 			return $this->response_offline(
 				'PayPal API error: ' . $body['error_description'],
@@ -143,7 +145,7 @@ class PaySentinel_PayPal_Connector extends PaySentinel_Gateway_Connector {
 			);
 		}
 
-		// Unexpected response format
+		// Unexpected response format.
 		return $this->response_offline(
 			'Unexpected response from PayPal API (HTTP ' . $http_code . ')',
 			$http_code,

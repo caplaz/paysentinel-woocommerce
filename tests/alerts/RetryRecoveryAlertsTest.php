@@ -1,30 +1,59 @@
 <?php
+/**
+ * Unit Tests for Recovery Alerts.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Unit Tests for Recovery Alerts (Retry Outcome Alerts)
- *
- * Tests the PaySentinel_Alert_Recovery_Handler class which listens to retry
- * hooks and generates alerts for successful and failed recovery attempts.
+ * Class RetryRecoveryAlertsTest
  */
 class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 
+	/**
+	 * Recovery handler instance.
+	 *
+	 * @var PaySentinel_Alert_Recovery_Handler
+	 */
 	private $recovery_handler;
+
+	/**
+	 * Alert checker instance.
+	 *
+	 * @var PaySentinel_Alert_Checker
+	 */
 	private $alert_checker;
+
+	/**
+	 * Logger instance.
+	 *
+	 * @var PaySentinel_Logger
+	 */
 	private $logger;
+
+	/**
+	 * Database instance.
+	 *
+	 * @var PaySentinel_Database
+	 */
 	private $database;
 
+	/**
+	 * Set up test environment.
+	 */
 	public function setUp(): void {
 		parent::setUp();
 
 		$this->database = new PaySentinel_Database();
 		$this->database->create_tables();
 
-		// Clean up alerts table
+		// Clean up alerts table.
 		global $wpdb;
 		$alerts_table = $this->database->get_alerts_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		$wpdb->query( "TRUNCATE TABLE $alerts_table" );
 
-		// Enable retry functionality
+		// Enable retry functionality.
 		update_option(
 			'paysentinel_options',
 			array(
@@ -35,18 +64,18 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Reset config singleton for fresh settings
+		// Reset config singleton for fresh settings.
 		$reflection = new ReflectionClass( 'PaySentinel_Config' );
 		$property   = $reflection->getProperty( 'instance' );
 		$property->setAccessible( true );
 		$property->setValue( null );
 
-		// Initialize components
+		// Initialize components.
 		$this->logger        = new PaySentinel_Logger();
 		$alerts_instance     = new PaySentinel_Alerts();
 		$this->alert_checker = $alerts_instance->get_checker();
 
-		// Create recovery handler (it will register its hooks)
+		// Create recovery handler (it will register its hooks).
 		$this->recovery_handler = new PaySentinel_Alert_Recovery_Handler( $this->alert_checker, $this->logger, $this->database );
 	}
 
@@ -57,22 +86,24 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 		$order_id = $this->create_test_order();
 		$order    = wc_get_order( $order_id );
 
-		// Create mock transaction
+		// Create mock transaction.
 		$transaction = $this->create_mock_transaction( 'stripe', $order_id );
 
-		// Create mock retry result
+		// Create mock retry result.
 		$retry_result = array(
 			'transaction_id' => 'txn_success_123',
 			'message'        => 'Retry successful',
 		);
 
-		// Call the success handler directly
+		// Call the success handler directly.
 		$this->recovery_handler->handle_recovery_success( $order, $transaction, $retry_result );
 
-		// Verify alert was created
+		// Verify alert was created.
 		global $wpdb;
 		$alerts_table = $this->database->get_alerts_table();
-		$alert        = $wpdb->get_row(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$alert = $wpdb->get_row(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare( "SELECT * FROM {$alerts_table} WHERE alert_type = %s", 'retry_outcome' )
 		);
 
@@ -89,21 +120,23 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 		$order_id = $this->create_test_order();
 		$order    = wc_get_order( $order_id );
 
-		// Create mock transaction with failure reason
+		// Create mock transaction with failure reason.
 		$transaction = $this->create_mock_transaction( 'stripe', $order_id, 'Card declined' );
 
-		// Create mock retry result with failure
+		// Create mock retry result with failure.
 		$retry_result = array(
 			'message' => 'Insufficient funds',
 		);
 
-		// Call failure handler with retry_count = 2 (not max)
+		// Call failure handler with retry_count = 2 (not max).
 		$this->recovery_handler->handle_recovery_failure( $order, $transaction, $retry_result, 2 );
 
-		// Verify alert was created
+		// Verify alert was created.
 		global $wpdb;
 		$alerts_table = $this->database->get_alerts_table();
-		$alert        = $wpdb->get_row(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$alert = $wpdb->get_row(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare( "SELECT * FROM {$alerts_table} WHERE alert_type = %s", 'retry_outcome' )
 		);
 
@@ -120,22 +153,24 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 		$order_id = $this->create_test_order();
 		$order    = wc_get_order( $order_id );
 
-		// Create mock transaction
+		// Create mock transaction.
 		$transaction = $this->create_mock_transaction( 'stripe', $order_id, 'Card declined' );
 
-		// Create mock retry result
+		// Create mock retry result.
 		$retry_result = array(
 			'message' => 'Max retries exceeded',
 		);
 
-		// Call failure handler with retry_count = 3 (max)
+		// Call failure handler with retry_count = 3 (max).
 		$max_retries = PaySentinel_Config::instance()->get_max_retry_attempts();
 		$this->recovery_handler->handle_recovery_failure( $order, $transaction, $retry_result, $max_retries );
 
-		// Verify alert was created with high severity
+		// Verify alert was created with high severity.
 		global $wpdb;
 		$alerts_table = $this->database->get_alerts_table();
-		$alert        = $wpdb->get_row(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$alert = $wpdb->get_row(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare( "SELECT * FROM {$alerts_table} WHERE alert_type = %s", 'retry_outcome' )
 		);
 
@@ -161,17 +196,19 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 
 		$this->recovery_handler->handle_recovery_success( $order, $transaction, $retry_result );
 
-		// Retrieve alert and decode metadata
+		// Retrieve alert and decode metadata.
 		global $wpdb;
 		$alerts_table = $this->database->get_alerts_table();
-		$alert        = $wpdb->get_row(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$alert = $wpdb->get_row(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare( "SELECT * FROM {$alerts_table} WHERE alert_type = %s", 'retry_outcome' )
 		);
 
 		$this->assertNotNull( $alert );
 		$metadata = json_decode( $alert->metadata, true );
 
-		// Verify all required metadata fields
+		// Verify all required metadata fields.
 		$this->assertEquals( $order_id, $metadata['order_id'] );
 		$this->assertEquals( 'success', $metadata['status'] );
 		$this->assertEquals( 'stripe', $metadata['gateway_id'] );
@@ -196,19 +233,21 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 			'message'        => 'Success',
 		);
 
-		// First call - should create alert
+		// First call - should create alert.
 		$this->recovery_handler->handle_recovery_success( $order, $transaction, $retry_result );
 
-		// Verify alert was created
+		// Verify alert was created.
 		global $wpdb;
 		$alerts_table = $this->database->get_alerts_table();
-		$count1       = $wpdb->get_var( "SELECT COUNT(*) FROM {$alerts_table}" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$count1 = $wpdb->get_var( "SELECT COUNT(*) FROM {$alerts_table}" );
 		$this->assertEquals( 1, $count1 );
 
-		// Second call within rate limit window - should NOT create alert
+		// Second call within rate limit window - should NOT create alert.
 		$this->recovery_handler->handle_recovery_success( $order, $transaction, $retry_result );
 
-		// Verify no new alert was created
+		// Verify no new alert was created.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$count2 = $wpdb->get_var( "SELECT COUNT(*) FROM {$alerts_table}" );
 		$this->assertEquals( 1, $count2, 'Rate limiting should prevent duplicate alerts' );
 	}
@@ -231,16 +270,17 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 			'message'        => 'Success',
 		);
 
-		// Create alert for stripe gateway
+		// Create alert for stripe gateway.
 		$this->recovery_handler->handle_recovery_success( $order1, $transaction_stripe, $retry_result );
 
-		// Create alert for square gateway - should succeed (different gateway)
+		// Create alert for square gateway - should succeed (different gateway).
 		$this->recovery_handler->handle_recovery_success( $order2, $transaction_square, $retry_result );
 
-		// Verify two alerts were created (one per gateway)
+		// Verify two alerts were created (one per gateway).
 		global $wpdb;
 		$alerts_table = $this->database->get_alerts_table();
-		$count        = $wpdb->get_var( "SELECT COUNT(*) FROM {$alerts_table}" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$alerts_table}" );
 		$this->assertEquals( 2, $count, 'Different gateways should have separate rate limits' );
 	}
 
@@ -248,7 +288,7 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 	 * Test that hooks are properly registered
 	 */
 	public function test_hooks_registered() {
-		// Check if the actions are registered
+		// Check if the actions are registered.
 		$this->assertTrue(
 			has_action( 'paysentinel_retry_successful' ),
 			'paysentinel_retry_successful hook should be registered'
@@ -260,7 +300,7 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 		);
 	}
 
-	// ===== Helper Methods =====
+	// ===== Helper Methods =====.
 
 	/**
 	 * Create a test WooCommerce order
@@ -291,7 +331,7 @@ class RetryRecoveryAlertsTest extends WP_UnitTestCase {
 		$transaction->id             = 1;
 		$transaction->order_id       = $order_id;
 		$transaction->gateway_id     = $gateway_id;
-		$transaction->transaction_id = 'txn_test_' . rand( 1000, 9999 );
+		$transaction->transaction_id = 'txn_test_' . wp_rand( 1000, 9999 );
 		$transaction->status         = 'failed';
 		$transaction->failure_reason = $failure_reason;
 		$transaction->failure_code   = 'card_declined';

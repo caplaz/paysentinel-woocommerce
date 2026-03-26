@@ -9,7 +9,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -79,13 +79,13 @@ class PaySentinel_Alert_Recovery_Handler {
 	 * @param array    $retry_result Retry result array.
 	 */
 	public function handle_recovery_success( $order, $transaction, $retry_result ) {
-		// Check rate limiting to prevent alert spam
+		// Check rate limiting to prevent alert spam.
 		if ( $this->is_rate_limited( $transaction->gateway_id, 'retry_outcome' ) ) {
 			return;
 		}
 
-		// Build alert data for successful recovery
-		// retry_count is incremented by 1 because it's the successful attempt number
+		// Build alert data for successful recovery.
+		// retry_count is incremented by 1 because it's the successful attempt number.
 		$alert_data = $this->build_alert_data(
 			'success',
 			$order,
@@ -94,7 +94,7 @@ class PaySentinel_Alert_Recovery_Handler {
 			$transaction->retry_count + 1
 		);
 
-		// Trigger the alert through the checker
+		// Trigger the alert through the checker.
 		$this->checker->trigger_alert( $alert_data );
 	}
 
@@ -107,12 +107,12 @@ class PaySentinel_Alert_Recovery_Handler {
 	 * @param int      $retry_count  Current retry count.
 	 */
 	public function handle_recovery_failure( $order, $transaction, $retry_result, $retry_count ) {
-		// Check rate limiting to prevent alert spam
+		// Check rate limiting to prevent alert spam.
 		if ( $this->is_rate_limited( $transaction->gateway_id, 'retry_outcome' ) ) {
 			return;
 		}
 
-		// Build alert data for failed recovery
+		// Build alert data for failed recovery.
 		$alert_data = $this->build_alert_data(
 			'failed',
 			$order,
@@ -121,7 +121,7 @@ class PaySentinel_Alert_Recovery_Handler {
 			$retry_count
 		);
 
-		// Trigger the alert through the checker
+		// Trigger the alert through the checker.
 		$this->checker->trigger_alert( $alert_data );
 	}
 
@@ -140,7 +140,7 @@ class PaySentinel_Alert_Recovery_Handler {
 		$max_retries    = PaySentinel_Config::instance()->get_max_retry_attempts();
 		$is_max_reached = $retry_count >= $max_retries;
 
-		// Determine severity based on status
+		// Determine severity based on status.
 		if ( 'success' === $status ) {
 			$severity = 'info';
 			$message  = sprintf(
@@ -150,7 +150,7 @@ class PaySentinel_Alert_Recovery_Handler {
 				$order->get_id()
 			);
 		} else {
-			// Failed recovery
+			// Failed recovery.
 			$severity = $is_max_reached ? 'high' : 'warning';
 
 			if ( $is_max_reached ) {
@@ -170,10 +170,10 @@ class PaySentinel_Alert_Recovery_Handler {
 			}
 		}
 
-		// Get original failure info
+		// Get original failure info.
 		$original_failure_reason = isset( $transaction->failure_reason ) ? $transaction->failure_reason : __( 'Unknown', 'paysentinel' );
 
-		// Build metadata
+		// Build metadata.
 		$metadata = array(
 			'order_id'                => $order->get_id(),
 			'customer_id'             => $order->get_customer_id(),
@@ -186,7 +186,7 @@ class PaySentinel_Alert_Recovery_Handler {
 			'transaction_id'          => isset( $retry_result['transaction_id'] ) ? $retry_result['transaction_id'] : null,
 		);
 
-		// Add failure-specific metadata
+		// Add failure-specific metadata.
 		if ( 'failed' === $status ) {
 			$metadata['failure_message']     = isset( $retry_result['message'] ) ? $retry_result['message'] : __( 'Unknown error', 'paysentinel' );
 			$metadata['max_retries_reached'] = $is_max_reached;

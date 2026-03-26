@@ -1,15 +1,34 @@
 <?php
-
 /**
  * Unit tests for PaySentinel_API_Health class.
- * Tests the health API endpoints and real-time transaction statistics.
  *
- * @package PaySentinel\Tests\API
+ * @package PaySentinel
+ */
+
+/**
+ * Class HealthAPITest
  */
 class HealthAPITest extends WP_UnitTestCase {
 
+	/**
+	 * API instance.
+	 *
+	 * @var PaySentinel_API_Health
+	 */
 	private $api;
+
+	/**
+	 * Database instance.
+	 *
+	 * @var PaySentinel_Database
+	 */
 	private $database;
+
+	/**
+	 * Logger instance.
+	 *
+	 * @var PaySentinel_Logger
+	 */
 	private $logger;
 
 	/**
@@ -90,7 +109,7 @@ class HealthAPITest extends WP_UnitTestCase {
 		);
 
 		foreach ( $transactions as $transaction ) {
-			$wpdb->insert(
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->prefix . 'payment_monitor_transactions',
 				$transaction,
 				array( '%s', '%s', '%f', '%s' )
@@ -120,8 +139,8 @@ class HealthAPITest extends WP_UnitTestCase {
 		$gateway_id_1 = 'gateway_1';
 		$gateway_id_2 = 'gateway_2';
 
-		// Insert transactions for gateway_1
-		$wpdb->insert(
+		// Insert transactions for gateway_1.
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prefix . 'payment_monitor_transactions',
 			array(
 				'gateway_id' => $gateway_id_1,
@@ -153,7 +172,7 @@ class HealthAPITest extends WP_UnitTestCase {
 		$gateway_id = 'test_gateway';
 
 		// Insert test transactions.
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prefix . 'payment_monitor_transactions',
 			array(
 				'gateway_id' => $gateway_id,
@@ -212,8 +231,10 @@ class HealthAPITest extends WP_UnitTestCase {
 		$table_name = $wpdb->prefix . 'payment_monitor_transactions';
 		$temp_table = $table_name . '_temp';
 
-		// Check if table exists and rename it
+		// Check if table exists and rename it.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( "RENAME TABLE {$table_name} TO {$temp_table}" );
 		}
 
@@ -232,7 +253,9 @@ class HealthAPITest extends WP_UnitTestCase {
 			$this->assertEquals( 0, $result['pending'] );
 		} finally {
 			// Restore the table.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $temp_table ) ) === $temp_table ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 				$wpdb->query( "RENAME TABLE {$temp_table} TO {$table_name}" );
 			}
 		}
@@ -248,7 +271,7 @@ class HealthAPITest extends WP_UnitTestCase {
 
 		// Insert multiple transactions.
 		for ( $i = 0; $i < 5; $i++ ) {
-			$wpdb->insert(
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->prefix . 'payment_monitor_transactions',
 				array(
 					'gateway_id' => $gateway_id,
@@ -280,7 +303,9 @@ class HealthAPITest extends WP_UnitTestCase {
 		global $wpdb;
 
 		// Clean up test data.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( "DELETE FROM {$wpdb->prefix}payment_monitor_transactions WHERE gateway_id LIKE 'test_%'" );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( "DELETE FROM {$wpdb->prefix}payment_monitor_gateway_health WHERE gateway_id LIKE 'test_%'" );
 
 		parent::tearDown();

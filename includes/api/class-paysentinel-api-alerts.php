@@ -1,21 +1,25 @@
 <?php
-
 /**
  * Alerts REST API endpoints
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_API_Alerts.
+ */
 class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 
 	/**
 	 * Register REST routes for alerts endpoints
 	 */
 	public function register_routes() {
-		// Get alerts
+		// Get alerts.
 		register_rest_route(
 			$this->namespace,
 			'/alerts',
@@ -56,7 +60,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 			)
 		);
 
-		// Get specific alert
+		// Get specific alert.
 		register_rest_route(
 			$this->namespace,
 			'/alerts/(?P<id>[0-9]+)',
@@ -74,7 +78,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 			)
 		);
 
-		// Resolve alert
+		// Resolve alert.
 		register_rest_route(
 			$this->namespace,
 			'/alerts/(?P<id>[0-9]+)/resolve',
@@ -96,7 +100,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 	/**
 	 * Get alerts
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -133,26 +137,26 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 
 		$table_name = $this->database->get_alerts_table();
 
-		// Total count query
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// Total count query.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$total = (int) $wpdb->get_var(
-			$wpdb->prepare(
+			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 				"SELECT COUNT(*) FROM %i {$where_sql}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				array_merge( array( $table_name ), $where_values )
 			)
 		);
 
-		// Get alerts
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// Get alerts.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$alerts = $wpdb->get_results(
-			$wpdb->prepare(
+			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 				"SELECT * FROM %i {$where_sql} ORDER BY created_at DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				array_merge( array( $table_name ), $where_values, array( $per_page, $offset ) )
 			),
 			ARRAY_A
 		);
 
-		// Format alerts
+		// Format alerts.
 		$formatted_alerts = array();
 		foreach ( $alerts as $alert ) {
 			$formatted_alerts[] = $this->format_alert( $alert );
@@ -169,7 +173,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 	/**
 	 * Get specific alert
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -195,6 +199,9 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 
 	/**
 	 * Resolve alert
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function resolve_alert( $request ) {
 		global $wpdb;
@@ -203,7 +210,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 
 		$table_name = $this->database->get_alerts_table();
 
-		// Check if alert exists
+		// Check if alert exists.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alert = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table_name, $id ),
@@ -214,7 +221,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 			return $this->get_error_response( 'alert_not_found', 'Alert not found', 404 );
 		}
 
-		// Update alert status
+		// Update alert status.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table_name,
@@ -231,7 +238,7 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 			return $this->get_error_response( 'update_failed', 'Failed to resolve alert', 500 );
 		}
 
-		// Get updated alert
+		// Get updated alert.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$updated_alert = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table_name, $id ),
@@ -243,9 +250,12 @@ class PaySentinel_API_Alerts extends PaySentinel_API_Base {
 
 	/**
 	 * Format alert for API response
+	 *
+	 * @param array|object $alert Alert data from database.
+	 * @return array Formatted alert.
 	 */
 	private function format_alert( $alert ) {
-		// Generate title from alert_type
+		// Generate title from alert_type.
 		$alert_type_titles = array(
 			'gateway_down'       => 'Gateway Down',
 			'low_success_rate'   => 'Low Success Rate',

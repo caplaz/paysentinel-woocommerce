@@ -1,5 +1,5 @@
 === PaySentinel - Payment Monitor for WooCommerce ===
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 7.4
@@ -175,6 +175,17 @@ Yes! Check the Developer Guide in the plugin package for APIs, hooks, filters, a
 * PaySentinel excludes Cash on Delivery, Bank Transfer, Cheque automatically
 
 == Changelog ==
+
+= 1.1.2 - March 26, 2026 =
+* Security Fix: Added nonce verification to all admin flash-message displays reading `$_GET['message']`/`$_GET['type']`; added `_wpnonce` to all corresponding `wp_safe_redirect()` calls
+* Security Fix: Suppressed PluginCheck DB warnings on properly parameterised dynamic queries in API endpoints
+* Code Quality: Replaced `current_time('timestamp')` with `time()` throughout the codebase
+* Code Quality: Renamed reserved-keyword function parameters (`$default`, `$array`, `$string`) to compliant alternatives
+* Code Quality: Added strict comparison (`true`) to all `in_array()` calls; changed loose `==` to `===` where flagged
+* Code Quality: Registered `manage_woocommerce` as a known capability in phpcs config
+* Code Quality: Removed all commented-out debug code from production source files
+* Code Quality: Full WordPress Coding Standards compliance across all source files (docblocks, @var, @param, @throws tags)
+* Code Quality: Merged unnecessary string concatenations and removed unused variables
 
 = 1.1.1 - March 24, 2026 =
 * Security Fix: Resolved all findings from the WordPress.org plugin review team audit

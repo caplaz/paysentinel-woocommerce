@@ -1,8 +1,12 @@
 <?php
+/**
+ * Tests file.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Unit tests for PaySentinel_Gateway_Manager class.
- * Tests gateway detection and filtering logic.
+ * Class GatewayManagerTest
  */
 class GatewayManagerTest extends WP_UnitTestCase {
 
@@ -13,6 +17,9 @@ class GatewayManagerTest extends WP_UnitTestCase {
 	 */
 	private $gateway_manager;
 
+	/**
+	 * Set up test environment.
+	 */
 	public function setUp(): void {
 		parent::setUp();
 		$this->gateway_manager = new PaySentinel_Gateway_Manager();
@@ -195,8 +202,8 @@ class GatewayManagerTest extends WP_UnitTestCase {
 		$name = $this->gateway_manager->get_gateway_display_name( 'custom_payment_gateway' );
 		$this->assertIsString( $name );
 
-		// The formatted name should contain recognizable parts of the original name
-		// (after removing prefixes and converting underscores/hyphens to spaces)
+		// The formatted name should contain recognizable parts of the original name.
+		// (after removing prefixes and converting underscores/hyphens to spaces).
 		$this->assertStringContainsString( 'custom', strtolower( $name ) );
 	}
 }

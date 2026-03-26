@@ -41,7 +41,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$database       = new PaySentinel_Database();
 		$this->notifier = new PaySentinel_Alert_Notifier( $this->template_manager, $database );
 
-		// Reset options
+		// Reset options.
 		delete_option( 'paysentinel_settings' );
 		delete_option( 'paysentinel_slack_workspace' );
 		delete_option( 'paysentinel_quota_exceeded' );
@@ -94,7 +94,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
 
-		// Mock API call
+		// Mock API call.
 		add_filter(
 			'pre_http_request',
 			function ( $pre, $args, $url ) {
@@ -214,11 +214,11 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$calculate_severity = new ReflectionMethod( 'PaySentinel_Alert_Checker', 'calculate_severity' );
 		$calculate_severity->setAccessible( true );
 
-		// Low volume
+		// Low volume.
 		$this->assertEquals( 'info', $calculate_severity->invoke( $checker, 50, 1 ) );
 		$this->assertEquals( 'warning', $calculate_severity->invoke( $checker, 50, 5 ) );
 
-		// Normal volume
+		// Normal volume.
 		$this->assertEquals( 'critical', $calculate_severity->invoke( $checker, 70, 10 ) );
 		$this->assertEquals( 'high', $calculate_severity->invoke( $checker, 85, 10 ) );
 		$this->assertEquals( 'warning', $calculate_severity->invoke( $checker, 92, 10 ) );
@@ -237,7 +237,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 		$database->create_tables();
 		$table_name = $database->get_alerts_table();
-		$wpdb->query( "TRUNCATE TABLE $table_name" );
+		$wpdb->query( "TRUNCATE TABLE $table_name" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 		$alert_data = array(
 			'gateway_id' => 'stripe',
@@ -247,12 +247,13 @@ class AlertSystemTest extends WP_UnitTestCase {
 			'metadata'   => array( 'foo' => 'bar' ),
 		);
 
-		// Required for notifier called inside trigger_alert
+		// Required for notifier called inside trigger_alert.
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
 
 		$alert_id = $checker->trigger_alert( $alert_data );
 		$this->assertNotFalse( $alert_id );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$saved = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE id = %d", $alert_id ) );
 		$this->assertEquals( 'stripe', $saved->gateway_id );
 		$this->assertEquals( 'low_success_rate', $saved->alert_type );
@@ -271,9 +272,10 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 		$database->create_tables();
 		$table_name = $database->get_alerts_table();
-		$wpdb->query( "TRUNCATE TABLE $table_name" );
+		$wpdb->query( "TRUNCATE TABLE $table_name" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
-		// Create an open alert with valid ENUM
+		// Create an open alert with valid ENUM.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->insert(
 			$table_name,
 			array(
@@ -289,6 +291,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$count = $checker->resolve_alerts( 'stripe', 'low_success_rate' );
 		$this->assertEquals( 1, $count );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$resolved = $wpdb->get_var( "SELECT is_resolved FROM $table_name LIMIT 1" );
 		$this->assertEquals( 1, $resolved );
 	}
@@ -305,11 +308,12 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 		$database->create_tables();
 		$table_name = $database->get_alerts_table();
-		$wpdb->query( "TRUNCATE TABLE $table_name" );
+		$wpdb->query( "TRUNCATE TABLE $table_name" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 		$this->assertFalse( $checker->is_rate_limited( 'stripe', 'low_success_rate' ) );
 
-		// Add a recent alert with valid ENUM
+		// Add a recent alert with valid ENUM.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->insert(
 			$table_name,
 			array(
@@ -333,7 +337,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$gateway_manager = new PaySentinel_Gateway_Manager();
 		$checker         = new PaySentinel_Alert_Checker( $database, $health, $gateway_manager, $this->notifier );
 
-		// Mock settings and refresh config cache
+		// Mock settings and refresh config cache.
 		PaySentinel_Config::instance()->update_all(
 			array(
 				'alerts_enabled'               => 1,
@@ -341,10 +345,10 @@ class AlertSystemTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Ensure site is registered for the notifier
+		// Ensure site is registered for the notifier.
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
 
-		// Mock Order
+		// Mock Order.
 		$order = $this->getMockBuilder( 'WC_Order' )
 			->disableOriginalConstructor()
 			->getMock();
@@ -357,10 +361,11 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$database->create_tables();
 		$wpdb       = $GLOBALS['wpdb'];
 		$table_name = $database->get_alerts_table();
-		$wpdb->query( "TRUNCATE TABLE $table_name" );
+		$wpdb->query( "TRUNCATE TABLE $table_name" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 		$checker->check_immediate_transaction_alert( 123, $order );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$alert_exists = $wpdb->get_var( "SELECT COUNT(*) FROM $table_name WHERE gateway_id = 'stripe' AND alert_type = 'gateway_error'" );
 		$this->assertEquals( 1, $alert_exists );
 	}
@@ -394,7 +399,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 		$database->create_tables();
 		$table_name = $database->get_alerts_table();
-		$wpdb->query( "TRUNCATE TABLE $table_name" );
+		$wpdb->query( "TRUNCATE TABLE $table_name" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 		PaySentinel_Config::instance()->update_all(
 			array(
@@ -404,7 +409,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 		);
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
 
-		// Case 1: Healthy
+		// Case 1: Healthy.
 		$checker->check_and_send(
 			'stripe',
 			array(
@@ -415,9 +420,10 @@ class AlertSystemTest extends WP_UnitTestCase {
 				),
 			)
 		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$this->assertEquals( 0, $wpdb->get_var( "SELECT COUNT(*) FROM $table_name" ) );
 
-		// Case 2: Unhealthy
+		// Case 2: Unhealthy.
 		$checker->check_and_send(
 			'stripe',
 			array(
@@ -428,6 +434,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 				),
 			)
 		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$this->assertEquals( 1, $wpdb->get_var( "SELECT COUNT(*) FROM $table_name" ) );
 	}
 
@@ -443,9 +450,9 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 		$database->create_tables();
 		$table_name = $database->get_alerts_table();
-		$wpdb->query( "TRUNCATE TABLE $table_name" );
+		$wpdb->query( "TRUNCATE TABLE $table_name" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		$tx_table_name = $database->get_transactions_table();
-		$wpdb->query( "TRUNCATE TABLE $tx_table_name" );
+		$wpdb->query( "TRUNCATE TABLE $tx_table_name" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 		PaySentinel_Config::instance()->update_all(
 			array(
@@ -457,6 +464,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 		// Create a transaction from 2 hours ago.
 		// So gateway age is ~2 hours.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->insert(
 			$tx_table_name,
 			array(
@@ -465,7 +473,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 				'amount'     => 10.0,
 				'currency'   => 'USD',
 				'status'     => 'success',
-				'created_at' => date( 'Y-m-d H:i:s', time() - 7200 ), // 2 hours ago
+				'created_at' => gmdate( 'Y-m-d H:i:s', time() - 7200 ), // 2 hours ago
 			)
 		);
 
@@ -491,9 +499,11 @@ class AlertSystemTest extends WP_UnitTestCase {
 			)
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$alert_count = $wpdb->get_var( "SELECT COUNT(*) FROM $table_name" );
 		$this->assertEquals( 1, $alert_count );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$alert = $wpdb->get_row( "SELECT * FROM $table_name LIMIT 1" );
 		$this->assertStringContainsString( '1hour', $alert->message );
 	}
@@ -510,7 +520,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 
 		$database->create_tables();
 		$table_name = $database->get_alerts_table();
-		$wpdb->query( "TRUNCATE TABLE $table_name" );
+		$wpdb->query( "TRUNCATE TABLE $table_name" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
 
 		$checker->check_gateway_connectivity_alert(
@@ -521,6 +531,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 			)
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$alert = $wpdb->get_row( "SELECT * FROM $table_name" );
 		$this->assertEquals( 'gateway_down', $alert->alert_type );
 		$this->assertEquals( 'critical', $alert->severity );
@@ -556,7 +567,7 @@ class AlertSystemTest extends WP_UnitTestCase {
 		$send_to_api = new ReflectionMethod( 'PaySentinel_Alert_Notifier', 'send_to_api' );
 		$send_to_api->setAccessible( true );
 
-		// 1. Payload with channels array
+		// 1. Payload with channels array.
 		$send_to_api->invoke(
 			$this->notifier,
 			array(
@@ -568,11 +579,11 @@ class AlertSystemTest extends WP_UnitTestCase {
 			),
 			array()
 		);
-		// Verify the payload contains channels array instead of alert_type
+		// Verify the payload contains channels array instead of alert_type.
 		$this->assertArrayHasKey( 'channels', $last_payload );
 		$this->assertContains( 'api', $last_payload['channels'] );
 
-		// 2. Payload without channels specified
+		// 2. Payload without channels specified.
 		$send_to_api->invoke(
 			$this->notifier,
 			array(
@@ -583,8 +594,8 @@ class AlertSystemTest extends WP_UnitTestCase {
 			),
 			array()
 		);
-		// When no channels are specified, the payload should not include channels field
-		// and the API will deliver to all enabled channels
+		// When no channels are specified, the payload should not include channels field.
+		// and the API will deliver to all enabled channels.
 		$this->assertArrayHasKey( 'message', $last_payload );
 
 		remove_all_filters( 'pre_http_request' );

@@ -1,21 +1,25 @@
 <?php
-
 /**
  * Transaction history REST API endpoints
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_API_Transactions.
+ */
 class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 
 	/**
 	 * Register REST routes for transaction endpoints
 	 */
 	public function register_routes() {
-		// Get all transactions with filtering
+		// Get all transactions with filtering.
 		register_rest_route(
 			$this->namespace,
 			'/transactions',
@@ -62,7 +66,7 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 			)
 		);
 
-		// Get single transaction details
+		// Get single transaction details.
 		register_rest_route(
 			$this->namespace,
 			'/transactions/(?P<transaction_id>[0-9]+)',
@@ -84,7 +88,7 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 	/**
 	 * Get transactions with filtering and pagination
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -93,7 +97,7 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 			global $wpdb;
 			$table_name = $this->database->get_transactions_table();
 
-			// Check if table exists
+			// Check if table exists.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 				return $this->get_paginated_response(
@@ -104,13 +108,13 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 				);
 			}
 
-			// Get filter parameters
+			// Get filter parameters.
 			$gateway_id = $this->get_string_param( $request, 'gateway_id' );
 			$status     = $this->get_string_param( $request, 'status' );
 			$start_date = $this->get_string_param( $request, 'start_date' );
 			$end_date   = $this->get_string_param( $request, 'end_date' );
 
-			// Validate dates if provided
+			// Validate dates if provided.
 			if ( $start_date ) {
 				$start_date_result = $this->validate_date( $start_date );
 				if ( is_wp_error( $start_date_result ) ) {
@@ -127,7 +131,7 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 				$end_date = $end_date_result . ' 23:59:59';
 			}
 
-			// Build WHERE clause
+			// Build WHERE clause.
 			$where_conditions = array( '1=1' );
 			$where_params     = array();
 
@@ -153,24 +157,24 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 
 			$where_clause = implode( ' AND ', $where_conditions );
 
-			// Get pagination parameters
+			// Get pagination parameters.
 			$pagination = $this->validate_pagination( $request );
 
-			// Get total count
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// Get total count.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			$total_count = (int) $wpdb->get_var(
-				$wpdb->prepare(
+				$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 					"SELECT COUNT(*) FROM %i WHERE {$where_clause}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					array_merge( array( $table_name ), $where_params )
 				)
 			);
 
-			// Get paginated results
+			// Get paginated results.
 			$offset = $this->calculate_offset( $pagination['page'], $pagination['per_page'] );
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			$results = $wpdb->get_results(
-				$wpdb->prepare(
+				$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 					"SELECT id, order_id, gateway_id, status, amount, currency, failure_reason, failure_code, transaction_id, customer_email, customer_ip, created_at as created_at FROM %i WHERE {$where_clause} ORDER BY created_at DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 					array_merge( array( $table_name ), $where_params, array( $pagination['per_page'], $offset ) )
 				)
@@ -180,7 +184,7 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 				$results = array();
 			}
 
-			// Format results
+			// Format results.
 			$transactions = array_map(
 				function ( $row ) {
 					return array(
@@ -220,7 +224,7 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 	/**
 	 * Get single transaction details
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -239,7 +243,7 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 			global $wpdb;
 			$table_name = $this->database->get_transactions_table();
 
-			// Check if table exists
+			// Check if table exists.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 				return $this->get_error_response(
@@ -269,7 +273,7 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 				);
 			}
 
-			// Get associated order for additional context
+			// Get associated order for additional context.
 			$order = wc_get_order( $result->order_id );
 
 			$transaction_data = array(
@@ -284,7 +288,7 @@ class PaySentinel_API_Transactions extends PaySentinel_API_Base {
 				'created_at'     => $result->created_at,
 			);
 
-			// Add order details if order exists
+			// Add order details if order exists.
 			if ( $order ) {
 				$transaction_data['order'] = array(
 					'id'             => $order->get_id(),

@@ -1,8 +1,12 @@
 <?php
+/**
+ * Property-based tests for alert system.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Property-based tests for alert system
- * Tests universal correctness properties with 100+ iterations
+ * Class AlertPropertyTest
  */
 class AlertPropertyTest extends PHPUnit\Framework\TestCase {
 
@@ -14,9 +18,9 @@ class AlertPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_alert_severity_calculation() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			$rate = rand( 0, 10000 ) / 100; // 0-100%
+			$rate = wp_rand( 0, 10000 ) / 100; // 0-100%
 
-			// Determine severity
+			// Determine severity.
 			if ( $rate >= 95 ) {
 				$severity = 'info';
 			} elseif ( $rate >= 50 ) {
@@ -25,10 +29,10 @@ class AlertPropertyTest extends PHPUnit\Framework\TestCase {
 				$severity = 'critical';
 			}
 
-			// Verify severity values
+			// Verify severity values.
 			$this->assertContains( $severity, array( 'info', 'warning', 'critical' ) );
 
-			// Verify severity increases with worse rates
+			// Verify severity increases with worse rates.
 			if ( $rate < 50 ) {
 				$this->assertEquals( 'critical', $severity );
 			} elseif ( $rate < 95 ) {
@@ -68,19 +72,19 @@ class AlertPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_alert_data_basic() {
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Basic alert data
+			// Basic alert data.
 			$alert_type = 'low_success_rate';
 			$gateway_id = 'stripe';
 			$severity   = 'warning';
 			$message    = 'Test alert';
 
-			// Verify fields are valid
+			// Verify fields are valid.
 			$this->assertIsString( $alert_type );
 			$this->assertIsString( $gateway_id );
 			$this->assertIsString( $severity );
 			$this->assertIsString( $message );
 
-			// All fields non-empty
+			// All fields non-empty.
 			$this->assertNotEmpty( $alert_type );
 			$this->assertNotEmpty( $gateway_id );
 			$this->assertNotEmpty( $severity );
@@ -98,13 +102,13 @@ class AlertPropertyTest extends PHPUnit\Framework\TestCase {
 		$rate_limit_seconds = 6 * 3600; // 6 hours
 
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Simulated alert times
+			// Simulated alert times.
 			$first_alert_time  = time();
-			$second_alert_time = $first_alert_time + rand( 1, $rate_limit_seconds );
+			$second_alert_time = $first_alert_time + wp_rand( 1, $rate_limit_seconds );
 
 			$time_diff = $second_alert_time - $first_alert_time;
 
-			// Should rate limit if within window
+			// Should rate limit if within window.
 			if ( $time_diff < $rate_limit_seconds ) {
 				$should_limit = true;
 			} else {

@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -85,6 +85,7 @@ class PaySentinel_Admin_Page_Renderer {
 	 * @param string $help_anchor Optional URL fragment (#section) for the docs link (deprecated).
 	 */
 	private function render_page_header( $title, $help_anchor = '' ) {
+		unset( $help_anchor ); // Deprecated parameter; retained for signature compatibility.
 		?>
 		<h1><?php echo esc_html( $title ); ?></h1>
 		<?php
@@ -101,43 +102,16 @@ class PaySentinel_Admin_Page_Renderer {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'paysentinel' ) );
 		}
 
-		// Get license info for header display
-		$tier        = $this->license->get_license_tier();
-		$tier_labels = array(
-			'free'    => __( 'Free', 'paysentinel' ),
-			'starter' => __( 'Starter', 'paysentinel' ),
-			'pro'     => __( 'Pro', 'paysentinel' ),
-			'agency'  => __( 'Agency', 'paysentinel' ),
-		);
-
-		// Get plan color from API data, fallback to hardcoded colors
-		$license_data = $this->license->get_license_data();
-		if ( $license_data && isset( $license_data['plan_color'] ) && ! empty( $license_data['plan_color'] ) ) {
-			$tier_color = $license_data['plan_color'];
-		} else {
-			// Fallback to hardcoded colors
-			$tier_colors = array(
-				'free'    => '#6c757d',
-				'starter' => '#0073aa',
-				'pro'     => '#46b450',
-				'agency'  => '#9b51e0',
-			);
-			$tier_color  = isset( $tier_colors[ $tier ] ) ? $tier_colors[ $tier ] : '#0073aa';
-		}
-
-		$tier_label = isset( $tier_labels[ $tier ] ) ? $tier_labels[ $tier ] : ucfirst( $tier );
-
 		?>
 		<div class="wrap">
 			<?php
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			if ( isset( $_GET['message'] ) ) :
+			$nonce_valid = isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'paysentinel_admin_redirect' );
+			if ( $nonce_valid && isset( $_GET['message'] ) ) :
+				$flash_type    = isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info';
+				$flash_message = sanitize_text_field( wp_unslash( $_GET['message'] ) );
 				?>
-				<div
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-					<p><?php echo esc_html( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ); ?></p>
+				<div class="notice notice-<?php echo esc_attr( $flash_type ); ?> is-dismissible">
+					<p><?php echo esc_html( $flash_message ); ?></p>
 				</div>
 			<?php endif; ?>
 
@@ -206,14 +180,13 @@ class PaySentinel_Admin_Page_Renderer {
 			<?php $this->render_page_header( __( 'Transactions', 'paysentinel' ), 'transactions' ); ?>
 
 			<?php
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			if ( isset( $_GET['message'] ) ) :
+			$nonce_valid = isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'paysentinel_admin_redirect' );
+			if ( $nonce_valid && isset( $_GET['message'] ) ) :
+				$flash_type    = isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info';
+				$flash_message = sanitize_text_field( wp_unslash( $_GET['message'] ) );
 				?>
-				<div
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-					<p><?php echo esc_html( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ); ?></p>
+				<div class="notice notice-<?php echo esc_attr( $flash_type ); ?> is-dismissible">
+					<p><?php echo esc_html( $flash_message ); ?></p>
 				</div>
 			<?php endif; ?>
 
@@ -343,7 +316,7 @@ class PaySentinel_Admin_Page_Renderer {
 										</div>
 									</div>
 
-									<?php if ( in_array( $t->status, array( 'failed', 'retry' ) ) ) : ?>
+									<?php if ( in_array( $t->status, array( 'failed', 'retry' ), true ) ) : ?>
 										<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=paysentinel_retry&order_id=' . $t->order_id ), 'paysentinel_retry_' . $t->order_id ) ); ?>"
 											class="button button-small tip"
 											title="<?php esc_attr_e( 'Retry Payment Now', 'paysentinel' ); ?>"
@@ -416,13 +389,14 @@ class PaySentinel_Admin_Page_Renderer {
 		<div class="wrap">
 			<?php $this->render_page_header( __( 'Settings', 'paysentinel' ), 'settings' ); ?>
 
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			<?php if ( isset( $_GET['message'] ) ) : ?>
-				<div
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-					class="notice notice-<?php echo esc_attr( isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info' ); ?> is-dismissible">
-					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-					<p><?php echo esc_html( urldecode( isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '' ) ); ?></p>
+			<?php
+			$nonce_valid = isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'paysentinel_admin_redirect' );
+			if ( $nonce_valid && isset( $_GET['message'] ) ) :
+				$flash_type    = isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : 'info';
+				$flash_message = sanitize_text_field( wp_unslash( $_GET['message'] ) );
+				?>
+				<div class="notice notice-<?php echo esc_attr( $flash_type ); ?> is-dismissible">
+					<p><?php echo esc_html( $flash_message ); ?></p>
 				</div>
 			<?php endif; ?>
 
@@ -459,11 +433,11 @@ class PaySentinel_Admin_Page_Renderer {
 						<input type="hidden" name="paysentinel_options[current_tab]"
 							value="<?php echo esc_attr( $active_tab ); ?>" />
 						<?php
-						// Only render the active section
+						// Only render the active section.
 						$section_id = 'paysentinel_' . $active_tab;
 
-						// We still need to call do_settings_sections but we only want our specific section
-						// Standard WordPress doesn't easily allow rendering just one section of a page
+						// We still need to call do_settings_sections but we only want our specific section.
+						// Standard WordPress doesn't easily allow rendering just one section of a page.
 						// without some hackery or custom rendering.
 						// Actually, do_settings_sections($page) renders ALL sections for that page.
 						// Let's use a more targeted approach.
@@ -481,9 +455,7 @@ class PaySentinel_Admin_Page_Renderer {
 								call_user_func( $section['callback'], $section );
 							}
 
-							if ( ! isset( $wp_settings_fields ) || ! isset( $wp_settings_fields['paysentinel_settings'] ) || ! isset( $wp_settings_fields['paysentinel_settings'][ $section_id ] ) ) {
-								// No fields
-							} else {
+							if ( isset( $wp_settings_fields ) && isset( $wp_settings_fields['paysentinel_settings'] ) && isset( $wp_settings_fields['paysentinel_settings'][ $section_id ] ) ) {
 								echo '<table class="form-table" role="presentation">';
 								do_settings_fields( 'paysentinel_settings', $section_id );
 								echo '</table>';
@@ -640,7 +612,7 @@ class PaySentinel_Admin_Page_Renderer {
 
 			<script>
 				jQuery(document).ready(function ($) {
-					// Helper: Format Gateway Results
+					// Helper: Format Gateway Results.
 					function formatGatewayResults(data) {
 						var html = '<div class="card" style="max-width: 100%; margin-top: 10px; padding: 0;">';
 						html += '<h3 style="padding: 10px 15px; margin: 0; background: #f8f9fa; border-bottom: 1px solid #ddd;"><?php esc_html_e( 'Gateway Status Report', 'paysentinel' ); ?></h3>';
@@ -689,12 +661,12 @@ class PaySentinel_Admin_Page_Renderer {
 						return html;
 					}
 
-					// Helper: Format Full Diagnostics
+					// Helper: Format Full Diagnostics.
 					function formatFullDiagnostics(data) {
 						var html = '<div style="margin-top: 15px;">';
 						html += '<h3><?php esc_html_e( 'System Health Report', 'paysentinel' ); ?> <span style="font-weight: normal; font-size: 13px; color: #666;">(' + data.timestamp + ')</span></h3>';
 
-						// System Info
+						// System Info.
 						if (data.system_info) {
 							html += '<div class="card" style="margin-bottom: 20px; padding: 15px;">';
 							html += '<h4 style="margin-top: 0;"><?php esc_html_e( 'System Information', 'paysentinel' ); ?></h4>';
@@ -706,7 +678,7 @@ class PaySentinel_Admin_Page_Renderer {
 							html += '</tbody></table></div>';
 						}
 
-						// Database
+						// Database.
 						if (data.database) {
 							var dbStatus = data.database.status === 'healthy' ? '✅ Healthy' : '⚠️ Issues Found';
 							html += '<div class="card" style="margin-bottom: 20px; padding: 15px;">';
@@ -731,12 +703,12 @@ class PaySentinel_Admin_Page_Renderer {
 							html += '</div>';
 						}
 
-						// Gateways section
+						// Gateways section.
 						if (data.gateways) {
 							html += formatGatewayResults(data.gateways);
 						}
 
-						// Simulated Failures section (Test Mode Diagnostics)
+						// Simulated Failures section (Test Mode Diagnostics).
 						if (data.simulated_failures) {
 							var simStatus = data.simulated_failures.status === 'healthy' ? '✅ Healthy' : '⚠️ Issues Found';
 							html += '<div class="card" style="margin-bottom: 20px; padding: 15px;">';
@@ -784,7 +756,7 @@ class PaySentinel_Admin_Page_Renderer {
 
 
 
-					// Add basic JavaScript functionality
+					// Add basic JavaScript functionality.
 					$('#run-full-diagnostics').on('click', function () {
 						var $btn = $(this);
 						$btn.prop('disabled', true).text('<?php esc_attr_e( 'Running...', 'paysentinel' ); ?>');

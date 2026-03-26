@@ -1,12 +1,34 @@
 <?php
+/**
+ * Tests for PRO tier advanced analytics features.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Tests for PRO tier advanced analytics features
+ * Class ProAnalyticsTest
  */
 class ProAnalyticsTest extends WP_UnitTestCase {
 
+	/**
+	 * Analytics instance.
+	 *
+	 * @var PaySentinel_Analytics_Pro
+	 */
 	private $analytics;
+
+	/**
+	 * License instance.
+	 *
+	 * @var PaySentinel_License
+	 */
 	private $license;
+
+	/**
+	 * Database instance.
+	 *
+	 * @var PaySentinel_Database
+	 */
 	private $database;
 
 	/**
@@ -23,20 +45,20 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	 * Test PRO analytics availability check
 	 */
 	public function test_pro_analytics_availability() {
-		// Free tier - should NOT have access
+		// Free tier - should NOT have access.
 		update_option( 'paysentinel_license_status', 'invalid' );
 		$this->assertFalse( $this->analytics->is_pro_analytics_available() );
 
-		// Starter tier - should NOT have access
+		// Starter tier - should NOT have access.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'starter' ) );
 		$this->assertFalse( $this->analytics->is_pro_analytics_available() );
 
-		// Pro tier - should HAVE access
+		// Pro tier - should HAVE access.
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 		$this->assertTrue( $this->analytics->is_pro_analytics_available() );
 
-		// Agency tier - should HAVE access
+		// Agency tier - should HAVE access.
 		update_option( 'paysentinel_license_data', array( 'plan' => 'agency' ) );
 		$this->assertTrue( $this->analytics->is_pro_analytics_available() );
 	}
@@ -73,13 +95,13 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	 * Test failure pattern analysis gating
 	 */
 	public function test_failure_pattern_analysis_gating() {
-		// Free tier - should fail
+		// Free tier - should fail.
 		update_option( 'paysentinel_license_status', 'invalid' );
 		$result = $this->analytics->get_failure_pattern_analysis( 'stripe', 30 );
 		$this->assertArrayHasKey( 'error', $result );
 		$this->assertEquals( 'pro_feature_required', $result['error'] );
 
-		// Pro tier - should succeed
+		// Pro tier - should succeed.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 		$result = $this->analytics->get_failure_pattern_analysis( 'stripe', 30 );
@@ -95,11 +117,11 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	public function test_get_daily_trends_includes_recovery_roi() {
 		global $wpdb;
 
-		// Mock transaction data
+		// Mock transaction data.
 		$table_name = $this->database->get_transactions_table();
 
-		// Success without retry
-		$wpdb->insert(
+		// Success without retry.
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'gateway_id'  => 'stripe',
@@ -111,8 +133,8 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Success WITH retry (Recovered)
-		$wpdb->insert(
+		// Success WITH retry (Recovered).
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'gateway_id'  => 'stripe',
@@ -124,8 +146,8 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Failure
-		$wpdb->insert(
+		// Failure.
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'gateway_id'  => 'stripe',
@@ -142,16 +164,16 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		$this->assertNotEmpty( $trends );
 		$today = $trends[ count( $trends ) - 1 ];
 
-		// Lost Revenue: 75.00 (from failed 103)
+		// Lost Revenue: 75.00 (from failed 103).
 		$this->assertEquals( 75.00, $today['lost_revenue'] );
 
-		// Recovered Revenue: 150.00 (all success: 100 + 50)
+		// Recovered Revenue: 150.00 (all success: 100 + 50).
 		$this->assertEquals( 150.00, $today['recovered_revenue'] );
 
-		// Recovered Transactions: 1 (only 102 had retry_count > 0)
+		// Recovered Transactions: 1 (only 102 had retry_count > 0).
 		$this->assertEquals( 1, $today['recovered_transactions'] );
 
-		// Recovery ROI: 50.00 (only 102 amount)
+		// Recovery ROI: 50.00 (only 102 amount).
 		$this->assertEquals( 50.00, $today['recovery_roi'] );
 	}
 
@@ -162,7 +184,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
-		// Enable stripe
+		// Enable stripe.
 		update_option(
 			'paysentinel_settings',
 			array(
@@ -173,8 +195,8 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		global $wpdb;
 		$table_name = $this->database->get_transactions_table();
 
-		// Insert one recovered transaction for stripe
-		$wpdb->insert(
+		// Insert one recovered transaction for stripe.
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'gateway_id'  => 'stripe',
@@ -197,12 +219,12 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	 * Test extended history respects tier limits
 	 */
 	public function test_extended_history_respects_tier_limits() {
-		// Free tier - should fail
+		// Free tier - should fail.
 		update_option( 'paysentinel_license_status', 'invalid' );
 		$result = $this->analytics->get_extended_history( 'stripe', 90 );
 		$this->assertArrayHasKey( 'error', $result );
 
-		// Pro tier - should succeed with 90-day limit
+		// Pro tier - should succeed with 90-day limit.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 		$result = $this->analytics->get_extended_history( 'stripe', 90 );
@@ -214,12 +236,12 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	 * Test gateway comparison feature
 	 */
 	public function test_gateway_comparison_pro_feature() {
-		// Free tier - should fail
+		// Free tier - should fail.
 		update_option( 'paysentinel_license_status', 'invalid' );
 		$result = $this->analytics->get_gateway_comparison();
 		$this->assertArrayHasKey( 'error', $result );
 
-		// Pro tier - should succeed
+		// Pro tier - should succeed.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 		$result = $this->analytics->get_gateway_comparison();
@@ -235,7 +257,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
-		// Use reflection to access private method
+		// Use reflection to access private method.
 		$reflection = new ReflectionClass( $this->analytics );
 		$method     = $reflection->getMethod( 'calculate_trends' );
 		$method->setAccessible( true );
@@ -253,11 +275,11 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( '7d_vs_30d', $trends );
 		$this->assertArrayHasKey( '30d_vs_90d', $trends );
 
-		// 24hour (95) vs 7day (90) = improving
+		// 24hour (95) vs 7day (90) = improving.
 		$this->assertEquals( 'improving', $trends['24h_vs_7d']['direction'] );
 		$this->assertEquals( 5.0, $trends['24h_vs_7d']['success_rate_change'] );
 
-		// 7day (90) vs 30day (92) = declining
+		// 7day (90) vs 30day (92) = declining.
 		$this->assertEquals( 'declining', $trends['7d_vs_30d']['direction'] );
 	}
 
@@ -265,12 +287,12 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	 * Test advanced metrics summary
 	 */
 	public function test_advanced_metrics_summary() {
-		// Free tier - should fail
+		// Free tier - should fail.
 		update_option( 'paysentinel_license_status', 'invalid' );
 		$result = $this->analytics->get_advanced_metrics_summary();
 		$this->assertArrayHasKey( 'error', $result );
 
-		// Pro tier - should succeed
+		// Pro tier - should succeed.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 		update_option( 'paysentinel_settings', array( 'enabled_gateways' => array( 'stripe', 'paypal' ) ) );
@@ -292,7 +314,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		$health      = new PaySentinel_Health();
 		$health_data = $health->calculate_health( 'stripe' );
 
-		// PRO users should have access to all periods
+		// PRO users should have access to all periods.
 		$this->assertArrayHasKey( '1hour', $health_data );
 		$this->assertArrayHasKey( '24hour', $health_data );
 		$this->assertArrayHasKey( '7day', $health_data );
@@ -304,7 +326,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	 * Test data retention enforcement for PRO tier
 	 */
 	public function test_data_retention_enforcement() {
-		// PRO tier should have 90-day retention
+		// PRO tier should have 90-day retention.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 
@@ -314,7 +336,7 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 		$this->assertEquals( 'pro', $tier );
 		$this->assertEquals( 90, $retention_days );
 
-		// Free tier should have 7-day retention
+		// Free tier should have 7-day retention.
 		update_option( 'paysentinel_license_status', 'invalid' );
 		$tier_free           = $this->license->get_license_tier();
 		$retention_days_free = PaySentinel_License::RETENTION_LIMITS[ $tier_free ];
@@ -327,26 +349,26 @@ class ProAnalyticsTest extends WP_UnitTestCase {
 	 * Test unlimited gateway enforcement for PRO tier
 	 */
 	public function test_unlimited_gateways_for_pro() {
-		// Set up 10 gateways
+		// Set up 10 gateways.
 		$gateways = array( 'gw1', 'gw2', 'gw3', 'gw4', 'gw5', 'gw6', 'gw7', 'gw8', 'gw9', 'gw10' );
 		update_option( 'paysentinel_settings', array( 'enabled_gateways' => $gateways ) );
 
 		$health = new PaySentinel_Health();
 
-		// Use reflection to access private method
+		// Use reflection to access private method.
 		$reflection = new ReflectionClass( $health );
 		$method     = $reflection->getMethod( 'get_active_gateways' );
 		$method->setAccessible( true );
 
-		// Free tier - should limit to 1
+		// Free tier - should limit to 1.
 		update_option( 'paysentinel_license_status', 'invalid' );
 		$active_free = $method->invoke( $health );
 		$this->assertCount( 1, $active_free );
 
-		// PRO tier - should allow all (effectively unlimited)
+		// PRO tier - should allow all (effectively unlimited).
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 		$active_pro = $method->invoke( $health );
-		$this->assertCount( 10, $active_pro ); // All 10 gateways
+		$this->assertCount( 10, $active_pro ); // All 10 gateways.
 	}
 }

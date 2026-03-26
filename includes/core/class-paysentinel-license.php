@@ -1,16 +1,19 @@
 <?php
 /**
  * License validation and management
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_License.
+ */
 class PaySentinel_License {
-
-
 
 	/**
 	 * SaaS API Base URL
@@ -62,24 +65,24 @@ class PaySentinel_License {
 	 * Initialize hooks
 	 */
 	public function init_hooks() {
-		// Check license on plugin activation
+		// Check license on plugin activation.
 		add_action( 'admin_init', array( $this, 'check_license_on_admin' ) );
 
-		// Add admin notices for license status
+		// Add admin notices for license status.
 		add_action( 'admin_notices', array( $this, 'license_admin_notices' ) );
 
-		// Daily license check
+		// Daily license check.
 		add_action( 'paysentinel_daily_check', array( $this, 'daily_license_check' ) );
 
-		// Hourly license sync
+		// Hourly license sync.
 		add_action( 'paysentinel_hourly_sync', array( $this, 'hourly_license_sync' ) );
 
-		// Schedule daily check if not scheduled
+		// Schedule daily check if not scheduled.
 		if ( ! wp_next_scheduled( 'paysentinel_daily_check' ) ) {
 			wp_schedule_event( time(), 'daily', 'paysentinel_daily_check' );
 		}
 
-		// Schedule hourly sync if not scheduled
+		// Schedule hourly sync if not scheduled.
 		if ( ! wp_next_scheduled( 'paysentinel_hourly_sync' ) ) {
 			wp_schedule_event( time(), 'hourly', 'paysentinel_hourly_sync' );
 		}
@@ -88,13 +91,13 @@ class PaySentinel_License {
 	/**
 	 * Activate license and register site (Step 1 - No HMAC required)
 	 *
-	 * @param string $license_key License key to activate
-	 * @param string $site_url    Site URL (optional, uses current site if not provided)
+	 * @param string $license_key License key to activate.
+	 * @param string $site_url    Site URL (optional, uses current site if not provided).
 	 *
 	 * @return array Response with 'success', 'message', 'site_secret', and 'data' keys
 	 */
 	public function activate_license( $license_key, $site_url = '' ) {
-		// Sanitize inputs
+		// Sanitize inputs.
 		$license_key = sanitize_text_field( $license_key );
 		$site_url    = $site_url ? esc_url_raw( $site_url ) : get_site_url();
 
@@ -106,7 +109,7 @@ class PaySentinel_License {
 			);
 		}
 
-		// Use standard flags to prevent encoding issues
+		// Use standard flags to prevent encoding issues.
 		$body = wp_json_encode(
 			array(
 				'license_key' => $license_key,
@@ -125,10 +128,10 @@ class PaySentinel_License {
 			'sslverify'   => true,
 		);
 
-		// Make API request to activation endpoint (no HMAC required)
+		// Make API request to activation endpoint (no HMAC required).
 		$response = wp_remote_post( self::API_ENDPOINT_ACTIVATE, $args );
 
-		// Check for errors
+		// Check for errors.
 		if ( is_wp_error( $response ) ) {
 			return array(
 				'success' => false,
@@ -141,19 +144,19 @@ class PaySentinel_License {
 			);
 		}
 
-		// Parse response
+		// Parse response.
 		$response_code = wp_remote_retrieve_response_code( $response );
 		$response_body = wp_remote_retrieve_body( $response );
 		$data          = json_decode( $response_body, true );
 
-		// Add debug info
+		// Add debug info.
 		$debug_info = sprintf(
 			'HTTP %d, Body: %s',
 			$response_code,
 			substr( $response_body, 0, 500 )
 		);
 
-		// Handle response
+		// Handle response.
 		if ( 200 !== $response_code ) {
 			$user_message = $this->get_user_friendly_error_message( $response_code, $data );
 			return array(
@@ -164,7 +167,7 @@ class PaySentinel_License {
 			);
 		}
 
-		// Extract site_secret from response
+		// Extract site_secret from response.
 		$site_secret = isset( $data['site_registration']['site_secret'] ) ?
 			sanitize_text_field( $data['site_registration']['site_secret'] ) : null;
 
@@ -177,7 +180,7 @@ class PaySentinel_License {
 			);
 		}
 
-		// Check if site is registered
+		// Check if site is registered.
 		$site_registered = isset( $data['site_registration']['registered'] ) ?
 			(bool) $data['site_registration']['registered'] : false;
 
@@ -194,14 +197,14 @@ class PaySentinel_License {
 	/**
 	 * Validate license key with remote API (Step 2 - HMAC required)
 	 *
-	 * @param string $license_key License key to validate
-	 * @param string $site_url    Site URL (optional, uses current site if not provided)
-	 * @param string $site_secret Optional site secret (if not provided, will retrieve from database)
+	 * @param string $license_key License key to validate.
+	 * @param string $site_url    Site URL (optional, uses current site if not provided).
+	 * @param string $site_secret Optional site secret (if not provided, will retrieve from database).
 	 *
 	 * @return array Response with 'valid', 'message', and 'data' keys
 	 */
 	public function validate_license( $license_key, $site_url = '', $site_secret = null ) {
-		// Sanitize inputs
+		// Sanitize inputs.
 		$license_key = sanitize_text_field( $license_key );
 		$site_url    = $site_url ? esc_url_raw( $site_url ) : get_site_url();
 
@@ -213,7 +216,7 @@ class PaySentinel_License {
 			);
 		}
 
-		// Get site secret for HMAC (use provided secret or retrieve from database)
+		// Get site secret for HMAC (use provided secret or retrieve from database).
 		if ( null === $site_secret ) {
 			$site_secret = $this->get_site_secret();
 		}
@@ -226,23 +229,23 @@ class PaySentinel_License {
 			);
 		}
 
-		// Prepare request body
+		// Prepare request body.
 		$body_array = array(
 			'license_key' => $license_key,
 			'site_url'    => $site_url,
 		);
 
-		// Make authenticated request with HMAC using the provided or retrieved secret
+		// Make authenticated request with HMAC using the provided or retrieved secret.
 		$response = $this->make_authenticated_request_with_secret(
 			self::API_ENDPOINT_VALIDATE,
 			'POST',
 			$body_array,
 			$site_secret,
 			$license_key,
-			true // include site URL header
+			true // include site URL header.
 		);
 
-		// Check for errors
+		// Check for errors.
 		if ( is_wp_error( $response ) ) {
 			return array(
 				'valid'   => false,
@@ -255,19 +258,19 @@ class PaySentinel_License {
 			);
 		}
 
-		// Parse response
+		// Parse response.
 		$response_code = wp_remote_retrieve_response_code( $response );
 		$response_body = wp_remote_retrieve_body( $response );
 		$data          = json_decode( $response_body, true );
 
-		// Add debug info
+		// Add debug info.
 		$debug_info = sprintf(
 			'HTTP %d, Body: %s',
 			$response_code,
 			substr( $response_body, 0, 500 )
 		);
 
-		// Handle response
+		// Handle response.
 		if ( 200 !== $response_code ) {
 			$user_message = $this->get_user_friendly_error_message( $response_code, $data );
 			return array(
@@ -278,26 +281,26 @@ class PaySentinel_License {
 			);
 		}
 
-		// Check if license is valid based on API response
+		// Check if license is valid based on API response.
 		$is_valid = true; // 200 response means valid
 
-		// Check if there's an explicit error indicator
+		// Check if there's an explicit error indicator.
 		if ( isset( $data['error'] ) ) {
 			$is_valid = false;
 		}
 
-		// Check expiration if license data is available
+		// Check expiration if license data is available.
 		if ( $is_valid && isset( $data['expiration_ts'] ) && ! empty( $data['expiration_ts'] ) ) {
 			try {
 				$expires_timestamp = strtotime( $data['expiration_ts'] );
 				if ( false !== $expires_timestamp ) {
-					$current_time = current_time( 'timestamp' );
+					$current_time = time();
 					if ( $expires_timestamp <= $current_time ) {
-						$is_valid = false; // License expired
+						$is_valid = false; // License expired.
 					}
 				}
 			} catch ( Exception $e ) {
-				// If we can't parse the date, assume it's valid to avoid false negatives
+				// If we can't parse the date, assume it's valid to avoid false negatives.
 				$is_valid = true;
 			}
 		}
@@ -313,13 +316,13 @@ class PaySentinel_License {
 	/**
 	 * Register site with license on the server (deprecated - now handled by activate_license)
 	 *
-	 * @param string $license_key License key
+	 * @param string $license_key License key.
 	 *
 	 * @return array Registration result with 'success' and 'reason' keys
 	 */
 	private function register_site_with_license( $license_key ) {
-		// Site registration is now handled by activate_license endpoint
-		// This method is kept for backward compatibility
+		// Site registration is now handled by activate_license endpoint.
+		// This method is kept for backward compatibility.
 		$result = $this->activate_license( $license_key );
 
 		return array(
@@ -328,18 +331,24 @@ class PaySentinel_License {
 		);
 	}
 
+	/**
+	 * Save and validate a license key via the SaaS API.
+	 *
+	 * @param string $license_key The license key to activate and validate.
+	 * @return array Result with 'valid', 'message', and 'data' keys.
+	 */
 	public function save_and_validate_license( $license_key ) {
 		$site_url = get_site_url();
 
-		// Step 1: Activate license and get site_secret (no HMAC required)
+		// Step 1: Activate license and get site_secret (no HMAC required).
 		$activation_result = $this->activate_license( $license_key, $site_url );
 
 		if ( ! $activation_result['success'] ) {
-			// Activation failed
+			// Activation failed.
 			update_option( self::OPTION_LICENSE_KEY, $license_key );
 			update_option( self::OPTION_LICENSE_STATUS, 'invalid' );
 			update_option( self::OPTION_LICENSE_DATA, $activation_result['data'] );
-			update_option( self::OPTION_LAST_CHECK, current_time( 'timestamp' ) );
+			update_option( self::OPTION_LAST_CHECK, time() );
 			update_option( self::OPTION_SITE_REGISTERED, false );
 
 			return array(
@@ -349,7 +358,7 @@ class PaySentinel_License {
 			);
 		}
 
-		// Extract site_secret from activation
+		// Extract site_secret from activation.
 		$site_secret = isset( $activation_result['site_secret'] ) ? $activation_result['site_secret'] : null;
 
 		if ( empty( $site_secret ) ) {
@@ -360,41 +369,41 @@ class PaySentinel_License {
 			);
 		}
 
-		// Save site_secret from activation
+		// Save site_secret from activation.
 		update_option( self::OPTION_SITE_SECRET, $site_secret );
 
-		// Save site registration status
+		// Save site registration status.
 		$site_registered = isset( $activation_result['site_registered'] ) ? $activation_result['site_registered'] : false;
 		update_option( self::OPTION_SITE_REGISTERED, $site_registered );
 
-		// Step 2: Validate license with HMAC authentication (pass site_secret directly)
-		// IMPORTANT: Use the same site_url that was used in activation
+		// Step 2: Validate license with HMAC authentication (pass site_secret directly).
+		// IMPORTANT: Use the same site_url that was used in activation.
 		$validation_result = $this->validate_license( $license_key, $site_url, $site_secret );
 
-		// Merge activation and validation data
+		// Merge activation and validation data.
 		$license_data = array_merge(
 			isset( $activation_result['data']['license_info'] ) ? $activation_result['data']['license_info'] : array(),
 			isset( $validation_result['data'] ) ? $validation_result['data'] : array()
 		);
 
-		// Save license key and status
+		// Save license key and status.
 		update_option( self::OPTION_LICENSE_KEY, $license_key );
 		update_option( self::OPTION_LICENSE_STATUS, $validation_result['valid'] ? 'valid' : 'invalid' );
 		update_option( self::OPTION_LICENSE_DATA, $license_data );
-		update_option( self::OPTION_LAST_CHECK, current_time( 'timestamp' ) );
+		update_option( self::OPTION_LAST_CHECK, time() );
 
-		// Update site registration data
+		// Update site registration data.
 		update_option(
 			self::OPTION_SITE_REGISTRATION_DATA,
 			array(
 				'registered'    => $site_registered,
 				'reason'        => $site_registered ? __( 'Site is registered', 'paysentinel' ) : __( 'Site registration pending', 'paysentinel' ),
 				'registered_at' => $site_registered ? current_time( 'c' ) : null,
-				'checked_at'    => current_time( 'timestamp' ),
+				'checked_at'    => time(),
 			)
 		);
 
-		// Prepare final result message
+		// Prepare final result message.
 		if ( $validation_result['valid'] && $site_registered ) {
 			$message = __( 'License activated and validated successfully!', 'paysentinel' );
 		} elseif ( $validation_result['valid'] && ! $site_registered ) {
@@ -506,7 +515,7 @@ class PaySentinel_License {
 	/**
 	 * Check if a specific feature is available in current license tier
 	 *
-	 * @param string $feature_name Feature name (e.g., 'slack_alerts')
+	 * @param string $feature_name Feature name (e.g., 'slack_alerts').
 	 *
 	 * @return bool|int Feature available (true/false or numeric limit)
 	 */
@@ -532,15 +541,15 @@ class PaySentinel_License {
 	 * Check license on admin pages (once per session)
 	 */
 	public function check_license_on_admin() {
-		// Only check once per day
+		// Only check once per day.
 		$last_check = get_option( self::OPTION_LAST_CHECK, 0 );
-		$now        = current_time( 'timestamp' );
+		$now        = time();
 
 		if ( ( $now - $last_check ) < DAY_IN_SECONDS ) {
 			return;
 		}
 
-		// Get stored license key
+		// Get stored license key.
 		$license_key = $this->get_license_key();
 
 		if ( empty( $license_key ) ) {
@@ -548,7 +557,7 @@ class PaySentinel_License {
 			return;
 		}
 
-		// Validate license
+		// Validate license.
 		$this->save_and_validate_license( $license_key );
 	}
 
@@ -580,7 +589,7 @@ class PaySentinel_License {
 	 * @return array|WP_Error Sync result
 	 */
 	public function sync_license() {
-		// Ensure site is registered before syncing
+		// Ensure site is registered before syncing.
 		if ( ! $this->is_site_registered() ) {
 			return new WP_Error(
 				'site_not_registered',
@@ -591,7 +600,6 @@ class PaySentinel_License {
 		$response = $this->make_authenticated_request( self::API_ENDPOINT_SYNC, 'GET', array() );
 
 		if ( is_wp_error( $response ) ) {
-			// error_log( 'PaySentinel: License sync failed - ' . $response->get_error_message() );
 			return $response;
 		}
 
@@ -599,12 +607,12 @@ class PaySentinel_License {
 		$response_body = wp_remote_retrieve_body( $response );
 		$data          = json_decode( $response_body, true );
 
-		// Handle different response codes
+		// Handle different response codes.
 		if ( 200 === $response_code ) {
-			// Update license data with sync response
+			// Update license data with sync response.
 			$current_data = $this->get_license_data();
 
-			// Merge sync data with existing license data
+			// Merge sync data with existing license data.
 			if ( is_array( $current_data ) ) {
 				$current_data['plan']       = isset( $data['plan'] ) ? $data['plan'] : ( isset( $current_data['plan'] ) ? $current_data['plan'] : 'free' );
 				$current_data['plan_color'] = isset( $data['plan_color'] ) ? $data['plan_color'] : ( isset( $current_data['plan_color'] ) ? $current_data['plan_color'] : null );
@@ -616,7 +624,7 @@ class PaySentinel_License {
 				$current_data = $data;
 			}
 
-			// Update license status based on sync data
+			// Update license status based on sync data.
 			if ( isset( $data['valid'] ) && ! $data['valid'] ) {
 				update_option( self::OPTION_LICENSE_STATUS, 'invalid' );
 			} else {
@@ -624,7 +632,7 @@ class PaySentinel_License {
 			}
 
 			update_option( self::OPTION_LICENSE_DATA, $current_data );
-			update_option( self::OPTION_LAST_CHECK, current_time( 'timestamp' ) );
+			update_option( self::OPTION_LAST_CHECK, time() );
 
 			return array(
 				'success' => true,
@@ -658,7 +666,7 @@ class PaySentinel_License {
 	 * Display admin notices for license status
 	 */
 	public function license_admin_notices() {
-		// Only show on plugin pages
+		// Only show on plugin pages.
 		$screen = get_current_screen();
 		if ( ! $screen || false === strpos( $screen->id, 'payment-monitor' ) ) {
 			return;
@@ -725,13 +733,13 @@ class PaySentinel_License {
 	/**
 	 * Get user-friendly error message based on HTTP response code and API data
 	 *
-	 * @param int   $response_code HTTP response code
-	 * @param array $data          Decoded JSON response data
+	 * @param int   $response_code HTTP response code.
+	 * @param array $data          Decoded JSON response data.
 	 *
 	 * @return string User-friendly error message
 	 */
 	private function get_user_friendly_error_message( $response_code, $data ) {
-		// Check for specific error messages from API
+		// Check for specific error messages from API.
 		if ( isset( $data['error'] ) ) {
 			switch ( $data['error'] ) {
 				case 'License not found':
@@ -758,7 +766,7 @@ class PaySentinel_License {
 			}
 		}
 
-		// Handle HTTP status codes
+		// Handle HTTP status codes.
 		switch ( $response_code ) {
 			case 400:
 				return __( 'Invalid license request. Please check your license key format.', 'paysentinel' );
@@ -807,15 +815,16 @@ class PaySentinel_License {
 	/**
 	 * Make an authenticated API request to the PaySentinel SaaS
 	 *
-	 * @param string $endpoint         Full URL or path
-	 * @param string $method           HTTP method
-	 * @param array  $body             Request body (array)
-	 * @param bool   $include_site_url Whether to include X-PaySentinel-Site-Url header
+	 * @param string $endpoint         Full URL or path.
+	 * @param string $method           HTTP method.
+	 * @param array  $body             Request body (array).
+	 * @param bool   $include_site_url Whether to include X-PaySentinel-Site-Url header.
+	 * @param bool   $blocking         Whether the request should block until complete.
 	 *
 	 * @return array|WP_Error Response data or WP_Error
 	 */
 	public function make_authenticated_request( $endpoint, $method = 'POST', $body = array(), $include_site_url = true, $blocking = true ) {
-		// Ensure we have a license key and site secret
+		// Ensure we have a license key and site secret.
 		$license_key = $this->get_license_key();
 		$site_secret = $this->get_site_secret();
 
@@ -832,12 +841,13 @@ class PaySentinel_License {
 	/**
 	 * Make an authenticated API request with explicit credentials
 	 *
-	 * @param string $endpoint         Full URL or path
-	 * @param string $method           HTTP method
-	 * @param array  $body             Request body (array)
-	 * @param string $site_secret      Site secret for HMAC
-	 * @param string $license_key      License key
-	 * @param bool   $include_site_url Whether to include X-PaySentinel-Site-Url header
+	 * @param string $endpoint         Full URL or path.
+	 * @param string $method           HTTP method.
+	 * @param array  $body             Request body (array).
+	 * @param string $site_secret      Site secret for HMAC.
+	 * @param string $license_key      License key.
+	 * @param bool   $include_site_url Whether to include X-PaySentinel-Site-Url header.
+	 * @param bool   $blocking         Whether the request should block until complete.
 	 *
 	 * @return array|WP_Error Response data or WP_Error
 	 */
@@ -845,13 +855,13 @@ class PaySentinel_License {
 		$timestamp = time();
 		$method    = strtoupper( $method );
 
-		// For GET requests, we move parameters to the query string
+		// For GET requests, we move parameters to the query string.
 		if ( 'GET' === $method && ! empty( $body ) ) {
 			$endpoint = add_query_arg( $body, $endpoint );
-			$body     = array(); // Clear body so it's not signed
+			$body     = array(); // Clear body so it's not signed.
 		}
 
-		// Sort and encode the body to ensure consistency
+		// Sort and encode the body to ensure consistency.
 		$body_json = '';
 		if ( ! empty( $body ) ) {
 			$body_array = (array) $body;
@@ -859,7 +869,7 @@ class PaySentinel_License {
 			$body_json = wp_json_encode( $body_array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 		}
 
-		// Generate signature from the canonical JSON string
+		// Generate signature from the canonical JSON string.
 		$signature = PaySentinel_Security::generate_hmac_signature( $body_json, $timestamp, $site_secret );
 
 		$headers = array(
@@ -869,7 +879,7 @@ class PaySentinel_License {
 			'X-PaySentinel-Timestamp'   => $timestamp,
 		);
 
-		// Add site URL header if requested (recommended for most endpoints)
+		// Add site URL header if requested (recommended for most endpoints).
 		if ( $include_site_url ) {
 			$headers['X-PaySentinel-Site-Url'] = get_site_url();
 		}

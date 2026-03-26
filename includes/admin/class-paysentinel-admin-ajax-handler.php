@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -116,7 +116,7 @@ class PaySentinel_Admin_Ajax_Handler {
 			$message = __( 'License key removed.', 'paysentinel' );
 		}
 
-		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-settings&tab=license&message=' . urlencode( $message ) . '&type=' . $type ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-settings&tab=license&message=' . rawurlencode( $message ) . '&type=' . $type . '&_wpnonce=' . wp_create_nonce( 'paysentinel_admin_redirect' ) ) );
 		exit;
 	}
 }

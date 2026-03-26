@@ -1,13 +1,31 @@
 <?php
+/**
+ * Real integration tests for logger.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Real Integration Tests for Logger
+ * Class TransactionLoggerTest
  */
 class TransactionLoggerTest extends WP_UnitTestCase {
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var PaySentinel_Logger
+	 */
 	private $logger;
+	/**
+	 * Order ID.
+	 *
+	 * @var int
+	 */
 	private $order_id;
 
+	/**
+	 * Set up test fixtures.
+	 */
 	public function setUp(): void {
 		parent::setUp();
 
@@ -21,7 +39,7 @@ class TransactionLoggerTest extends WP_UnitTestCase {
 
 		$this->logger = new PaySentinel_Logger();
 
-		// Create a dummy order
+		// Create a dummy order.
 		$order = wc_create_order();
 		$order->set_billing_email( 'logger_test@example.com' );
 		$order->set_total( 50.00 );
@@ -29,31 +47,34 @@ class TransactionLoggerTest extends WP_UnitTestCase {
 		$this->order_id = $order->get_id();
 	}
 
+	/**
+	 * Tear down test fixtures.
+	 */
 	public function tearDown(): void {
 		parent::tearDown();
 		wp_delete_post( $this->order_id, true );
 	}
 
 	/**
-	 * Test Log Failure fires Action
+	 * Test Log Failure fires Action.
 	 */
 	public function test_log_failure_fires_action() {
 		$fired = 0;
 		add_action(
 			'paysentinel_payment_failed',
-			function ( $order_id ) use ( &$fired ) {
+			function ( $_order_id ) use ( &$fired ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 				$fired++;
 			}
 		);
 
-		// Simulate failure
+		// Simulate failure.
 		$this->logger->log_failure( $this->order_id );
 
 		$this->assertEquals( 1, $fired, 'The paysentinel_payment_failed action should fire exactly once.' );
 	}
 
 	/**
-	 * Test Log Failure saves to Database
+	 * Test Log Failure saves to Database.
 	 */
 	public function test_log_failure_saves_db() {
 		global $wpdb;
@@ -61,7 +82,13 @@ class TransactionLoggerTest extends WP_UnitTestCase {
 
 		$this->logger->log_failure( $this->order_id );
 
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table_name} WHERE order_id = %d", $this->order_id ) );
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$table_name} WHERE order_id = %d",
+				$this->order_id
+			)
+		);
 
 		$this->assertNotNull( $row, 'Transaction row should exist in DB.' );
 		$this->assertEquals( 'failed', $row->status );

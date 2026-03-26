@@ -1,28 +1,54 @@
 <?php
+/**
+ * Tests for Alert Severity Logic.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Tests for Alert Severity Logic (Immediate vs Statistical)
+ * Class AlertSeverityLogicTest
  */
 class AlertSeverityLogicTest extends WP_UnitTestCase {
 
+	/**
+	 * Alerts instance.
+	 *
+	 * @var PaySentinel_Alerts
+	 */
 	private $alerts_instance;
+
+	/**
+	 * Logger instance.
+	 *
+	 * @var PaySentinel_Logger
+	 */
 	private $logger_instance;
+
+	/**
+	 * Database instance.
+	 *
+	 * @var PaySentinel_Database
+	 */
 	private $database_instance;
 
+	/**
+	 * Set up test environment.
+	 */
 	public function setUp(): void {
 		parent::setUp();
 
 		$this->database_instance = new PaySentinel_Database();
 
-		// Ensure tables exist
+		// Ensure tables exist.
 		$this->database_instance->create_tables();
 
-		// Clean up alerts table from previous tests
+		// Clean up alerts table from previous tests.
 		global $wpdb;
 		$alerts_table = $this->database_instance->get_alerts_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		$wpdb->query( "TRUNCATE TABLE $alerts_table" );
 
-		// Enable alerts for testing BEFORE creating alert instances
+		// Enable alerts for testing BEFORE creating alert instances.
 		update_option(
 			'paysentinel_options',
 			array(
@@ -32,13 +58,13 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Reset the singleton config instance to ensure fresh config load with new settings
+		// Reset the singleton config instance to ensure fresh config load with new settings.
 		$reflection = new ReflectionClass( 'PaySentinel_Config' );
 		$property   = $reflection->getProperty( 'instance' );
 		$property->setAccessible( true );
 		$property->setValue( null );
 
-		// NOW create alert instances - they will get the fresh config
+		// NOW create alert instances - they will get the fresh config.
 		$this->alerts_instance = new PaySentinel_Alerts();
 		$this->logger_instance = new PaySentinel_Logger();
 	}
@@ -47,12 +73,12 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 	 * Test that "Hard" errors trigger immediate Critical alerts
 	 */
 	public function test_immediate_critical_alert_trigger() {
-		// 1. Simulate a failed transaction with a critical keyword
+		// 1. Simulate a failed transaction with a critical keyword.
 		$order_id      = 123;
 		$gateway_id    = 'stripe';
 		$error_message = 'Connection timed out'; // "timed out" is a keyword
 
-		// Use save_transaction directly to bypass complex order parsing
+		// Use save_transaction directly to bypass complex order parsing.
 		$data = array(
 			'order_id'       => $order_id,
 			'gateway_id'     => $gateway_id,
@@ -60,7 +86,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 			'amount'         => 100.00,
 			'currency'       => 'USD',
 			'status'         => 'failed',
-			'failure_reason' => $error_message, // This is what matters
+			'failure_reason' => $error_message, // This is what matters.
 			'failure_code'   => 'timeout',
 			'retry_count'    => 0,
 			'customer_email' => 'test@example.com',
@@ -71,7 +97,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		$this->logger_instance->save_transaction( $data );
 
-		// Create a mock order object with required methods
+		// Create a mock order object with required methods.
 		$order_mock = $this->getMockBuilder( 'WC_Order' )
 			->disableOriginalConstructor()
 			->getMock();
@@ -79,7 +105,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		$order_mock->method( 'get_total' )->willReturn( 100.00 );
 		$order_mock->method( 'get_billing_email' )->willReturn( 'test@example.com' );
 
-		// Capture alerts created
+		// Capture alerts created.
 		$start_count = $this->get_alert_count();
 
 		$this->alerts_instance->check_immediate_transaction_alert( $order_id, $order_mock );
@@ -87,7 +113,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		$end_count = $this->get_alert_count();
 		$this->assertEquals( $start_count + 1, $end_count, 'Should create one alert' );
 
-		// 3. Verify the alert is CRITICAL (get alert specific to this order to avoid test isolation issues)
+		// 3. Verify the alert is CRITICAL (get alert specific to this order to avoid test isolation issues).
 		$latest_alert = $this->get_latest_alert_for_order( $order_id );
 		$this->assertNotNull( $latest_alert, 'Alert should exist for order ' . $order_id );
 		$this->assertEquals( 'critical', $latest_alert['severity'] );
@@ -98,10 +124,10 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 	 * Test that "Soft" errors DO NOT trigger immediate alerts
 	 */
 	public function test_soft_error_ignored_immediate() {
-		// 1. Simulate a failed transaction with a soft reason (e.g. user error)
+		// 1. Simulate a failed transaction with a soft reason (e.g. user error).
 		$order_id      = 124;
 		$gateway_id    = 'stripe';
-		$error_message = 'Insufficient funds'; // User error
+		$error_message = 'Insufficient funds'; // User error.
 
 		$data = array(
 			'order_id'       => $order_id,
@@ -121,7 +147,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		$this->logger_instance->save_transaction( $data );
 
-		// Create a mock order object with required methods
+		// Create a mock order object with required methods.
 		$order_mock = $this->getMockBuilder( 'WC_Order' )
 			->disableOriginalConstructor()
 			->getMock();
@@ -141,23 +167,28 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 	 * Note: Depending on visibility of calculate_severity, we might test result indirectly via check_all_gateway_alerts
 	 */
 	public function test_statistical_severity_levels() {
-		// Access the private method via reflection if needed, or check constants
+		// Access the private method via reflection if needed, or check constants.
 		$thresholds = PaySentinel_Alerts::SEVERITY_THRESHOLDS;
 
-		// Confirm mapping
+		// Confirm mapping.
 		$this->assertArrayHasKey( 'high', $thresholds );
 		$this->assertArrayNotHasKey( 'critical', $thresholds );
 
 		// If we could invoke calculate_severity:
-		// 74% success -> High
-		// 85% success -> Warning
-		// 92% success -> Info
+		// 74% success -> High.
+		// 85% success -> Warning.
+		// 92% success -> Info.
 	}
 
-	// Helper to get alert count from DB
+	/**
+	 * Helper to get alert count from DB.
+	 *
+	 * @return int
+	 */
 	private function get_alert_count() {
 		global $wpdb;
 		$table = $this->database_instance->get_alerts_table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 	}
 
@@ -182,9 +213,10 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 
 		$this->alerts_instance->check_gateway_alerts( $gateway_id, $health_data );
 
-		// Debug: Check if alert was created
+		// Debug: Check if alert was created.
 		global $wpdb;
 		$table = $this->database_instance->get_alerts_table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 		$this->assertGreaterThan( 0, $count, "No alerts were created in table {$table}" );
 
@@ -193,8 +225,8 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		$this->assertEquals( 'low_success_rate', $latest_alert['alert_type'] );
 		$this->assertEquals( 0.0, (float) json_decode( $latest_alert['metadata'], true )['success_rate'] );
 
-		// This is the core of the user's issue
-		// With volume awareness: 0% success on 1 transaction should be info
+		// This is the core of the user's issue.
+		// With volume awareness: 0% success on 1 transaction should be info.
 		$this->assertEquals( 'info', $latest_alert['severity'], '0% success rate on 1 transaction should be info severity due to volume adjustment' );
 	}
 
@@ -207,7 +239,7 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 			'1hour' => array(
 				'gateway_id'              => $gateway_id,
 				'period'                  => '1hour',
-				'total_transactions'      => 15, // Sufficient volume
+				'total_transactions'      => 15, // Sufficient volume.
 				'successful_transactions' => 0,
 				'failed_transactions'     => 15,
 				'success_rate'            => 0.0,
@@ -224,20 +256,34 @@ class AlertSeverityLogicTest extends WP_UnitTestCase {
 		$this->assertEquals( 'critical', $latest_alert['severity'], '0% success rate on 15 transactions should be critical severity' );
 	}
 
+	/**
+	 * Get the latest alert from DB.
+	 *
+	 * @return array<string,mixed>|null
+	 */
 	private function get_latest_alert() {
 		global $wpdb;
 		$table = $this->database_instance->get_alerts_table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		return $wpdb->get_row( "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT 1", ARRAY_A );
 	}
 
 	/**
 	 * Get the latest alert for a specific order (prevents test isolation issues)
 	 */
+	/**
+	 * Get the latest alert for a specific order.
+	 *
+	 * @param int $order_id The order ID.
+	 * @return array<string,mixed>|null
+	 */
 	private function get_latest_alert_for_order( $order_id ) {
 		global $wpdb;
-		$table  = $this->database_instance->get_alerts_table();
+		$table = $this->database_instance->get_alerts_table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT * FROM {$table} WHERE metadata LIKE %s ORDER BY created_at DESC LIMIT 1",
 				'%"order_id":' . $order_id . '%'
 			),

@@ -1,10 +1,12 @@
 <?php
+/**
+ * Tests file.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Property-based tests for API pagination
- * Tests pagination correctness across various scenarios.
- *
- * @package PaySentinel\Tests\API
+ * Class APIPaginationPropertyTest
  */
 class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 
@@ -16,8 +18,8 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_pagination_calculation_accuracy() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			$total_items = rand( 0, 10000 );
-			$per_page    = rand( 1, 100 );
+			$total_items = wp_rand( 0, 10000 );
+			$per_page    = wp_rand( 1, 100 );
 
 			// Calculate expected total pages.
 			// Calculate expected total pages.
@@ -43,8 +45,8 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_page_number_validation() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			$total_pages  = rand( 1, 100 );
-			$current_page = rand( 1, $total_pages );
+			$total_pages  = wp_rand( 1, 100 );
+			$current_page = wp_rand( 1, $total_pages );
 
 			// Page number must be positive integer.
 			$this->assertGreaterThanOrEqual( 1, $current_page );
@@ -66,7 +68,7 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 		$max_per_page = 100;
 
 		for ( $i = 0; $i < 100; $i++ ) {
-			$per_page = rand( $min_per_page, $max_per_page );
+			$per_page = wp_rand( $min_per_page, $max_per_page );
 
 			// Per page must be within bounds.
 			$this->assertGreaterThanOrEqual( $min_per_page, $per_page );
@@ -83,8 +85,8 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_offset_calculation_correctness() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			$page     = rand( 1, 100 );
-			$per_page = rand( 1, 100 );
+			$page     = wp_rand( 1, 100 );
+			$per_page = wp_rand( 1, 100 );
 
 			// Calculate offset.
 			$expected_offset = ( $page - 1 ) * $per_page;
@@ -112,9 +114,9 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_pagination_metadata_consistency() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			$page     = rand( 1, 100 );
-			$per_page = rand( 1, 100 );
-			$total    = rand( 0, 10000 );
+			$page     = wp_rand( 1, 100 );
+			$per_page = wp_rand( 1, 100 );
+			$total    = wp_rand( 0, 10000 );
 
 			// Calculate total pages.
 			$total_pages = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
@@ -158,8 +160,8 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 
 		for ( $i = 0; $i < 50; $i++ ) {
 			$total_items = $dataset_sizes[ array_rand( $dataset_sizes ) ];
-			$per_page    = rand( 1, 100 );
-			$page        = rand( 1, max( 1, (int) ceil( $total_items / $per_page ) ) );
+			$per_page    = wp_rand( 1, 100 );
+			$page        = wp_rand( 1, max( 1, (int) ceil( $total_items / $per_page ) ) );
 
 			// Calculate items on this page.
 			$offset        = ( $page - 1 ) * $per_page;
@@ -185,25 +187,25 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 	 * Validates: Requirement 7.4
 	 */
 	public function test_property_edge_cases_in_pagination() {
-		// Test with empty dataset
+		// Test with empty dataset.
 		$total       = 0;
 		$per_page    = 20;
 		$total_pages = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
 		$this->assertEquals( 1, $total_pages );
 
-		// Test with single item
+		// Test with single item.
 		$total       = 1;
 		$per_page    = 20;
 		$total_pages = (int) ceil( $total / $per_page );
 		$this->assertEquals( 1, $total_pages );
 
-		// Test with exact multiple
+		// Test with exact multiple.
 		$total       = 100;
 		$per_page    = 20;
 		$total_pages = (int) ceil( $total / $per_page );
 		$this->assertEquals( 5, $total_pages );
 
-		// Test last page calculation
+		// Test last page calculation.
 		$per_page = 10;
 		for ( $i = 1; $i <= 100; $i++ ) {
 			$offset = ( $i - 1 ) * $per_page;
@@ -219,9 +221,9 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_pagination_response_structure() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			$page        = rand( 1, 10 );
-			$per_page    = rand( 10, 50 );
-			$total       = rand( 0, 1000 );
+			$page        = wp_rand( 1, 10 );
+			$per_page    = wp_rand( 10, 50 );
+			$total       = wp_rand( 0, 1000 );
 			$total_pages = $total > 0 ? ceil( $total / $per_page ) : 1;
 
 			// Create paginated response.
@@ -289,7 +291,7 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 	public function test_property_pagination_bounds_enforcement() {
 		for ( $i = 0; $i < 100; $i++ ) {
 			// Test per_page bounds.
-			$requested_per_page = rand( -100, 200 );
+			$requested_per_page = wp_rand( -100, 200 );
 			$min_per_page       = 1;
 			$max_per_page       = 100;
 
@@ -301,7 +303,7 @@ class APIPaginationPropertyTest extends PHPUnit\Framework\TestCase {
 			$this->assertLessThanOrEqual( $max_per_page, $enforced_per_page );
 
 			// Test page bounds.
-			$requested_page = rand( -10, 1000 );
+			$requested_page = wp_rand( -10, 1000 );
 			$enforced_page  = $requested_page > 0 ? $requested_page : 1;
 
 			$this->assertGreaterThanOrEqual( 1, $enforced_page );

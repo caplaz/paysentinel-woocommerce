@@ -1,99 +1,190 @@
 <?php
-
 /**
- * Property-based tests for security and data protection
- * Tests universal correctness properties with 100+ iterations
+ * Property-based tests for security and data protection.
+ *
+ * @package PaySentinel
  */
 
-// Mock WordPress functions if not available (in case bootstrap doesn't load)
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO.Mixed
+
+// Mock WordPress functions if not available (in case bootstrap doesn't load).
 if ( ! function_exists( 'get_transient' ) ) {
-	function get_transient( $transient ) {
+	/**
+	 * Mock get_transient for tests.
+	 *
+	 * @param string $_transient Transient name (unused).
+	 * @return false
+	 */
+	function get_transient( $_transient ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 		return false;
 	}
 
-	function set_transient( $transient, $value, $expire ) {
+	/**
+	 * Mock set_transient for tests.
+	 *
+	 * @param string $_transient Transient name (unused).
+	 * @param mixed  $_value     Value (unused).
+	 * @param int    $_expire    Expiry (unused).
+	 * @return true
+	 */
+	function set_transient( $_transient, $_value, $_expire ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 		return true;
 	}
 
+	/**
+	 * Mock get_site_url for tests.
+	 *
+	 * @return string
+	 */
 	function get_site_url() {
 		return 'http://example.com';
 	}
 
-	function user_can( $user_id, $capability ) {
+	/**
+	 * Mock user_can for tests.
+	 *
+	 * @param int    $_user_id    User ID (unused).
+	 * @param string $_capability Capability (unused).
+	 * @return true
+	 */
+	function user_can( $_user_id, $_capability ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 		return true;
 	}
 
+	/**
+	 * Mock is_wp_error for tests.
+	 *
+	 * @param mixed $thing Object to check.
+	 * @return bool
+	 */
 	function is_wp_error( $thing ) {
 		return $thing instanceof WP_Error;
 	}
 
+	/**
+	 * Mock sanitize_key for tests.
+	 *
+	 * @param string $key Key to sanitize.
+	 * @return string
+	 */
 	function sanitize_key( $key ) {
 		return preg_replace( '/[^a-zA-Z0-9_-]/', '', $key );
 	}
 
+	/**
+	 * Mock sanitize_text_field for tests.
+	 *
+	 * @param string $str String to sanitize.
+	 * @return string
+	 */
 	function sanitize_text_field( $str ) {
 		return trim( $str );
 	}
 
+	/**
+	 * Mock get_current_user_id for tests.
+	 *
+	 * @return int
+	 */
 	function get_current_user_id() {
 		return 0;
 	}
 
+	/**
+	 * Mock is_user_logged_in for tests.
+	 *
+	 * @return true
+	 */
 	function is_user_logged_in() {
 		return true;
 	}
 
 	if ( ! function_exists( 'wp_json_encode' ) ) {
+		/**
+		 * Mock wp_json_encode for tests.
+		 *
+		 * @param mixed $data    Data to encode.
+		 * @param int   $options JSON options.
+		 * @param int   $depth   Recursion depth.
+		 * @return string
+		 */
 		function wp_json_encode( $data, $options = 0, $depth = 512 ) {
-			return json_encode( $data, $options, $depth );
+			return wp_json_encode( $data, $options, $depth ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
 		}
 	}
 
+	// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound
+	/**
+	 * Stub WP_Error class for tests.
+	 */
 	class WP_Error {
 
+		/**
+		 * Errors collection.
+		 *
+		 * @var array
+		 */
 		public $errors = array();
 	}
 
+	// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound, PEAR.NamingConventions.ValidClassName.StartWithCapital
+	/**
+	 * Stub wpdb class for tests.
+	 */
 	class wpdb {
+	// phpcs:enable Generic.Files.OneObjectStructurePerFile.MultipleFound, PEAR.NamingConventions.ValidClassName.StartWithCapital
 
+		/**
+		 * Mock prepare for tests.
+		 *
+		 * @param string $query SQL query.
+		 * @param mixed  ...$args Arguments.
+		 * @return string
+		 */
 		public function prepare( $query, ...$args ) {
-			// Simple mock prepare - just replace % placeholders
+			// Simple mock prepare - just replace % placeholders.
 			$result = $query;
 			foreach ( $args as $arg ) {
-				$result = preg_replace( '/%[ds]/', var_export( $arg, true ), $result, 1 );
+				$result = preg_replace( '/%[ds]/', var_export( $arg, true ), $result, 1 ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export
 			}
 			return $result;
 		}
 	}
 
+	// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 	$GLOBALS['wpdb'] = new wpdb();
 }
 
-// Define AUTH_KEY for testing
+// Define AUTH_KEY for testing.
 if ( ! defined( 'AUTH_KEY' ) ) {
 	define( 'AUTH_KEY', 'test_auth_key_12345_abcde_67890_fghij' );
 }
 
-// Define WordPress time constants
+// Define WordPress time constants.
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 	define( 'HOUR_IN_SECONDS', 3600 );
 }
 
+// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound
+/**
+ * Class SecurityPropertyTest
+ */
 class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
+// phpcs:enable Generic.Files.OneObjectStructurePerFile.MultipleFound
 
 	/**
-	 * Property: Credential Encryption
+	 * Property: Credential Encryption.
 	 *
-	 * Credentials are properly encrypted and can be decrypted to original value
-	 * Validates: Requirement 6.2
+	 * Credentials are properly encrypted and can be decrypted to original value.
+	 * Validates: Requirement 6.2.
 	 */
 	public function test_property_credential_encryption() {
-		// Test basic structure - encryption requires AUTH_KEY which may not be available
-		// Verify the methods exist and are callable
+		// Test basic structure - encryption requires AUTH_KEY which may not be available.
+		// Verify the methods exist and are callable.
 		$this->assertTrue( method_exists( 'PaySentinel_Security', 'encrypt_credential' ) );
 		$this->assertTrue( method_exists( 'PaySentinel_Security', 'decrypt_credential' ) );
 
-		// Test that empty input returns false
+		// Test that empty input returns false.
 		$result = PaySentinel_Security::encrypt_credential( '' );
 		$this->assertFalse( $result );
 
@@ -102,7 +193,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	}
 
 	/**
-	 * Property: HMAC Signature Consistency
+	 * Property: HMAC Signature Consistency.
 	 */
 	public function test_property_hmac_signature() {
 		$site_secret = '7f8e3f4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f';
@@ -112,10 +203,10 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 			'abc' => 123,
 		);
 
-		// Sort keys manually to know expected result
+		// Sort keys manually to know expected result.
 		$signature1 = PaySentinel_Security::generate_hmac_signature( $payload, $timestamp, $site_secret );
 
-		// Different order of keys should yield same signature due to internal ksort
+		// Different order of keys should yield same signature due to internal ksort.
 		$payload2   = array(
 			'foo' => 'bar',
 			'abc' => 123,
@@ -125,7 +216,7 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 		$this->assertEquals( $signature1, $signature2 );
 		$this->assertNotEmpty( $signature1 );
 
-		// Different payload should yield different signature
+		// Different payload should yield different signature.
 		$payload3   = array(
 			'foo' => 'baz',
 			'abc' => 123,
@@ -133,32 +224,32 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 		$signature3 = PaySentinel_Security::generate_hmac_signature( $payload3, $timestamp, $site_secret );
 		$this->assertNotEquals( $signature1, $signature3 );
 
-		// Different timestamp should yield different signature
+		// Different timestamp should yield different signature.
 		$signature4 = PaySentinel_Security::generate_hmac_signature( $payload, $timestamp + 1, $site_secret );
 		$this->assertNotEquals( $signature1, $signature4 );
 	}
 
 	/**
-	 * Property: Credential Encryption Edge Cases
+	 * Property: Credential Encryption Edge Cases.
 	 *
-	 * Encryption handles empty and special characters correctly
-	 * Validates: Requirement 6.2
+	 * Encryption handles empty and special characters correctly.
+	 * Validates: Requirement 6.2.
 	 */
 	public function test_property_credential_encryption_edge_cases() {
-		// Empty string should return false
+		// Empty string should return false.
 		$empty_encrypted = PaySentinel_Security::encrypt_credential( '' );
 		$this->assertFalse( $empty_encrypted );
 
-		// Verify encryption methods exist and have proper signatures
+		// Verify encryption methods exist and have proper signatures.
 		$this->assertTrue( method_exists( 'PaySentinel_Security', 'encrypt_credential' ) );
 		$this->assertTrue( method_exists( 'PaySentinel_Security', 'validate_encryption' ) );
 	}
 
 	/**
-	 * Property: Sensitive Data Exclusion
+	 * Property: Sensitive Data Exclusion.
 	 *
-	 * Sensitive fields are properly excluded from response data
-	 * Validates: Requirement 6.3
+	 * Sensitive fields are properly excluded from response data.
+	 * Validates: Requirement 6.3.
 	 */
 	public function test_property_sensitive_data_exclusion() {
 		$sensitive_fields = array(
@@ -170,27 +261,27 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 		);
 
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Create test data with sensitive fields
+			// Create test data with sensitive fields.
 			$data = array(
-				'user_id'  => rand( 1, 1000 ),
-				'username' => 'user_' . rand( 1, 100 ),
+				'user_id'  => wp_rand( 1, 1000 ),
+				'username' => 'user_' . wp_rand( 1, 100 ),
 				'email'    => 'user@example.com',
 			);
 
-			// Add sensitive fields
+			// Add sensitive fields.
 			foreach ( $sensitive_fields as $key => $value ) {
 				$data[ $key ] = $value;
 			}
 
-			// Exclude sensitive data
+			// Exclude sensitive data.
 			$filtered = PaySentinel_Security::exclude_sensitive_data( $data );
 
-			// Non-sensitive fields should still be present
+			// Non-sensitive fields should still be present.
 			$this->assertArrayHasKey( 'user_id', $filtered );
 			$this->assertArrayHasKey( 'username', $filtered );
 			$this->assertArrayHasKey( 'email', $filtered );
 
-			// Sensitive fields should be removed
+			// Sensitive fields should be removed.
 			foreach ( $sensitive_fields as $key => $value ) {
 				$this->assertArrayNotHasKey( $key, $filtered );
 			}
@@ -198,16 +289,16 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	}
 
 	/**
-	 * Property: Sensitive Data Masking
+	 * Property: Sensitive Data Masking.
 	 *
-	 * Sensitive fields are masked while preserving structure
-	 * Validates: Requirement 6.3
+	 * Sensitive fields are masked while preserving structure.
+	 * Validates: Requirement 6.3.
 	 */
 	public function test_property_sensitive_data_masking() {
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Create test data
+			// Create test data.
 			$data = array(
-				'id'       => rand( 1, 1000 ),
+				'id'       => wp_rand( 1, 1000 ),
 				'name'     => 'Test User',
 				'password' => 'secret123',
 				'api_key'  => 'key_abc123',
@@ -217,22 +308,22 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 				),
 			);
 
-			// Mask sensitive data
+			// Mask sensitive data.
 			$masked = PaySentinel_Security::mask_sensitive_data( $data );
 
-			// Structure should be preserved
+			// Structure should be preserved.
 			$this->assertArrayHasKey( 'id', $masked );
 			$this->assertArrayHasKey( 'name', $masked );
 			$this->assertArrayHasKey( 'password', $masked );
 			$this->assertArrayHasKey( 'api_key', $masked );
 			$this->assertArrayHasKey( 'nested', $masked );
 
-			// Non-sensitive values should be unchanged
+			// Non-sensitive values should be unchanged.
 			$this->assertEquals( $data['id'], $masked['id'] );
 			$this->assertEquals( $data['name'], $masked['name'] );
 			$this->assertEquals( $data['nested']['field1'], $masked['nested']['field1'] );
 
-			// Sensitive values should be masked
+			// Sensitive values should be masked.
 			$this->assertEquals( '***REDACTED***', $masked['password'] );
 			$this->assertEquals( '***REDACTED***', $masked['api_key'] );
 			$this->assertEquals( '***REDACTED***', $masked['nested']['token'] );
@@ -240,10 +331,10 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	}
 
 	/**
-	 * Property: SQL Injection Prevention
+	 * Property: SQL Injection Prevention.
 	 *
-	 * SQL queries with parameters prevent injection attacks
-	 * Validates: Requirement 6.4
+	 * SQL queries with parameters prevent injection attacks.
+	 * Validates: Requirement 6.4.
 	 */
 	public function test_property_sql_injection_prevention() {
 		$injection_patterns = array(
@@ -257,19 +348,19 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 
 		for ( $i = 0; $i < 50; $i++ ) {
 			foreach ( $injection_patterns as $pattern ) {
-				// Simulate safe parameter binding
+				// Simulate safe parameter binding.
 				$query  = 'SELECT * FROM table WHERE id = %d AND name = %s';
 				$params = array( intval( $pattern ), $pattern );
 
-				// Prepare query
+				// Prepare query.
 				$prepared = PaySentinel_Security::prepare_sql_query( $query, $params );
 
-				// Should return string (prepared query) or array (if error)
+				// Should return string (prepared query) or array (if error).
 				$this->assertTrue( is_string( $prepared ) || is_array( $prepared ) || is_wp_error( $prepared ) );
 
-				// Parameters should be treated as literal values, not SQL code
+				// Parameters should be treated as literal values, not SQL code.
 				if ( is_string( $prepared ) ) {
-					// Verify wildcards were replaced
+					// Verify wildcards were replaced.
 					$this->assertStringNotContainsString( '%d', $prepared );
 					$this->assertStringNotContainsString( '%s', $prepared );
 				}
@@ -278,10 +369,10 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	}
 
 	/**
-	 * Property: Dangerous SQL Pattern Detection
+	 * Property: Dangerous SQL Pattern Detection.
 	 *
-	 * Dangerous SQL patterns in keys are detected
-	 * Validates: Requirement 6.4
+	 * Dangerous SQL patterns in keys are detected.
+	 * Validates: Requirement 6.4.
 	 */
 	public function test_property_dangerous_sql_pattern_detection() {
 		$safe_settings = array(
@@ -292,10 +383,10 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 		);
 
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Validate safe settings
+			// Validate safe settings.
 			$validated = PaySentinel_Security::validate_admin_settings( $safe_settings );
 
-			// Should have same keys after validation
+			// Should have same keys after validation.
 			$this->assertArrayHasKey( 'enable_logging', $validated );
 			$this->assertArrayHasKey( 'log_level', $validated );
 			$this->assertArrayHasKey( 'retry_count', $validated );
@@ -304,14 +395,14 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	}
 
 	/**
-	 * Property: Access Control Enforcement
+	 * Property: Access Control Enforcement.
 	 *
-	 * Access control checks are consistently applied
-	 * Validates: Requirement 6.5
+	 * Access control checks are consistently applied.
+	 * Validates: Requirement 6.5.
 	 */
 	public function test_property_access_control_enforcement() {
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Test various capability checks
+			// Test various capability checks.
 			$capabilities = array(
 				'manage_woocommerce',
 				'manage_options',
@@ -320,8 +411,8 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 			);
 
 			foreach ( $capabilities as $cap ) {
-				// Capability check should return boolean
-				// (true or false, not error)
+				// Capability check should return boolean.
+				// (true or false, not error).
 				$result = PaySentinel_Security::check_user_capability( $cap, 0 );
 				$this->assertIsBool( $result );
 			}
@@ -329,97 +420,97 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 	}
 
 	/**
-	 * Property: Settings Validation
+	 * Property: Settings Validation.
 	 *
-	 * Settings are properly validated and sanitized
-	 * Validates: Requirement 6.5
+	 * Settings are properly validated and sanitized.
+	 * Validates: Requirement 6.5.
 	 */
 	public function test_property_settings_validation() {
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Create test settings - avoid booleans as they have type conversion issues
+			// Create test settings - avoid booleans as they have type conversion issues.
 			$settings = array(
-				'threshold'   => rand( 1, 100 ),
+				'threshold'   => wp_rand( 1, 100 ),
 				'description' => 'Test setting ' . uniqid(),
 				'nested'      => array(
 					'sub_setting' => 'value',
-					'count'       => rand( 1, 50 ),
+					'count'       => wp_rand( 1, 50 ),
 				),
 			);
 
-			// Validate settings
+			// Validate settings.
 			$validated = PaySentinel_Security::validate_admin_settings( $settings );
 
-			// Result should be array
+			// Result should be array.
 			$this->assertIsArray( $validated );
 
-			// Top-level keys should be present
+			// Top-level keys should be present.
 			$this->assertArrayHasKey( 'threshold', $validated );
 			$this->assertArrayHasKey( 'description', $validated );
 
-			// Values should be properly typed - threshold converted to int
+			// Values should be properly typed - threshold converted to int.
 			$this->assertIsInt( $validated['threshold'] );
 			$this->assertIsString( $validated['description'] );
 		}
 	}
 
 	/**
-	 * Property: Encryption Consistency
+	 * Property: Encryption Consistency.
 	 *
-	 * Same credential encrypts to different values each time (due to IV)
-	 * Validates: Requirement 6.2
+	 * Same credential encrypts to different values each time (due to IV).
+	 * Validates: Requirement 6.2.
 	 */
 	public function test_property_encryption_consistency() {
-		// Verify encryption methods exist and return expected types
+		// Verify encryption methods exist and return expected types.
 		$this->assertTrue( method_exists( 'PaySentinel_Security', 'encrypt_credential' ) );
 		$this->assertTrue( method_exists( 'PaySentinel_Security', 'decrypt_credential' ) );
 		$this->assertTrue( method_exists( 'PaySentinel_Security', 'validate_encryption' ) );
 
-		// Test that validation method exists and returns boolean
+		// Test that validation method exists and returns boolean.
 		$validation_result = PaySentinel_Security::validate_encryption();
 		$this->assertIsBool( $validation_result );
 	}
 
 	/**
-	 * Property: Data Type Preservation
+	 * Property: Data Type Preservation.
 	 *
-	 * Settings validation preserves appropriate data types
-	 * Validates: Requirement 6.5
+	 * Settings validation preserves appropriate data types.
+	 * Validates: Requirement 6.5.
 	 */
 	public function test_property_data_type_preservation() {
 		for ( $i = 0; $i < 50; $i++ ) {
 			$settings = array(
-				'string_value'   => 'test_' . rand( 1, 100 ),
-				'numeric_string' => strval( rand( 100, 999 ) ),
-				'integer_value'  => rand( 1, 1000 ),
+				'string_value'   => 'test_' . wp_rand( 1, 100 ),
+				'numeric_string' => strval( wp_rand( 100, 999 ) ),
+				'integer_value'  => wp_rand( 1, 1000 ),
 				'zero_value'     => 0,
-				'negative_value' => -rand( 1, 100 ),
+				'negative_value' => -wp_rand( 1, 100 ),
 			);
 
 			$validated = PaySentinel_Security::validate_admin_settings( $settings );
 
-			// String values should remain strings
+			// String values should remain strings.
 			$this->assertIsString( $validated['string_value'] );
 
-			// Numeric strings should become integers
+			// Numeric strings should become integers.
 			$this->assertIsInt( $validated['numeric_string'] );
 
-			// Integer values should remain integers
+			// Integer values should remain integers.
 			$this->assertIsInt( $validated['integer_value'] );
 
-			// Zero should be preserved
+			// Zero should be preserved.
 			$this->assertIsInt( $validated['zero_value'] );
 			$this->assertEquals( 0, $validated['zero_value'] );
 
-			// Negative integers should be preserved
+			// Negative integers should be preserved.
 			$this->assertIsInt( $validated['negative_value'] );
 		}
 	}
 
 	/**
-	 * Property: Nested Data Filtering
+	 * Property: Nested Data Filtering.
 	 *
-	 * Sensitive data exclusion works recursively on nested structures
-	 * Validates: Requirement 6.3
+	 * Sensitive data exclusion works recursively on nested structures.
+	 * Validates: Requirement 6.3.
 	 */
 	public function test_property_nested_data_filtering() {
 		for ( $i = 0; $i < 50; $i++ ) {
@@ -439,11 +530,11 @@ class SecurityPropertyTest extends PHPUnit\Framework\TestCase {
 
 			$filtered = PaySentinel_Security::exclude_sensitive_data( $data );
 
-			// Safe fields should exist at all levels
+			// Safe fields should exist at all levels.
 			$this->assertEquals( 'visible', $filtered['level1']['level2']['level3']['safe_field'] );
 			$this->assertEquals( 'also_visible', $filtered['level1']['level2']['another_safe'] );
 
-			// Sensitive fields should be removed at all levels
+			// Sensitive fields should be removed at all levels.
 			$this->assertArrayNotHasKey( 'password', $filtered['level1']['level2']['level3'] );
 			$this->assertArrayNotHasKey( 'token', $filtered['level1']['level2']['level3'] );
 			$this->assertArrayNotHasKey( 'api_key', $filtered['level1'] );

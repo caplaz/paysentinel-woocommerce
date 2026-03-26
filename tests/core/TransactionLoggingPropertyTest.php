@@ -1,8 +1,12 @@
 <?php
+/**
+ * Property-based tests for transaction logging.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Property-based tests for transaction logging
- * Tests universal correctness properties with 100+ iterations
+ * Class TransactionLoggingPropertyTest
  */
 class TransactionLoggingPropertyTest extends PHPUnit\Framework\TestCase {
 
@@ -14,13 +18,13 @@ class TransactionLoggingPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_transaction_data_types() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			$order_id   = rand( 1000, 9999 );
+			$order_id   = wp_rand( 1000, 9999 );
 			$gateway_id = 'stripe';
-			$amount     = rand( 1000, 99999 ) / 100;
+			$amount     = wp_rand( 1000, 99999 ) / 100;
 			$currency   = 'USD';
 			$status     = 'success';
 
-			// Verify types
+			// Verify types.
 			$this->assertIsInt( $order_id );
 			$this->assertIsString( $gateway_id );
 			$this->assertIsNumeric( $amount );
@@ -41,7 +45,7 @@ class TransactionLoggingPropertyTest extends PHPUnit\Framework\TestCase {
 		for ( $i = 0; $i < 100; $i++ ) {
 			$random_status = $valid_statuses[ array_rand( $valid_statuses ) ];
 
-			// Status must be in valid set
+			// Status must be in valid set.
 			$this->assertContains( $random_status, $valid_statuses );
 			$this->assertNotEmpty( $random_status );
 			$this->assertIsString( $random_status );
@@ -57,17 +61,17 @@ class TransactionLoggingPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_transaction_amount_constraints() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			// Generate valid amounts
-			$amount = rand( 1, 999999 ) / 100;
+			// Generate valid amounts.
+			$amount = wp_rand( 1, 999999 ) / 100;
 
-			// Amount must be positive
+			// Amount must be positive.
 			$this->assertGreaterThan( 0, $amount, 'Amount must be positive' );
 
-			// Amount must be numeric
+			// Amount must be numeric.
 			$this->assertIsNumeric( $amount );
 
-			// Amount should have reasonable precision (max 2 decimals for currency)
-			// Round to 2 decimals and verify equality
+			// Amount should have reasonable precision (max 2 decimals for currency).
+			// Round to 2 decimals and verify equality.
 			$rounded_amount = round( $amount, 2 );
 			$this->assertEquals( $amount, $rounded_amount, 'Amount should have max 2 decimal places', 0.001 );
 		}

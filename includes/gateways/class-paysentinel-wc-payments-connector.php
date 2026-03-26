@@ -1,10 +1,12 @@
 <?php
-
 /**
  * WooCommerce Payments Gateway Connector
  *
  * Handles connectivity checks with WooCommerce Payments API
+ *
+ * @package PaySentinel
  */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -46,7 +48,7 @@ class PaySentinel_WC_Payments_Connector extends PaySentinel_Gateway_Connector {
 			return array();
 		}
 
-		// WooCommerce Payments uses account ID and server credentials
+		// WooCommerce Payments uses account ID and server credentials.
 		$account_id = $wc_payments_settings['account_id'] ?? '';
 		$enabled    = isset( $wc_payments_settings['enabled'] ) && 'yes' === $wc_payments_settings['enabled'];
 
@@ -93,16 +95,13 @@ class PaySentinel_WC_Payments_Connector extends PaySentinel_Gateway_Connector {
 	 * @return array
 	 */
 	public function test_connection() {
-		// Validate credentials/settings first
+		// Validate credentials/settings first.
 		$validation = $this->validate_credentials();
 		if ( ! $validation['valid'] ) {
 			return $this->response_unconfigured();
 		}
 
-		$credentials = $this->get_credentials();
-		$account_id  = $credentials['account_id'];
-
-		// Check if WooCommerce Payments class is available
+		// Check if WooCommerce Payments class is available.
 		if ( ! class_exists( 'WC_Payments_API_Client' ) ) {
 			return $this->response_offline(
 				'WooCommerce Payments plugin not found or inactive',
@@ -112,11 +111,11 @@ class PaySentinel_WC_Payments_Connector extends PaySentinel_Gateway_Connector {
 		}
 
 		try {
-			// Get the WC Payments API client
-			$api_client = new WC_Payments_API_Client();
+			// Instantiate the WC Payments API client to verify the class is usable.
+			new WC_Payments_API_Client();
 
-			// Make a simple request to check connectivity
-			// Request the account details to verify API is working
+			// Make a simple request to check connectivity.
+			// Request the account details to verify API is working.
 			$response = $this->make_http_request(
 				self::WC_PAYMENTS_API . '/' . get_current_blog_id() . '/wcpay/accounts/me',
 				array(
@@ -137,7 +136,7 @@ class PaySentinel_WC_Payments_Connector extends PaySentinel_Gateway_Connector {
 
 			$http_code = wp_remote_retrieve_response_code( $response['response'] );
 
-			// WooCommerce Payments should return 200 OK for account info
+			// WooCommerce Payments should return 200 OK for account info.
 			if ( 200 === $http_code ) {
 				return $this->response_online(
 					'Successfully connected to WooCommerce Payments',
@@ -146,7 +145,7 @@ class PaySentinel_WC_Payments_Connector extends PaySentinel_Gateway_Connector {
 				);
 			}
 
-			// Check for auth/permission errors
+			// Check for auth/permission errors.
 			if ( in_array( $http_code, array( 401, 403 ), true ) ) {
 				return $this->response_offline(
 					'Authentication failed with WooCommerce Payments API',
@@ -155,7 +154,7 @@ class PaySentinel_WC_Payments_Connector extends PaySentinel_Gateway_Connector {
 				);
 			}
 
-			// Unexpected response
+			// Unexpected response.
 			return $this->response_offline(
 				'Unexpected response from WooCommerce Payments API (HTTP ' . $http_code . ')',
 				$http_code,

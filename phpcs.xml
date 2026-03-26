@@ -32,6 +32,15 @@
     <!-- Set PHP version compatibility -->
     <config name="testVersion" value="7.4-"/>
 
+    <!-- Register WooCommerce capability used throughout the plugin -->
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="manage_woocommerce"/>
+            </property>
+        </properties>
+    </rule>
+
     <!-- Files to check -->
     <file>paysentinel.php</file>
     <file>includes/</file>

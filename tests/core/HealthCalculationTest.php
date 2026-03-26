@@ -1,24 +1,28 @@
 <?php
+/**
+ * Unit tests for PaySentinel_Health class.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Unit tests for PaySentinel_Health class
- * Tests health calculation and success rate computation
+ * Class HealthCalculationTest
  */
 class HealthCalculationTest extends PHPUnit\Framework\TestCase {
 
 	/**
-	 * Test that health calculator can be instantiated
+	 * Test that health calculator can be instantiated.
 	 */
 	public function test_health_constants_defined() {
-		// Verify health class can be loaded
+		// Verify health class can be loaded.
 		$this->assertTrue( class_exists( 'PaySentinel_Health' ) || file_exists( __DIR__ . '/../includes/core/class-paysentinel-health.php' ) );
 	}
 
 	/**
-	 * Test health period calculations
+	 * Test health period calculations.
 	 */
 	public function test_health_periods() {
-		// Expected periods for health calculation
+		// Expected periods for health calculation.
 		$expected_periods = array(
 			'1hour'  => 3600,
 			'24hour' => 86400,
@@ -27,18 +31,18 @@ class HealthCalculationTest extends PHPUnit\Framework\TestCase {
 			'90day'  => 7776000,
 		);
 
-		// Verify these are reasonable time windows
-		foreach ( $expected_periods as $name => $seconds ) {
+		// Verify these are reasonable time windows.
+		foreach ( $expected_periods as $_name => $seconds ) { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 			$this->assertGreaterThan( 0, $seconds );
 			$this->assertIsInt( $seconds );
 		}
 	}
 
 	/**
-	 * Test success rate calculation logic
+	 * Test success rate calculation logic.
 	 */
 	public function test_success_rate_calculation() {
-		// Test basic success rate calculation
+		// Test basic success rate calculation.
 		$total_transactions      = 100;
 		$successful_transactions = 95;
 		$success_rate            = ( $successful_transactions / $total_transactions ) * 100;
@@ -49,16 +53,16 @@ class HealthCalculationTest extends PHPUnit\Framework\TestCase {
 	}
 
 	/**
-	 * Test edge cases for success rate
+	 * Test edge cases for success rate.
 	 */
 	public function test_success_rate_edge_cases() {
-		// Test 0% success
+		// Test 0% success.
 		$this->assertEquals( 0.0, ( 0 / 100 ) * 100 );
 
-		// Test 100% success
+		// Test 100% success.
 		$this->assertEquals( 100.0, ( 100 / 100 ) * 100 );
 
-		// Test zero transactions (avoid division by zero)
+		// Test zero transactions (avoid division by zero).
 		$success_rate = 0;
 		if ( 0 > 0 ) {
 			$success_rate = ( 0 / 0 ) * 100;

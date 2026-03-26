@@ -28,7 +28,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$license       = new PaySentinel_License();
 		$this->handler = new PaySentinel_Admin_Settings_Handler( $security, $license );
 
-		// Clean up options before each test
+		// Clean up options before each test.
 		delete_option( 'paysentinel_options' );
 	}
 
@@ -40,27 +40,27 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 
 		$this->handler->register_settings();
 
-		// Check if the setting is registered
+		// Check if the setting is registered.
 		$registered_settings = get_registered_settings();
 		$this->assertArrayHasKey( 'paysentinel_options', $registered_settings );
 
-		// Check sections
+		// Check sections.
 		$this->assertArrayHasKey( 'paysentinel_settings', $wp_settings_sections );
 		$sections = $wp_settings_sections['paysentinel_settings'];
 		$this->assertArrayHasKey( 'paysentinel_general', $sections );
 		$this->assertArrayHasKey( 'paysentinel_gateways', $sections );
 		$this->assertArrayHasKey( 'paysentinel_advanced', $sections );
 
-		// Check some fields
+		// Check some fields.
 		$this->assertArrayHasKey( 'paysentinel_settings', $wp_settings_fields );
 		$fields = $wp_settings_fields['paysentinel_settings'];
 
-		// General fields
+		// General fields.
 		$this->assertArrayHasKey( 'paysentinel_general', $fields );
 		$this->assertArrayHasKey( 'enable_monitoring', $fields['paysentinel_general'] );
 		$this->assertArrayHasKey( 'health_check_interval', $fields['paysentinel_general'] );
 
-		// Advanced fields
+		// Advanced fields.
 		$this->assertArrayHasKey( 'paysentinel_advanced', $fields );
 		$this->assertArrayHasKey( 'enable_test_mode', $fields['paysentinel_advanced'] );
 	}
@@ -82,13 +82,13 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 
 		$validated = PaySentinel_Security::validate_admin_settings( $new_settings );
 
-		// alert_threshold should be updated and cast to int
+		// alert_threshold should be updated and cast to int.
 		$this->assertEquals( 90, $validated['alert_threshold'] );
 
-		// enable_monitoring should be preserved from old_settings
+		// enable_monitoring should be preserved from old_settings.
 		$this->assertEquals( 1, $validated['enable_monitoring'] );
 
-		// unknown_key should be present and sanitized
+		// unknown_key should be present and sanitized.
 		$this->assertEquals( 'value', $validated['unknown_key'] );
 	}
 
@@ -104,7 +104,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Simulate saving the general tab with checkboxes UNCHECKED (missing from POST)
+		// Simulate saving the general tab with checkboxes UNCHECKED (missing from POST).
 		$input = array(
 			'current_tab'     => 'general',
 			'alert_threshold' => 85,
@@ -170,7 +170,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertStringContainsString( 'id="alert-threshold-slider"', $output );
 
-		// Sections
+		// Sections.
 		ob_start();
 		$this->handler->render_general_section();
 		$this->handler->render_gateways_section();
@@ -178,7 +178,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertStringContainsString( 'Core monitoring', $output );
 
-		// More fields
+		// More fields.
 		ob_start();
 		$this->handler->render_field_retry_enabled();
 		$this->handler->render_field_max_retry_attempts();
@@ -187,7 +187,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'retry_enabled', $output );
 		$this->assertStringContainsString( 'max_retry_attempts', $output );
 
-		// License & Plan fields
+		// License & Plan fields.
 		ob_start();
 		$this->handler->render_field_license_key();
 		$this->handler->render_license_section();
@@ -195,15 +195,15 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Subscription Plan', $output );
 		$this->assertStringContainsString( 'License Management', $output );
 
-		// Config fields
+		// Config fields.
 		ob_start();
 		$this->handler->render_field_gateway_alert_config();
 		$this->handler->render_field_test_failure_rate();
 		$output = ob_get_clean();
 		$this->assertStringContainsString( 'gateway_alert_config', $output );
 
-		// ensure the paper-plane icon, if present, uses vertical-align instead of
-		// a margin hack. the icon only appears for unlocked tiers so we only
+		// ensure the paper-plane icon, if present, uses vertical-align instead of.
+		// a margin hack. the icon only appears for unlocked tiers so we only.
 		// check the styles when it's actually in the output.
 		if ( false !== strpos( $output, 'dashicons-paper-plane' ) ) {
 			$this->assertStringContainsString( 'vertical-align: middle', $output );
@@ -215,7 +215,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 	 * Test rendering with different license tiers.
 	 */
 	public function test_tiered_rendering() {
-		// 1. Mock Pro Tier
+		// 1. Mock Pro Tier.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
 
@@ -223,18 +223,18 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->handler->render_field_gateway_alert_config();
 		$output = ob_get_clean();
 
-		// Should NOT see lock icon or "Pro Feature" message in Pro tier (it's available)
+		// Should NOT see lock icon or "Pro Feature" message in Pro tier (it's available).
 		$this->assertStringNotContainsString( 'dashicons-lock', $output );
 		$this->assertStringNotContainsString( 'Pro Feature', $output );
 
-		// 2. Mock Free Tier
+		// 2. Mock Free Tier.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'invalid' );
 
 		ob_start();
 		$this->handler->render_field_gateway_alert_config();
 		$output = ob_get_clean();
 
-		// Should see lock icon and Pro Feature message
+		// Should see lock icon and Pro Feature message.
 		$this->assertStringContainsString( 'dashicons-lock', $output );
 		$this->assertStringContainsString( 'Pro Feature', $output );
 	}
@@ -248,7 +248,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 			PaySentinel_License::OPTION_LICENSE_DATA,
 			array(
 				'plan'          => 'agency',
-				'expiration_ts' => date( 'Y-m-d H:i:s', time() + YEAR_IN_SECONDS ),
+				'expiration_ts' => gmdate( 'Y-m-d H:i:s', time() + YEAR_IN_SECONDS ),
 			)
 		);
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
@@ -279,7 +279,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 	 * rendered in the gateway alert config table for Pro tier.
 	 */
 	public function test_gateway_alert_config_renders_all_channels() {
-		// Set Pro tier to allow rendering without lock overlay
+		// Set Pro tier to allow rendering without lock overlay.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
 
@@ -287,13 +287,13 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->handler->render_field_gateway_alert_config();
 		$output = ob_get_clean();
 
-		// Verify all four channels are present
+		// Verify all four channels are present.
 		$this->assertStringContainsString( 'value="email"', $output, 'Email channel checkbox should be present' );
 		$this->assertStringContainsString( 'value="slack"', $output, 'Slack channel checkbox should be present' );
 		$this->assertStringContainsString( 'value="discord"', $output, 'Discord channel checkbox should be present' );
 		$this->assertStringContainsString( 'value="teams"', $output, 'Teams channel checkbox should be present' );
 
-		// Verify channel labels are visible
+		// Verify channel labels are visible.
 		$this->assertStringContainsString( 'Email', $output, 'Email label should be present' );
 		$this->assertStringContainsString( 'Slack', $output, 'Slack label should be present' );
 		$this->assertStringContainsString( 'Discord', $output, 'Discord label should be present' );
@@ -313,10 +313,10 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->handler->render_field_gateway_alert_config();
 		$output = ob_get_clean();
 
-		// Verify table headers have padding-left style
+		// Verify table headers have padding-left style.
 		$this->assertStringContainsString( 'padding-left: 10px', $output, 'Table headers should have left padding' );
 
-		// Count padding-left occurrences (should be at least 4 for the 4 column headers)
+		// Count padding-left occurrences (should be at least 4 for the 4 column headers).
 		$padding_count = substr_count( $output, 'padding-left: 10px' );
 		$this->assertGreaterThanOrEqual( 4, $padding_count, 'Should have padding on all header columns' );
 	}
@@ -327,11 +327,11 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 	 * Verifies that previously selected channels are correctly marked as checked.
 	 */
 	public function test_gateway_alert_config_preserves_selected_channels() {
-		// Set Pro tier
+		// Set Pro tier.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
 
-		// Set saved gateway config with specific channels selected
+		// Set saved gateway config with specific channels selected.
 		$settings = array(
 			PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(
 				'stripe' => array(
@@ -352,15 +352,15 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->handler->render_field_gateway_alert_config();
 		$output = ob_get_clean();
 
-		// Remove whitespace to make assertions more robust
+		// Remove whitespace to make assertions more robust.
 		$output_clean = preg_replace( '/\s+/', ' ', $output );
 
-		// For Stripe gateway, Slack and Discord should be in config
+		// For Stripe gateway, Slack and Discord should be in config.
 		$this->assertStringContainsString( 'gateway_alert_config][stripe]', $output_clean, 'Stripe config should be present' );
 		$this->assertStringContainsString( 'value="slack"', $output_clean, 'Slack channel should be present' );
 		$this->assertStringContainsString( 'value="discord"', $output_clean, 'Discord channel should be present' );
 
-		// For PayPal gateway, Email and Teams should be in config
+		// For PayPal gateway, Email and Teams should be in config.
 		$this->assertStringContainsString( 'gateway_alert_config][paypal]', $output_clean, 'PayPal config should be present' );
 	}
 
@@ -383,7 +383,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->assertIsArray( $validated['gateway_alert_config'] );
 		$this->assertIsArray( $validated['gateway_alert_config']['stripe']['channels'] );
 
-		// Channels should be sanitized - no script tags
+		// Channels should be sanitized - no script tags.
 		$channels = $validated['gateway_alert_config']['stripe']['channels'];
 		foreach ( $channels as $channel ) {
 			$this->assertStringNotContainsString( '<script>', $channel, 'Script tags should be removed from channels' );
@@ -399,7 +399,7 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
 
-		// Set a gateway as disabled
+		// Set a gateway as disabled.
 		$settings = array(
 			PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(
 				'stripe' => array(
@@ -415,14 +415,14 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->handler->render_field_gateway_alert_config();
 		$output = ob_get_clean();
 
-		// Remove whitespace to make assertions more robust
+		// Remove whitespace to make assertions more robust.
 		$output_clean = preg_replace( '/\s+/', ' ', $output );
 
-		// Verify table is rendered
+		// Verify table is rendered.
 		$this->assertStringContainsString( '<table', $output );
 		$this->assertStringContainsString( 'Stripe', $output );
 
-		// Verify the structure for disabled state - check for gateway config input
+		// Verify the structure for disabled state - check for gateway config input.
 		$this->assertStringContainsString( 'gateway_alert_config', $output_clean );
 	}
 
@@ -439,10 +439,10 @@ class AdminSettingsIntegrationTest extends WP_UnitTestCase {
 		$this->handler->render_field_gateway_alert_config();
 		$output = ob_get_clean();
 
-		// Verify labels have display: inline-block for proper alignment
+		// Verify labels have display: inline-block for proper alignment.
 		$this->assertStringContainsString( 'display: inline-block', $output, 'Labels should have inline-block display for alignment' );
 
-		// Verify proper margins between labels
+		// Verify proper margins between labels.
 		$this->assertStringContainsString( 'margin-right: 15px', $output, 'Labels should have appropriate margin spacing' );
 	}
 }

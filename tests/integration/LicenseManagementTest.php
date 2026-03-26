@@ -26,7 +26,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		parent::setUp();
 		$this->license = new PaySentinel_License();
 
-		// Ensure options are clean
+		// Ensure options are clean.
 		delete_option( PaySentinel_License::OPTION_LICENSE_KEY );
 		delete_option( PaySentinel_License::OPTION_LICENSE_STATUS );
 		delete_option( PaySentinel_License::OPTION_LICENSE_DATA );
@@ -89,7 +89,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 								'valid'         => true,
 								'message'       => 'License is valid',
 								'plan'          => 'pro',
-								'expiration_ts' => date( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ),
+								'expiration_ts' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ),
 								'features'      => array(
 
 									'slack_alerts' => true,
@@ -173,7 +173,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$this->assertTrue( $result['valid'] );
 		$this->assertTrue( $result['site_registered'] );
 
-		// Assert options are saved
+		// Assert options are saved.
 		$this->assertEquals( 'test-key', get_option( PaySentinel_License::OPTION_LICENSE_KEY ) );
 		$this->assertEquals( 'valid', get_option( PaySentinel_License::OPTION_LICENSE_STATUS ) );
 		$this->assertEquals( 'test_secret_123', get_option( PaySentinel_License::OPTION_SITE_SECRET ) );
@@ -187,15 +187,15 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	 * Test tier detection.
 	 */
 	public function test_get_license_tier() {
-		// Default to free
+		// Default to free.
 		$this->assertEquals( 'free', $this->license->get_license_tier() );
 
-		// Valid pro license
+		// Valid pro license.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'plan' => 'pro' ) );
 		$this->assertEquals( 'pro', $this->license->get_license_tier() );
 
-		// Invalid license should return free
+		// Invalid license should return free.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'invalid' );
 		$this->assertEquals( 'free', $this->license->get_license_tier() );
 	}
@@ -204,10 +204,10 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	 * Test feature availability.
 	 */
 	public function test_has_feature() {
-		// No license
+		// No license.
 		$this->assertFalse( $this->license->has_feature( 'slack_alerts' ) );
 
-		// Valid license with features
+		// Valid license with features.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 		update_option(
 			PaySentinel_License::OPTION_LICENSE_DATA,
@@ -294,23 +294,23 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$method     = $reflection->getMethod( 'get_user_friendly_error_message' );
 		$method->setAccessible( true );
 
-		// API specific error: License not found
+		// API specific error: License not found.
 		$msg = $method->invoke( $this->license, 400, array( 'error' => 'License not found' ) );
 		$this->assertStringContainsString( 'Invalid license key', $msg );
 
-		// API specific error: License expired
+		// API specific error: License expired.
 		$msg = $method->invoke( $this->license, 400, array( 'error' => 'License expired' ) );
 		$this->assertStringContainsString( 'license has expired', $msg );
 
-		// Status code 403
+		// Status code 403.
 		$msg = $method->invoke( $this->license, 403, array() );
 		$this->assertStringContainsString( 'License access denied', $msg );
 
-		// Status code 429
+		// Status code 429.
 		$msg = $method->invoke( $this->license, 429, array() );
 		$this->assertStringContainsString( 'Too many license validation attempts', $msg );
 
-		// Status code 500
+		// Status code 500.
 		$msg = $method->invoke( $this->license, 500, array() );
 		$this->assertStringContainsString( 'server is temporarily unavailable', $msg );
 	}
@@ -319,17 +319,17 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	 * Test license admin notices.
 	 */
 	public function test_license_admin_notices() {
-		// Mock screen to be on PaySentinel page
+		// Mock screen to be on PaySentinel page.
 		set_current_screen( 'toplevel_page_payment-monitor' );
 
-		// 1. Unknown status notice
+		// 1. Unknown status notice.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'unknown' );
 		ob_start();
 		$this->license->license_admin_notices();
 		$output = ob_get_clean();
 		$this->assertStringContainsString( 'Please enter your license key', $output );
 
-		// 2. Invalid status notice
+		// 2. Invalid status notice.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'invalid' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, array( 'debug_info' => 'API Error 403' ) );
 		ob_start();
@@ -338,7 +338,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'license key is invalid or expired', $output );
 		$this->assertStringContainsString( 'API Error 403', $output );
 
-		// 3. Valid but unregistered notice
+		// 3. Valid but unregistered notice.
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, false );
 		ob_start();
@@ -346,7 +346,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertStringContainsString( 'site is not registered', $output );
 
-		// Reset screen
+		// Reset screen.
 		set_current_screen( 'dashboard' );
 	}
 
@@ -388,7 +388,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 						'body'     => wp_json_encode(
 							array(
 								'success'           => true,
-								'site_registration' => array( 'registered' => true ), // No site_secret
+								'site_registration' => array( 'registered' => true ), // No site_secret.
 							)
 						),
 					);
@@ -409,12 +409,12 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	 * Test registration status retrieval.
 	 */
 	public function test_get_site_registration_status() {
-		// No data
+		// No data.
 		$status = $this->license->get_site_registration_status();
 		$this->assertFalse( $status['registered'] );
 		$this->assertEquals( 'not_checked', $status['reason'] );
 
-		// With data
+		// With data.
 		$data = array(
 			'registered' => true,
 			'reason'     => 'Site is registered',
@@ -436,7 +436,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$this->mock_activation_success();
 		$this->mock_validation_success();
 
-		// Trigger daily check
+		// Trigger daily check.
 		$this->license->daily_license_check();
 
 		$this->assertEquals( 'valid', get_option( PaySentinel_License::OPTION_LICENSE_STATUS ) );
@@ -480,18 +480,18 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	 * Test license status and data helpers.
 	 */
 	public function test_license_helpers() {
-		// 1. is_site_registered
+		// 1. is_site_registered.
 		$this->assertFalse( $this->license->is_site_registered() );
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
 		$this->assertTrue( $this->license->is_site_registered() );
 
-		// 2. get_license_data
+		// 2. get_license_data.
 		$this->assertNull( $this->license->get_license_data() );
 		$sample_data = array( 'plan' => 'starter' );
 		update_option( PaySentinel_License::OPTION_LICENSE_DATA, $sample_data );
 		$this->assertEquals( $sample_data, $this->license->get_license_data() );
 
-		// 3. get_license_status
+		// 3. get_license_status.
 		$this->assertEquals( 'unknown', $this->license->get_license_status() );
 		update_option( PaySentinel_License::OPTION_LICENSE_STATUS, 'valid' );
 		$this->assertEquals( 'valid', $this->license->get_license_status() );
@@ -505,7 +505,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret_123' );
 		update_option( PaySentinel_License::OPTION_SITE_REGISTERED, true );
 
-		// 401 Unauthorized
+		// 401 Unauthorized.
 		add_filter(
 			'pre_http_request',
 			function () {
@@ -519,7 +519,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$this->assertWPError( $result );
 		$this->assertEquals( 'unauthorized', $result->get_error_code() );
 
-		// 403 Forbidden
+		// 403 Forbidden.
 		remove_all_filters( 'pre_http_request' );
 		add_filter(
 			'pre_http_request',
@@ -535,7 +535,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$this->assertEquals( 'forbidden', $result->get_error_code() );
 		$this->assertEquals( 'invalid', get_option( PaySentinel_License::OPTION_LICENSE_STATUS ) );
 
-		// 500 Server Error
+		// 500 Server Error.
 		remove_all_filters( 'pre_http_request' );
 		add_filter(
 			'pre_http_request',
@@ -594,7 +594,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	public function test_validate_license_expiration() {
 		update_option( PaySentinel_License::OPTION_SITE_SECRET, 'test_secret_123' );
 
-		// 1. Expired license
+		// 1. Expired license.
 		add_filter(
 			'pre_http_request',
 			function () {
@@ -603,7 +603,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 					'body'     => wp_json_encode(
 						array(
 							'valid'         => true,
-							'expiration_ts' => date( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ),
+							'expiration_ts' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ),
 						)
 					),
 				);
@@ -613,7 +613,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$result = $this->license->validate_license( 'expired-key' );
 		$this->assertFalse( $result['valid'] );
 
-		// 2. Unparseable date (should fallback to valid to be safe)
+		// 2. Unparseable date (should fallback to valid to be safe).
 		remove_all_filters( 'pre_http_request' );
 		add_filter(
 			'pre_http_request',
@@ -638,7 +638,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	 * Test make_authenticated_request failures.
 	 */
 	public function test_make_authenticated_request_failures() {
-		// Missing details
+		// Missing details.
 		delete_option( PaySentinel_License::OPTION_LICENSE_KEY );
 		$result = $this->license->make_authenticated_request( 'https://example.com' );
 		$this->assertWPError( $result );
@@ -662,7 +662,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 	public function test_check_license_on_admin() {
 		update_option( PaySentinel_License::OPTION_LICENSE_KEY, 'test-key' );
 
-		// Mock last check to be 25 hours ago
+		// Mock last check to be 25 hours ago.
 		update_option( PaySentinel_License::OPTION_LAST_CHECK, time() - ( 25 * HOUR_IN_SECONDS ) );
 
 		$this->mock_activation_success();
@@ -672,7 +672,7 @@ class LicenseManagementTest extends WP_UnitTestCase {
 
 		$this->assertEquals( 'valid', get_option( PaySentinel_License::OPTION_LICENSE_STATUS ) );
 
-		// Assert last check was updated
+		// Assert last check was updated.
 		$last_check = get_option( PaySentinel_License::OPTION_LAST_CHECK );
 		$this->assertGreaterThan( time() - 10, $last_check );
 	}
@@ -730,8 +730,8 @@ class LicenseManagementTest extends WP_UnitTestCase {
 		$captured_args = null;
 		add_filter(
 			'pre_http_request',
-			function ( $pre, $args, $url ) use ( &$captured_args ) {
-				$captured_args = $args;
+			function ( $pre, $_args, $_url ) use ( &$captured_args ) { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+				$captured_args = $_args;
 				return array(
 					'response' => array( 'code' => 200 ),
 					'body'     => '{}',
@@ -741,17 +741,17 @@ class LicenseManagementTest extends WP_UnitTestCase {
 			3
 		);
 
-		// 1. POST with body
+		// 1. POST with body.
 		$this->license->make_authenticated_request( 'https://api.test', 'POST', array( 'foo' => 'bar' ) );
 		$this->assertEquals( 'POST', $captured_args['method'] );
 		$this->assertStringContainsString( '"foo":"bar"', $captured_args['body'] );
 		$this->assertNotEmpty( $captured_args['headers']['X-PaySentinel-Signature'] );
 
-		// 2. GET with params (should move to URL)
+		// 2. GET with params (should move to URL).
 		$this->license->make_authenticated_request( 'https://api.test', 'GET', array( 'param' => 'val' ) );
 		$this->assertEquals( 'GET', $captured_args['method'] );
 		$this->assertEmpty( $captured_args['body'] );
-		// The URL modification is handled by make_authenticated_request_with_secret and passed to wp_remote_request
+		// The URL modification is handled by make_authenticated_request_with_secret and passed to wp_remote_request.
 		// Wait, I can't easily check the URL from $args in pre_http_request because it's passed as separate param.
 	}
 }

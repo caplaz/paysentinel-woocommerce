@@ -1,30 +1,38 @@
 <?php
-
 /**
  * Health calculation engine class
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_Health.
+ */
 class PaySentinel_Health {
-
-
 
 	/**
 	 * Database instance
+	 *
+	 * @var PaySentinel_Database
 	 */
 	private $database;
 
 	/**
 	 * Logger instance
+	 *
+	 * @var PaySentinel_Logger
 	 */
 	private $logger;
 
 	/**
 	 * Gateway manager instance
+	 *
+	 * @var PaySentinel_Gateway_Manager
 	 */
 	private $gateway_manager;
 
@@ -38,8 +46,8 @@ class PaySentinel_Health {
 		'1hour'  => 3600,
 		'24hour' => 86400,
 		'7day'   => 604800,
-		'30day'  => 2592000,  // PRO/Agency only
-		'90day'  => 7776000,  // PRO/Agency only
+		'30day'  => 2592000,  // PRO/Agency only.
+		'90day'  => 7776000,  // PRO/Agency only.
 	);
 
 	/**
@@ -56,11 +64,11 @@ class PaySentinel_Health {
 	 * Initialize WordPress hooks
 	 */
 	private function init_hooks() {
-		// Schedule health calculation cron job
+		// Schedule health calculation cron job.
 		add_action( 'init', array( $this, 'schedule_health_calculation' ) );
 		add_action( 'paysentinel_health_calculation', array( $this, 'calculate_all_gateway_health' ) );
 
-		// Hook into plugin activation to schedule cron
+		// Hook into plugin activation to schedule cron.
 		add_action( 'paysentinel_activated', array( $this, 'schedule_health_calculation' ) );
 	}
 
@@ -69,32 +77,28 @@ class PaySentinel_Health {
 	 */
 	public function schedule_health_calculation() {
 		if ( ! wp_next_scheduled( 'paysentinel_health_calculation' ) ) {
-			// Get monitoring interval from settings (default 5 minutes)
-			$settings = get_option( 'paysentinel_options', array() );
-			$interval = isset( $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] ) ? $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] : 300;
-
 			wp_schedule_event( time(), 'paysentinel_interval', 'paysentinel_health_calculation' );
 		}
 
-		// Add custom cron interval if not exists
-		add_filter( 'cron_schedules', array( $this, 'add_cron_interval' ) );
+		// Add custom cron interval if not exists.
+		add_filter( 'cron_schedules', array( $this, 'add_cron_interval' ) ); // phpcs:ignore WordPress.WP.CronInterval.ChangeDetected -- interval is user-configurable via settings.
 	}
 
 	/**
 	 * Add custom cron interval
 	 *
-	 * @param array $schedules Existing schedules
+	 * @param array $schedules Existing schedules.
 	 *
 	 * @return array Modified schedules
 	 */
 	public function add_cron_interval( $schedules ) {
-		$settings = get_option( 'paysentinel_options', array() );
-		$interval = isset( $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] ) ? $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] : 300;
+		$settings         = get_option( 'paysentinel_options', array() );
+		$interval_seconds = isset( $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] ) ? (int) $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] : 300;
 
 		$schedules['paysentinel_interval'] = array(
-			'interval' => $interval,
+			'interval' => $interval_seconds,
 			/* translators: %d: interval in minutes */
-			'display'  => sprintf( __( 'Every %d minutes', 'paysentinel' ), $interval / 60 ),
+			'display'  => sprintf( __( 'Every %d minutes', 'paysentinel' ), $interval_seconds / 60 ),
 		);
 
 		return $schedules;
@@ -118,7 +122,7 @@ class PaySentinel_Health {
 	 * current license tier. Extended periods (30-day and 90-day) are only calculated for
 	 * PRO and Agency tiers.
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return array Health data for all periods available to the current license tier
 	 */
@@ -128,9 +132,9 @@ class PaySentinel_Health {
 		$tier        = $license->get_license_tier();
 
 		foreach ( self::PERIODS as $period => $seconds ) {
-			// Gate extended periods (30-day, 90-day) behind PRO and Agency tiers
-			// Free and Starter tiers only get: 1hour, 24hour, 7day
-			// PRO and Agency tiers also get: 30day, 90day
+			// Gate extended periods (30-day, 90-day) behind PRO and Agency tiers.
+			// Free and Starter tiers only get: 1hour, 24hour, 7day.
+			// PRO and Agency tiers also get: 30day, 90day.
 			if ( ( '30day' === $period || '90day' === $period ) && ! in_array( $tier, array( 'pro', 'agency' ), true ) ) {
 				continue;
 			}
@@ -138,12 +142,12 @@ class PaySentinel_Health {
 			$period_health          = $this->calculate_period_health( $gateway_id, $period, $seconds );
 			$health_data[ $period ] = $period_health;
 
-			// Store health data in database
+			// Store health data in database.
 			$this->store_health_data( $gateway_id, $period, $period_health );
 		}
 
 		// DEVELOPER HOOK: Trigger alert checking and extend logic for this gateway.
-		// Use this action if you want to perform custom analysis or trigger
+		// Use this action if you want to perform custom analysis or trigger.
 		// notifications outside of the built-in alerting system when health is computed.
 		do_action( 'paysentinel_gateway_health_calculated', $gateway_id, $health_data );
 
@@ -153,17 +157,17 @@ class PaySentinel_Health {
 	/**
 	 * Calculate health metrics for a specific period
 	 *
-	 * @param string $gateway_id Gateway ID
-	 * @param string $period     Period name (1hour, 24hour, 7day)
-	 * @param int    $seconds    Period in seconds
+	 * @param string $gateway_id Gateway ID.
+	 * @param string $period     Period name (1hour, 24hour, 7day).
+	 * @param int    $seconds    Period in seconds.
 	 *
 	 * @return array Health metrics
 	 */
 	public function calculate_period_health( $gateway_id, $period, $seconds ) {
-		// Get transaction statistics for the period
+		// Get transaction statistics for the period.
 		$stats = $this->logger->get_transaction_stats( $gateway_id, $seconds );
 
-		// Calculate additional metrics
+		// Calculate additional metrics.
 		$health_data = array(
 			'gateway_id'              => $gateway_id,
 			'period'                  => $period,
@@ -171,12 +175,12 @@ class PaySentinel_Health {
 			'successful_transactions' => intval( $stats['successful_transactions'] ),
 			'failed_transactions'     => intval( $stats['failed_transactions'] ),
 			'success_rate'            => floatval( $stats['success_rate'] ),
-			'avg_response_time'       => null, // Will be implemented in future versions
+			'avg_response_time'       => null, // Will be implemented in future versions.
 			'last_failure_at'         => $this->get_last_failure_time( $gateway_id, $seconds ),
 			'calculated_at'           => current_time( 'mysql' ),
 		);
 
-		// DEVELOPER FILTER: Hook into `paysentinel_period_health_data`
+		// DEVELOPER FILTER: Hook into `paysentinel_period_health_data`.
 		// to modify or inject extra custom metrics calculated during health stat collection.
 		return apply_filters( 'paysentinel_period_health_data', $health_data, $gateway_id, $period, $stats );
 	}
@@ -184,9 +188,9 @@ class PaySentinel_Health {
 	/**
 	 * Store health data in database
 	 *
-	 * @param string $gateway_id  Gateway ID
-	 * @param string $period      Period name
-	 * @param array  $health_data Health metrics
+	 * @param string $gateway_id  Gateway ID.
+	 * @param string $period      Period name.
+	 * @param array  $health_data Health metrics.
 	 *
 	 * @return bool Success
 	 */
@@ -208,18 +212,18 @@ class PaySentinel_Health {
 		);
 
 		$format = array(
-			'%s', // gateway_id
-			'%s', // period
-			'%d', // total_transactions
-			'%d', // successful_transactions
-			'%d', // failed_transactions
-			'%f', // success_rate
-			'%d', // avg_response_time
-			'%s', // last_failure_at
-			'%s',  // calculated_at
+			'%s', // gateway_id.
+			'%s', // period.
+			'%d', // total_transactions.
+			'%d', // successful_transactions.
+			'%d', // failed_transactions.
+			'%f', // success_rate.
+			'%d', // avg_response_time.
+			'%s', // last_failure_at.
+			'%s',  // calculated_at.
 		);
 
-		// Always insert a new record to maintain history
+		// Always insert a new record to maintain history.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->insert( $table_name, $data, $format );
 
@@ -229,8 +233,8 @@ class PaySentinel_Health {
 	/**
 	 * Get health status for a specific gateway and period
 	 *
-	 * @param string $gateway_id Gateway ID
-	 * @param string $period     Period name (1hour, 24hour, 7day)
+	 * @param string $gateway_id Gateway ID.
+	 * @param string $period     Period name (1hour, 24hour, 7day).
 	 *
 	 * @return object|null Health data
 	 */
@@ -253,7 +257,7 @@ class PaySentinel_Health {
 	/**
 	 * Get health status for all periods of a gateway
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return array Health data for all periods
 	 */
@@ -262,7 +266,7 @@ class PaySentinel_Health {
 
 		$table_name = $this->database->get_gateway_health_table();
 
-		// Get latest record for each period
+		// Get latest record for each period.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -282,7 +286,7 @@ class PaySentinel_Health {
 			ARRAY_A
 		);
 
-		// Organize by period
+		// Organize by period.
 		$health_data = array();
 		foreach ( $results as $row ) {
 			$health_data[ $row['period'] ] = $row;
@@ -294,7 +298,7 @@ class PaySentinel_Health {
 	/**
 	 * Get health status for all gateways
 	 *
-	 * @param string $period Optional period filter
+	 * @param string $period Optional period filter.
 	 *
 	 * @return array Health data
 	 */
@@ -313,15 +317,14 @@ class PaySentinel_Health {
 
 		$sql .= ' ORDER BY gateway_id, period';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 	}
 
 	/**
 	 * Check if gateway is degraded based on threshold
 	 *
-	 * @param string $gateway_id Gateway ID
-	 * @param string $period     Period to check (default: 24hour)
+	 * @param string $gateway_id Gateway ID.
+	 * @param string $period     Period to check (default: 24hour).
 	 *
 	 * @return bool True if degraded
 	 */
@@ -335,7 +338,7 @@ class PaySentinel_Health {
 		$settings  = get_option( 'paysentinel_settings', array() );
 		$threshold = isset( $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] ) ? $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] : 85;
 
-		// DEVELOPER FILTER: `paysentinel_alert_threshold`
+		// DEVELOPER FILTER: `paysentinel_alert_threshold`.
 		// Permits developers to programmatically override the threshold for specific gateways.
 		$threshold = apply_filters( 'paysentinel_alert_threshold', $threshold, $gateway_id, $period );
 
@@ -345,15 +348,15 @@ class PaySentinel_Health {
 	/**
 	 * Get gateway status (healthy, degraded, critical)
 	 *
-	 * @param string $gateway_id Gateway ID
-	 * @param string $period     Period to check (default: 24hour)
+	 * @param string $gateway_id Gateway ID.
+	 * @param string $period     Period to check (default: 24hour).
 	 *
 	 * @return string Status
 	 */
 	public function get_gateway_status( $gateway_id, $period = '24hour' ) {
 		$health_status = $this->get_health_status( $gateway_id, $period );
 
-		if ( ! $health_status || $health_status->total_transactions == 0 ) {
+		if ( ! $health_status || 0 === (int) $health_status->total_transactions ) {
 			return 'unknown';
 		}
 
@@ -371,8 +374,8 @@ class PaySentinel_Health {
 	/**
 	 * Get last failure time for a gateway within a period
 	 *
-	 * @param string $gateway_id     Gateway ID
-	 * @param int    $period_seconds Period in seconds
+	 * @param string $gateway_id     Gateway ID.
+	 * @param int    $period_seconds Period in seconds.
 	 *
 	 * @return string|null Last failure timestamp
 	 */
@@ -380,7 +383,7 @@ class PaySentinel_Health {
 		global $wpdb;
 
 		$table_name = $this->database->get_transactions_table();
-		$start_time = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - $period_seconds );
+		$start_time = gmdate( 'Y-m-d H:i:s', time() - $period_seconds );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$last_failure = $wpdb->get_var(
@@ -401,9 +404,9 @@ class PaySentinel_Health {
 	/**
 	 * Get historical health data for trending
 	 *
-	 * @param string $gateway_id Gateway ID
-	 * @param string $period     Period name
-	 * @param int    $days       Number of days to retrieve (default: 30)
+	 * @param string $gateway_id Gateway ID.
+	 * @param string $period     Period name.
+	 * @param int    $days       Number of days to retrieve (default: 30).
 	 *
 	 * @return array Historical health data
 	 */
@@ -411,7 +414,7 @@ class PaySentinel_Health {
 		global $wpdb;
 
 		$table_name = $this->database->get_gateway_health_table();
-		$start_date = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $days * DAY_IN_SECONDS ) );
+		$start_date = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
@@ -431,7 +434,7 @@ class PaySentinel_Health {
 	/**
 	 * Clear old health data
 	 *
-	 * @param int $days Keep data newer than this many days (default: 30)
+	 * @param int $days Keep data newer than this many days (default: 30).
 	 *
 	 * @return int Number of records deleted
 	 */
@@ -439,7 +442,7 @@ class PaySentinel_Health {
 		global $wpdb;
 
 		$table_name  = $this->database->get_gateway_health_table();
-		$cutoff_date = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $days * DAY_IN_SECONDS ) );
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
@@ -454,7 +457,7 @@ class PaySentinel_Health {
 	/**
 	 * Force health calculation for a specific gateway
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return array Health data
 	 */
@@ -465,7 +468,7 @@ class PaySentinel_Health {
 	/**
 	 * Get summary statistics across all gateways
 	 *
-	 * @param string $period Period to analyze (default: 24hour)
+	 * @param string $period Period to analyze (default: 24hour).
 	 *
 	 * @return array Summary statistics
 	 */
@@ -493,7 +496,7 @@ class PaySentinel_Health {
 			ARRAY_A
 		);
 
-		// Calculate overall success rate
+		// Calculate overall success rate.
 		if ( $stats['total_transactions'] > 0 ) {
 			$stats['overall_success_rate'] = round( ( $stats['total_successful'] / $stats['total_transactions'] ) * 100, 2 );
 		} else {

@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -117,19 +117,19 @@ class PaySentinel_Alert_Checker {
 	 * @param array  $status     Status array from connectivity check.
 	 */
 	public function check_gateway_connectivity_alert( $gateway_id, $status ) {
-		// Only alert if status is 'offline'
+		// Only alert if status is 'offline'.
 		if ( ! isset( $status['status'] ) || 'offline' !== $status['status'] ) {
-			// If it's online, resolve any open 'gateway_down' alerts
+			// If it's online, resolve any open 'gateway_down' alerts.
 			$this->resolve_alerts( $gateway_id, 'gateway_down' );
 			return;
 		}
 
-		// Check if already rate limited
+		// Check if already rate limited.
 		if ( $this->is_rate_limited( $gateway_id, 'gateway_down' ) ) {
 			return;
 		}
 
-		// Create connectivity alert
+		// Create connectivity alert.
 		$alert_data = array(
 			'gateway_id' => $gateway_id,
 			'alert_type' => 'gateway_down',
@@ -162,13 +162,13 @@ class PaySentinel_Alert_Checker {
 			return;
 		}
 
-		// Check if immediate alerts are enabled for this gateway
+		// Check if immediate alerts are enabled for this gateway.
 		$settings = $this->config->get_all();
 		if ( ! $this->is_gateway_alerts_enabled( $payment_method, $settings ) ) {
 			return;
 		}
 
-		// Check if immediate transaction alerts are enabled
+		// Check if immediate transaction alerts are enabled.
 		$immediate_alerts_enabled = isset( $settings[ PaySentinel_Settings_Constants::IMMEDIATE_TRANSACTION_ALERTS ] )
 			? (bool) $settings[ PaySentinel_Settings_Constants::IMMEDIATE_TRANSACTION_ALERTS ]
 			: false;
@@ -177,18 +177,18 @@ class PaySentinel_Alert_Checker {
 			return;
 		}
 
-		// Check rate limiting (use separate type to not interfere with health alerts)
+		// Check rate limiting (use separate type to not interfere with health alerts).
 		if ( $this->is_rate_limited( $payment_method, 'immediate_transaction' ) ) {
 			return;
 		}
 
-		// Check if this is a soft error that shouldn't trigger alerts
+		// Check if this is a soft error that shouldn't trigger alerts.
 		$latest_transaction = $this->database->get_latest_transaction_for_order( $order_id );
 		if ( $latest_transaction && $this->is_soft_error( $latest_transaction ) ) {
 			return;
 		}
 
-		// Get order details for context
+		// Get order details for context.
 		$alert_data = array(
 			'gateway_id'   => $payment_method,
 			'alert_type'   => 'gateway_error',
@@ -221,18 +221,18 @@ class PaySentinel_Alert_Checker {
 	public function check_and_send( $gateway_id, $health_data ) {
 		$settings = $this->config->get_all();
 
-		// Check if alerts are enabled for this gateway
+		// Check if alerts are enabled for this gateway.
 		if ( ! $this->is_gateway_alerts_enabled( $gateway_id, $settings ) ) {
 			return;
 		}
 
-		// Get the first transaction date for this gateway to prevent premature alerts
+		// Get the first transaction date for this gateway to prevent premature alerts.
 		// for large time windows when the gateway was just recently added.
 		$first_tx_date       = $this->database->get_first_transaction_date_for_gateway( $gateway_id );
-		$gateway_age_seconds = $first_tx_date ? ( current_time( 'timestamp' ) - strtotime( $first_tx_date ) ) : 0;
+		$gateway_age_seconds = $first_tx_date ? ( time() - strtotime( $first_tx_date ) ) : 0;
 		$period_seconds_map  = PaySentinel_Health::PERIODS;
 
-		// Check each period that has health data
+		// Check each period that has health data.
 		foreach ( $health_data as $period => $data ) {
 			// Skip larger alert periods if the gateway hasn't been active for that duration yet.
 			// Always allow the 1hour (shortest) period to ensure we can alert immediately on failure.
@@ -247,10 +247,10 @@ class PaySentinel_Alert_Checker {
 			$success_rate       = $data['success_rate'];
 			$total_transactions = $data['total_transactions'];
 
-			// Calculate severity
+			// Calculate severity.
 			$severity = $this->calculate_severity( $success_rate, $total_transactions );
 
-			// Check if we should trigger an alert
+			// Check if we should trigger an alert.
 			if ( $this->should_trigger_alert( $gateway_id, $success_rate, $severity ) ) {
 				$alert_data = array(
 					'gateway_id'          => $gateway_id,
@@ -279,7 +279,7 @@ class PaySentinel_Alert_Checker {
 
 				$this->trigger_alert( $alert_data );
 			} else {
-				// Check if we should resolve any existing alerts
+				// Check if we should resolve any existing alerts.
 				$this->check_alert_resolution( $gateway_id, $success_rate );
 			}
 		}
@@ -293,10 +293,10 @@ class PaySentinel_Alert_Checker {
 	 * @return string Severity level: 'critical', 'high', 'warning', or 'info'.
 	 */
 	private function calculate_severity( $success_rate, $total_transactions = 0 ) {
-		// Volume awareness: For very low transaction counts, reduce severity
-		// 1 transaction: even 0% success is just 'info' (not enough data)
-		// 2-5 transactions: 0% success is 'warning'
-		// 6+ transactions: use normal severity thresholds
+		// Volume awareness: For very low transaction counts, reduce severity.
+		// 1 transaction: even 0% success is just 'info' (not enough data).
+		// 2-5 transactions: 0% success is 'warning'.
+		// 6+ transactions: use normal severity thresholds.
 		if ( $total_transactions <= 1 ) {
 			return $success_rate < 100 ? 'info' : 'info';
 		} elseif ( $total_transactions <= 5 ) {
@@ -312,23 +312,23 @@ class PaySentinel_Alert_Checker {
 			return 'info';
 		}
 
-		// Normal severity calculation for higher volumes
-		// Critical: Very low success rate or complete failure with transactions
+		// Normal severity calculation for higher volumes.
+		// Critical: Very low success rate or complete failure with transactions.
 		if ( $success_rate < self::SEVERITY_THRESHOLDS['high'] ) {
 			return 'critical';
 		}
 
-		// High: Success rate below 90%
+		// High: Success rate below 90%.
 		if ( $success_rate < self::SEVERITY_THRESHOLDS['warning'] ) {
 			return 'high';
 		}
 
-		// Warning: Success rate below 95%
+		// Warning: Success rate below 95%.
 		if ( $success_rate < self::SEVERITY_THRESHOLDS['info'] ) {
 			return 'warning';
 		}
 
-		// Info: Success rate below 100% but above 95%
+		// Info: Success rate below 100% but above 95%.
 		if ( $success_rate < 100 ) {
 			return 'info';
 		}
@@ -345,17 +345,18 @@ class PaySentinel_Alert_Checker {
 	 * @return bool True if alert should be triggered.
 	 */
 	private function should_trigger_alert( $gateway_id, $success_rate, $severity ) {
+		unset( $severity ); // Severity is determined externally; not used for threshold gating.
 		$settings = $this->config->get_all();
 
-		// Get threshold for this gateway
+		// Get threshold for this gateway.
 		$threshold = $this->get_gateway_alert_threshold( $gateway_id, $settings );
 
-		// Don't alert if success rate is above threshold
+		// Don't alert if success rate is above threshold.
 		if ( $success_rate >= $threshold ) {
 			return false;
 		}
 
-		// Check rate limiting
+		// Check rate limiting.
 		if ( $this->is_rate_limited( $gateway_id, 'health' ) ) {
 			return false;
 		}
@@ -371,7 +372,7 @@ class PaySentinel_Alert_Checker {
 	 * @return float Threshold percentage (0-100).
 	 */
 	private function get_gateway_alert_threshold( $gateway_id, $settings ) {
-		// Check for gateway-specific threshold in per-gateway config (Agency feature)
+		// Check for gateway-specific threshold in per-gateway config (Agency feature).
 		if ( $this->get_license_tier() === 'agency' && $this->has_feature( 'per_gateway_config' ) ) {
 			$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
 
@@ -380,7 +381,7 @@ class PaySentinel_Alert_Checker {
 			}
 		}
 
-		// Return default threshold
+		// Return default threshold.
 		return isset( $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] ) ? (float) $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] : 95.0;
 	}
 
@@ -392,17 +393,17 @@ class PaySentinel_Alert_Checker {
 	 * @return bool True if alerts are enabled.
 	 */
 	private function is_gateway_alerts_enabled( $gateway_id, $settings ) {
-		// Check per-gateway configuration first (Agency feature)
+		// Check per-gateway configuration first (Agency feature).
 		if ( $this->get_license_tier() === 'agency' && $this->has_feature( 'per_gateway_config' ) ) {
 			$gateway_config = isset( $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] ) ? $settings[ PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG ] : array();
 
-			// If per-gateway config exists for this gateway, check if it's enabled
+			// If per-gateway config exists for this gateway, check if it's enabled.
 			if ( isset( $gateway_config[ $gateway_id ] ) ) {
 				return isset( $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] ) ? (bool) $gateway_config[ $gateway_id ][ PaySentinel_Settings_Constants::GATEWAY_CONFIG_ENABLED ] : true;
 			}
 		}
 
-		// If no per-gateway config, assume alerts are enabled by default
+		// If no per-gateway config, assume alerts are enabled by default.
 		return true;
 	}
 
@@ -445,7 +446,7 @@ class PaySentinel_Alert_Checker {
 	 * @return int|false Alert ID on success, false on failure.
 	 */
 	public function trigger_alert( $alert_data ) {
-		// Save alert to database
+		// Save alert to database.
 		$alert_record = array(
 			'gateway_id'  => $alert_data['gateway_id'],
 			'alert_type'  => $alert_data['alert_type'],
@@ -462,10 +463,10 @@ class PaySentinel_Alert_Checker {
 			return false;
 		}
 
-		// Send notifications
+		// Send notifications.
 		$this->notifier->send_notifications( $alert_data, $alert_id );
 
-		// Fire action hook for extensibility
+		// Fire action hook for extensibility.
 		do_action( 'paysentinel_alert_triggered', $alert_id, $alert_data );
 
 		return $alert_id;
@@ -481,7 +482,7 @@ class PaySentinel_Alert_Checker {
 		$settings  = $this->config->get_all();
 		$threshold = $this->get_gateway_alert_threshold( $gateway_id, $settings );
 
-		// If success rate is back above threshold, resolve alerts
+		// If success rate is back above threshold, resolve alerts.
 		if ( $success_rate >= $threshold ) {
 			$this->resolve_alerts( $gateway_id, 'health' );
 		}
@@ -516,7 +517,7 @@ class PaySentinel_Alert_Checker {
 		);
 
 		if ( $updated ) {
-			// Fire action hook for extensibility
+			// Fire action hook for extensibility.
 			do_action( 'paysentinel_alerts_resolved', $gateway_id, $alert_type, $updated );
 		}
 
@@ -539,13 +540,13 @@ class PaySentinel_Alert_Checker {
 			$table_name,
 			$alert_record,
 			array(
-				'%s', // gateway_id
-				'%s', // alert_type
-				'%s', // severity
-				'%s', // message
-				'%s', // metadata
-				'%s', // created_at
-				'%d', // is_resolved
+				'%s', // gateway_id.
+				'%s', // alert_type.
+				'%s', // severity.
+				'%s', // message.
+				'%s', // metadata.
+				'%s', // created_at.
+				'%d', // is_resolved.
 			)
 		);
 
@@ -559,23 +560,23 @@ class PaySentinel_Alert_Checker {
 	/**
 	 * Check if a transaction represents a soft error that shouldn't trigger alerts
 	 *
-	 * @param object $transaction Transaction data
+	 * @param object $transaction Transaction data.
 	 * @return bool True if this is a soft error
 	 */
 	private function is_soft_error( $transaction ) {
-		// Soft errors are declines that don't indicate gateway issues
+		// Soft errors are declines that don't indicate gateway issues.
 		$soft_error_codes    = array( 'decline', 'insufficient_funds', 'card_declined' );
 		$soft_error_messages = array( 'insufficient funds', 'soft decline', 'declined' );
 
 		$failure_code   = strtolower( $transaction->failure_code ?? '' );
 		$failure_reason = strtolower( $transaction->failure_reason ?? '' );
 
-		// Check failure code
+		// Check failure code.
 		if ( in_array( $failure_code, $soft_error_codes, true ) ) {
 			return true;
 		}
 
-		// Check failure reason for soft indicators
+		// Check failure reason for soft indicators.
 		foreach ( $soft_error_messages as $soft_message ) {
 			if ( strpos( $failure_reason, $soft_message ) !== false ) {
 				return true;
@@ -598,7 +599,7 @@ class PaySentinel_Alert_Checker {
 	/**
 	 * Check if the license has a specific feature
 	 *
-	 * @param string $feature_name Feature name
+	 * @param string $feature_name Feature name.
 	 * @return bool Feature available
 	 */
 	private function has_feature( $feature_name ) {

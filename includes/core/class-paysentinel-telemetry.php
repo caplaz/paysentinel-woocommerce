@@ -1,14 +1,18 @@
 <?php
-
 /**
  * Telemetry handling class
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_Telemetry.
+ */
 class PaySentinel_Telemetry {
 
 	/**
@@ -29,8 +33,8 @@ class PaySentinel_Telemetry {
 	/**
 	 * Send success telemetry
 	 *
-	 * @param int           $order_id Order ID
-	 * @param WC_Order|null $order    Order object
+	 * @param int           $order_id Order ID.
+	 * @param WC_Order|null $order    Order object.
 	 */
 	public function send_success_telemetry( $order_id, $order = null ) {
 		$this->send_telemetry( $order_id, $order, true );
@@ -39,8 +43,8 @@ class PaySentinel_Telemetry {
 	/**
 	 * Send failure telemetry
 	 *
-	 * @param int           $order_id Order ID
-	 * @param WC_Order|null $order    Order object
+	 * @param int           $order_id Order ID.
+	 * @param WC_Order|null $order    Order object.
 	 */
 	public function send_failure_telemetry( $order_id, $order = null ) {
 		$this->send_telemetry( $order_id, $order, false );
@@ -49,12 +53,12 @@ class PaySentinel_Telemetry {
 	/**
 	 * Send telemetry payload
 	 *
-	 * @param int           $order_id Order ID
-	 * @param WC_Order|null $order    Order object
-	 * @param bool          $success  Success status
+	 * @param int           $order_id Order ID.
+	 * @param WC_Order|null $order    Order object.
+	 * @param bool          $success  Success status.
 	 */
 	private function send_telemetry( $order_id, $order, $success ) {
-		// If order object wasn't passed (legacy), fetch it
+		// If order object wasn't passed (legacy), fetch it.
 		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
 			$order = wc_get_order( $order_id );
 		}
@@ -69,7 +73,7 @@ class PaySentinel_Telemetry {
 		}
 
 		$logger = new PaySentinel_Logger();
-		// Get gateway from order
+		// Get gateway from order.
 		$gateway = $order->get_payment_method();
 
 		$payload = array(
@@ -82,7 +86,7 @@ class PaySentinel_Telemetry {
 		);
 
 		if ( ! $success ) {
-			// Extract error code using the logger method
+			// Extract error code using the logger method.
 			if ( is_callable( array( $logger, 'extract_failure_info' ) ) ) {
 				$failure_info          = $logger->extract_failure_info( $order );
 				$payload['error_code'] = ! empty( $failure_info['code'] ) ? $failure_info['code'] : 'failed';
@@ -91,13 +95,13 @@ class PaySentinel_Telemetry {
 			}
 		}
 
-		// Send non-blocking authenticated request
+		// Send non-blocking authenticated request.
 		$license->make_authenticated_request(
 			PaySentinel_License::API_ENDPOINT_TELEMETRY,
 			'POST',
 			$payload,
-			true,  // include site url
-			false  // non-blocking
+			true,  // include site url.
+			false  // non-blocking.
 		);
 	}
 }

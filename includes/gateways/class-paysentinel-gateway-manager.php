@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Gateway Manager class
  *
@@ -7,13 +6,18 @@
  * - Getting active gateways with tier limits
  * - Managing gateway availability
  * - Gateway configuration helpers
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_Gateway_Manager.
+ */
 class PaySentinel_Gateway_Manager {
 
 	/**
@@ -26,7 +30,7 @@ class PaySentinel_Gateway_Manager {
 	/**
 	 * Constructor
 	 *
-	 * @param PaySentinel_License $license License instance (optional)
+	 * @param PaySentinel_License $license License instance (optional).
 	 */
 	public function __construct( $license = null ) {
 		$this->license = $license ?? new PaySentinel_License();
@@ -46,7 +50,7 @@ class PaySentinel_Gateway_Manager {
 		$gateways = array();
 		$limit    = $this->get_gateway_limit();
 
-		// Get enabled gateways from settings
+		// Get enabled gateways from settings.
 		$settings         = get_option( 'paysentinel_settings', array() );
 		$enabled_gateways = isset( $settings[ PaySentinel_Settings_Constants::ENABLED_GATEWAYS ] ) ? $settings[ PaySentinel_Settings_Constants::ENABLED_GATEWAYS ] : array();
 
@@ -54,7 +58,7 @@ class PaySentinel_Gateway_Manager {
 			return array_slice( $enabled_gateways, 0, $limit );
 		}
 
-		// If no specific gateways configured, get all WooCommerce enabled gateways
+		// If no specific gateways configured, get all WooCommerce enabled gateways.
 		$gateways = $this->get_woocommerce_enabled_gateways();
 
 		return array_slice( $gateways, 0, $limit );
@@ -95,7 +99,7 @@ class PaySentinel_Gateway_Manager {
 	 * Checks both plugin settings and WooCommerce status,
 	 * and respects license tier limits.
 	 *
-	 * @param string $gateway_id Gateway ID to check
+	 * @param string $gateway_id Gateway ID to check.
 	 *
 	 * @return bool True if gateway is enabled
 	 */
@@ -110,7 +114,7 @@ class PaySentinel_Gateway_Manager {
 	 * Returns the human-readable name for a gateway.
 	 * Falls back to gateway ID if name not found.
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return string Gateway display name
 	 */
@@ -121,7 +125,7 @@ class PaySentinel_Gateway_Manager {
 			return $available_gateways[ $gateway_id ]->get_title();
 		}
 
-		// Fallback: format gateway ID as readable name
+		// Fallback: format gateway ID as readable name.
 		return $this->format_gateway_id_as_name( $gateway_id );
 	}
 
@@ -144,8 +148,8 @@ class PaySentinel_Gateway_Manager {
 		$available_gateways = $wc_gateways->get_available_payment_gateways();
 
 		foreach ( $available_gateways as $gateway_id => $gateway ) {
-			// Only monitor gateways that are enabled and are actual payment processors
-			// (not offline payment methods like cheque, bacs, cod, or token storage like card)
+			// Only monitor gateways that are enabled and are actual payment processors.
+			// (not offline payment methods like cheque, bacs, cod, or token storage like card).
 			if ( $gateway->enabled === 'yes' && $this->is_payment_processor_gateway( $gateway ) ) {
 				$gateways[] = $gateway_id;
 			}
@@ -160,25 +164,25 @@ class PaySentinel_Gateway_Manager {
 	 * Filters out offline payment methods and payment token storage.
 	 * Real payment gateways have external payment processing capabilities.
 	 *
-	 * @param WC_Payment_Gateway $gateway Gateway object to check
+	 * @param WC_Payment_Gateway $gateway Gateway object to check.
 	 * @return bool True if this is a real payment processor gateway
 	 */
 	private function is_payment_processor_gateway( $gateway ) {
-		// Known non-processor payment methods to exclude
+		// Known non-processor payment methods to exclude.
 		$non_processor_ids = array( 'card', 'bacs', 'cheque', 'cod' );
 
-		// Get gateway ID from gateway object
+		// Get gateway ID from gateway object.
 		if ( isset( $gateway->id ) && in_array( $gateway->id, $non_processor_ids, true ) ) {
 			return false;
 		}
 
-		// Offline payment methods should not be monitored
+		// Offline payment methods should not be monitored.
 		if ( isset( $gateway->type ) && 'offline' === $gateway->type ) {
 			return false;
 		}
 
-		// If it has external payment processing capability, it's a real gateway
-		// Real gateways either have API integration or handle external transactions
+		// If it has external payment processing capability, it's a real gateway.
+		// Real gateways either have API integration or handle external transactions.
 		return true;
 	}
 
@@ -187,18 +191,18 @@ class PaySentinel_Gateway_Manager {
 	 *
 	 * Converts gateway_id to "Gateway ID" format.
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return string Formatted name
 	 */
 	private function format_gateway_id_as_name( $gateway_id ) {
-		// Remove common prefixes
+		// Remove common prefixes.
 		$name = str_replace( array( 'woocommerce_', 'wc_', 'wc-' ), '', $gateway_id );
 
-		// Replace underscores and hyphens with spaces
+		// Replace underscores and hyphens with spaces.
 		$name = str_replace( array( '_', '-' ), ' ', $name );
 
-		// Capitalize words
+		// Capitalize words.
 		return ucwords( $name );
 	}
 }

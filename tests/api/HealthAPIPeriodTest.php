@@ -1,11 +1,31 @@
 <?php
+/**
+ * Tests for API Health period mapping and logic.
+ *
+ * @package PaySentinel
+ */
 
+// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound
+
+/**
+ * Testable version of PaySentinel_API_Health.
+ */
 class Testable_PaySentinel_API_Health extends PaySentinel_API_Health {
+	/**
+	 * Get all WC gateways.
+	 *
+	 * @return array<string,\stdClass>
+	 */
 	protected function get_wc_gateways_all() {
 		$gateway     = new \stdClass();
 		$gateway->id = 'bacs';
 		return array( 'bacs' => $gateway );
 	}
+	/**
+	 * Get enabled WC gateways.
+	 *
+	 * @return array<string,\stdClass>
+	 */
 	protected function get_wc_gateways_enabled() {
 		$gateway     = new \stdClass();
 		$gateway->id = 'bacs';
@@ -14,22 +34,29 @@ class Testable_PaySentinel_API_Health extends PaySentinel_API_Health {
 }
 
 /**
- * Tests for API Health period mapping and logic
+ * Class HealthAPIPeriodTest
  */
 class HealthAPIPeriodTest extends WP_UnitTestCase {
 
+	/**
+	 * API instance.
+	 *
+	 * @var Testable_PaySentinel_API_Health
+	 */
 	private $api;
 
+	/**
+	 * Set up test environment.
+	 */
 	public function setUp(): void {
 		parent::setUp();
-
 		$this->api = new Testable_PaySentinel_API_Health();
 
-		// Ensure proper DB tables
+		// Ensure proper DB tables.
 		$database = new PaySentinel_Database();
 		$database->create_tables();
 
-		// Truncate relevant tables
+		// Truncate relevant tables.
 		global $wpdb;
 		$tables = array(
 			$database->get_transactions_table(),
@@ -37,10 +64,14 @@ class HealthAPIPeriodTest extends WP_UnitTestCase {
 		);
 
 		foreach ( $tables as $table ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( "TRUNCATE TABLE {$table}" );
 		}
 	}
 
+	/**
+	 * Tear down test environment.
+	 */
 	public function tearDown(): void {
 		global $wpdb;
 		$database = new PaySentinel_Database();
@@ -50,6 +81,7 @@ class HealthAPIPeriodTest extends WP_UnitTestCase {
 		);
 
 		foreach ( $tables as $table ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( "TRUNCATE TABLE {$table}" );
 		}
 
@@ -66,10 +98,10 @@ class HealthAPIPeriodTest extends WP_UnitTestCase {
 		$frontend_param = '24h';
 		$backend_period = '24hour';
 
-		// Seed a health status for '24hour'
+		// Seed a health status for '24hour'.
 		$database   = new PaySentinel_Database();
 		$table_name = $database->get_gateway_health_table();
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'gateway_id'              => $gateway_id,
@@ -83,7 +115,7 @@ class HealthAPIPeriodTest extends WP_UnitTestCase {
 			)
 		);
 
-		// Make request
+		// Make request.
 		$request = new \WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways/' . $gateway_id );
 		$request->set_param( 'gateway_id', $gateway_id );
 		$request->set_param( 'period', $frontend_param );
@@ -95,7 +127,7 @@ class HealthAPIPeriodTest extends WP_UnitTestCase {
 
 		$data = $response->get_data();
 
-		// Ensure it fetched the 24hour data record we manually injected
+		// Ensure it fetched the 24hour data record we manually injected.
 		$this->assertEquals( $frontend_param, $data['data']['period'], 'Response should mirror requested period' );
 		$this->assertEquals( 50, $data['data']['failed_transactions'], 'It should retrieve the correct failed transactions amount for the mapped period' );
 		$this->assertEquals( 90.0, $data['data']['success_rate'], 'It should retrieve the 24hour success rate from the period map' );

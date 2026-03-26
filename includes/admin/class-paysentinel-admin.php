@@ -9,11 +9,14 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_Admin.
+ */
 class PaySentinel_Admin {
 
 	/**
@@ -73,7 +76,7 @@ class PaySentinel_Admin {
 		$this->security = new PaySentinel_Security();
 		$this->license  = new PaySentinel_License();
 
-		// Initialize handler instances
+		// Initialize handler instances.
 		$this->settings_handler = new PaySentinel_Admin_Settings_Handler( $this->security, $this->license );
 		$this->page_renderer    = new PaySentinel_Admin_Page_Renderer( $this->database, $this->license, $this->settings_handler );
 		$this->menu_handler     = new PaySentinel_Admin_Menu_Handler( $this->page_renderer );
@@ -86,20 +89,20 @@ class PaySentinel_Admin {
 	 * Initialize WordPress hooks
 	 */
 	private function init_hooks() {
-		// Menu registration
+		// Menu registration.
 		add_action( 'admin_menu', array( $this->menu_handler, 'register_menu_pages' ) );
 
-		// Settings registration
+		// Settings registration.
 		add_action( 'admin_init', array( $this->settings_handler, 'register_settings' ) );
 
-		// Scripts and styles
+		// Scripts and styles.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 
-		// AJAX handlers
+		// AJAX handlers.
 		add_action( 'wp_ajax_paysentinel_sync_integrations', array( $this->ajax_handler, 'handle_sync_integrations' ) );
 		add_action( 'wp_ajax_paysentinel_validate_license', array( $this->ajax_handler, 'handle_validate_license_ajax' ) );
 
-		// Admin POST actions
+		// Admin POST actions.
 		add_action( 'admin_post_paysentinel_retry', array( $this, 'handle_manual_retry' ) );
 		add_action( 'admin_post_paysentinel_recovery', array( $this, 'handle_recovery_email' ) );
 		add_action( 'admin_post_paysentinel_deactivate_license', array( $this, 'handle_deactivate_license' ) );
@@ -112,23 +115,23 @@ class PaySentinel_Admin {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_admin_scripts( $hook ) {
-		// Only load on our plugin pages
+		// Only load on our plugin pages.
 		if ( strpos( $hook, 'paysentinel' ) === false ) {
 			return;
 		}
 
-		// Ensure constants are defined
+		// Ensure constants are defined.
 		if ( ! defined( 'PAYSENTINEL_PLUGIN_URL' ) || ! defined( 'PAYSENTINEL_VERSION' ) ) {
 			return;
 		}
 
-		// Enqueue WordPress REST API dependencies
+		// Enqueue WordPress REST API dependencies.
 		wp_enqueue_script( 'wp-api-fetch' );
 		wp_enqueue_script( 'wp-element' );
 		wp_enqueue_script( 'wp-components' );
 		wp_enqueue_script( 'wp-i18n' );
 
-		// Enqueue Chart.js 4.x from local bundle for data visualization
+		// Enqueue Chart.js 4.x from local bundle for data visualization.
 		wp_register_script(
 			'chartjs',
 			PAYSENTINEL_PLUGIN_URL . 'assets/js/chart.umd.min.js',
@@ -137,7 +140,7 @@ class PaySentinel_Admin {
 			true
 		);
 
-		// Enqueue our dashboard script
+		// Enqueue our dashboard script.
 		$dashboard_js_path  = PAYSENTINEL_PLUGIN_DIR . 'assets/js/dashboard/index.js';
 		$dashboard_css_path = PAYSENTINEL_PLUGIN_DIR . 'assets/js/dashboard/index.css';
 		$js_ver             = file_exists( $dashboard_js_path ) ? filemtime( $dashboard_js_path ) : PAYSENTINEL_VERSION;
@@ -158,7 +161,7 @@ class PaySentinel_Admin {
 			$css_ver
 		);
 
-		// Prepare license tier data
+		// Prepare license tier data.
 		$tier         = $this->license->get_license_tier();
 		$license_data = $this->license->get_license_data();
 		$tier_labels  = array(
@@ -178,7 +181,7 @@ class PaySentinel_Admin {
 			? $license_data['plan_color']
 			: ( isset( $tier_colors[ $tier ] ) ? $tier_colors[ $tier ] : '#0073aa' );
 
-		// Localize script with admin data
+		// Localize script with admin data.
 		wp_localize_script(
 			'paysentinel-dashboard',
 			'wcPaymentMonitor',
@@ -215,20 +218,20 @@ class PaySentinel_Admin {
 		}
 
 		if ( ! $order_id ) {
-			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . rawurlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error&_wpnonce=' . wp_create_nonce( 'paysentinel_admin_redirect' ) ) );
 			exit;
 		}
 
-		// Get retry instance
+		// Get retry instance.
 		if ( ! isset( PaySentinel::get_instance()->retry ) ) {
-			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Retry component not available.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . rawurlencode( __( 'Retry component not available.', 'paysentinel' ) ) . '&type=error&_wpnonce=' . wp_create_nonce( 'paysentinel_admin_redirect' ) ) );
 			exit;
 		}
 
 		$result = PaySentinel::get_instance()->retry->manual_retry( $order_id );
 		$type   = $result['success'] ? 'success' : 'error';
 
-		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( $result['message'] ) . '&type=' . $type ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . rawurlencode( $result['message'] ) . '&type=' . $type . '&_wpnonce=' . wp_create_nonce( 'paysentinel_admin_redirect' ) ) );
 		exit;
 	}
 
@@ -246,25 +249,25 @@ class PaySentinel_Admin {
 		}
 
 		if ( ! $order_id ) {
-			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . rawurlencode( __( 'Invalid order ID.', 'paysentinel' ) ) . '&type=error&_wpnonce=' . wp_create_nonce( 'paysentinel_admin_redirect' ) ) );
 			exit;
 		}
 
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
-			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Order not found.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . rawurlencode( __( 'Order not found.', 'paysentinel' ) ) . '&type=error&_wpnonce=' . wp_create_nonce( 'paysentinel_admin_redirect' ) ) );
 			exit;
 		}
 
-		// Get retry instance
+		// Get retry instance.
 		if ( ! isset( PaySentinel::get_instance()->retry ) ) {
-			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Retry component not available.', 'paysentinel' ) ) . '&type=error' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . rawurlencode( __( 'Retry component not available.', 'paysentinel' ) ) . '&type=error&_wpnonce=' . wp_create_nonce( 'paysentinel_admin_redirect' ) ) );
 			exit;
 		}
 
 		PaySentinel::get_instance()->retry->send_recovery_email( $order );
 
-		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . urlencode( __( 'Recovery email sent successfully.', 'paysentinel' ) ) . '&type=success' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-transactions&message=' . rawurlencode( __( 'Recovery email sent successfully.', 'paysentinel' ) ) . '&type=success&_wpnonce=' . wp_create_nonce( 'paysentinel_admin_redirect' ) ) );
 		exit;
 	}
 
@@ -278,10 +281,10 @@ class PaySentinel_Admin {
 
 		check_admin_referer( 'paysentinel_deactivate_license' );
 
-		// Deactivate license
+		// Deactivate license.
 		$this->license->deactivate_license();
 
-		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-settings&tab=license&message=' . urlencode( __( 'License deactivated successfully.', 'paysentinel' ) ) . '&type=info' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=paysentinel-settings&tab=license&message=' . rawurlencode( __( 'License deactivated successfully.', 'paysentinel' ) ) . '&type=info&_wpnonce=' . wp_create_nonce( 'paysentinel_admin_redirect' ) ) );
 		exit;
 	}
 
@@ -336,13 +339,13 @@ class PaySentinel_Admin {
 	 */
 	public static function get_settings() {
 		$defaults = array(
-			'enable_monitoring'     => 1, // Changed to int for test compatibility
+			'enable_monitoring'     => 1, // Changed to int for test compatibility.
 			'health_check_interval' => 300,
 			'alert_threshold'       => 95,
-			'retry_enabled'         => 1, // Changed to int for test compatibility
+			'retry_enabled'         => 1, // Changed to int for test compatibility.
 			'max_retry_attempts'    => 3,
 			'license_key'           => '',
-			'enable_test_mode'      => 0, // Changed to int for test compatibility
+			'enable_test_mode'      => 0, // Changed to int for test compatibility.
 			'gateway_alert_config'  => array(),
 			'test_failure_rate'     => 0,
 		);
@@ -354,19 +357,19 @@ class PaySentinel_Admin {
 	/**
 	 * Get a specific setting value
 	 *
-	 * @param string $key     Setting key
-	 * @param mixed  $default Default value if setting doesn't exist
+	 * @param string $key           Setting key.
+	 * @param mixed  $default_value Default value if setting doesn't exist.
 	 * @return mixed Setting value
 	 */
-	public static function get_setting( $key, $default = null ) {
+	public static function get_setting( $key, $default_value = null ) {
 		$settings = self::get_settings();
-		return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
+		return isset( $settings[ $key ] ) ? $settings[ $key ] : $default_value;
 	}
 
 	/**
 	 * Update plugin settings
 	 *
-	 * @param array $new_settings New settings to merge
+	 * @param array $new_settings New settings to merge.
 	 * @return bool Success
 	 */
 	public static function update_settings( $new_settings ) {
@@ -383,7 +386,7 @@ class PaySentinel_Admin {
 	/**
 	 * Validate health check interval
 	 *
-	 * @param int $interval Interval in minutes
+	 * @param int $interval Interval in minutes.
 	 * @return array Validation result with 'valid', 'value', and optional 'message'
 	 */
 	public static function validate_health_check_interval( $interval ) {
@@ -414,7 +417,7 @@ class PaySentinel_Admin {
 	/**
 	 * Validate retry configuration
 	 *
-	 * @param array $config Retry configuration
+	 * @param array $config Retry configuration.
 	 * @return array Validation result
 	 */
 	public static function validate_retry_configuration( $config ) {
@@ -439,7 +442,7 @@ class PaySentinel_Admin {
 		$validated = array();
 		$errors    = array();
 
-		// Validate max_retry_attempts
+		// Validate max_retry_attempts.
 		if ( isset( $config[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ) {
 			$attempts = intval( $config[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] );
 			if ( $attempts < 1 || $attempts > 10 ) {
@@ -449,7 +452,7 @@ class PaySentinel_Admin {
 			}
 		}
 
-		// Validate retry_enabled
+		// Validate retry_enabled.
 		if ( isset( $config[ PaySentinel_Settings_Constants::RETRY_ENABLED ] ) ) {
 			$validated[ PaySentinel_Settings_Constants::RETRY_ENABLED ] = (bool) $config[ PaySentinel_Settings_Constants::RETRY_ENABLED ];
 		}
@@ -472,7 +475,7 @@ class PaySentinel_Admin {
 	/**
 	 * Validate alert threshold
 	 *
-	 * @param float $threshold Alert threshold percentage
+	 * @param float $threshold Alert threshold percentage.
 	 * @return array Validation result
 	 */
 	public static function validate_alert_threshold( $threshold ) {
@@ -496,7 +499,7 @@ class PaySentinel_Admin {
 	/**
 	 * Validate all admin settings
 	 *
-	 * @param array $settings Settings to validate
+	 * @param array $settings Settings to validate.
 	 * @return array Validation result with 'valid', 'errors', and 'validated_settings'
 	 */
 	public static function validate_all_settings( $settings ) {
@@ -511,7 +514,7 @@ class PaySentinel_Admin {
 		$errors             = array();
 		$validated_settings = array();
 
-		// Validate health_check_interval
+		// Validate health_check_interval.
 		if ( isset( $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] ) ) {
 			$value = intval( $settings[ PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL ] );
 			if ( $value < 1 || $value > 60 ) {
@@ -521,7 +524,7 @@ class PaySentinel_Admin {
 			}
 		}
 
-		// Validate alert_threshold
+		// Validate alert_threshold.
 		if ( isset( $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] ) ) {
 			$value = floatval( $settings[ PaySentinel_Settings_Constants::ALERT_THRESHOLD ] );
 			if ( $value < 0 || $value > 100 ) {
@@ -531,7 +534,7 @@ class PaySentinel_Admin {
 			}
 		}
 
-		// Validate max_retry_attempts
+		// Validate max_retry_attempts.
 		if ( isset( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] ) ) {
 			$value = intval( $settings[ PaySentinel_Settings_Constants::MAX_RETRY_ATTEMPTS ] );
 			if ( $value < 0 || $value > 10 ) {
@@ -541,7 +544,7 @@ class PaySentinel_Admin {
 			}
 		}
 
-		// Validate other settings (basic validation)
+		// Validate other settings (basic validation).
 		$valid_keys = array(
 			'enable_monitoring',
 			'retry_enabled',
@@ -561,7 +564,7 @@ class PaySentinel_Admin {
 				} elseif ( is_string( $value ) ) {
 					$validated_settings[ $key ] = sanitize_text_field( $value );
 				} elseif ( is_array( $value ) ) {
-					$validated_settings[ $key ] = $value; // Assume arrays are already validated
+					$validated_settings[ $key ] = $value; // Assume arrays are already validated.
 				}
 			}
 		}

@@ -280,9 +280,9 @@ class PaySentinel_Failure_Simulator {
 		$order->save();
 
 		// Explicitly write to the transactions table with the [SIMULATED FAILURE] marker.
-		// This is the authoritative record used by get_simulated_failure_order_ids() and
-		// clear_simulated_failures(). We cannot rely solely on the woocommerce_order_status_failed
-		// hook because it may not fire correctly in all environments (e.g. HPOS with missing
+		// This is the authoritative record used by get_simulated_failure_order_ids() and.
+		// clear_simulated_failures(). We cannot rely solely on the woocommerce_order_status_failed.
+		// hook because it may not fire correctly in all environments (e.g. HPOS with missing.
 		// meta table) or its failure_reason extraction may miss the note.
 		$this->upsert_simulated_failure_transaction( $order, $failure_note, $failure_code );
 
@@ -314,18 +314,15 @@ class PaySentinel_Failure_Simulator {
 		$table_name = $this->database->get_transactions_table();
 		$order_id   = $order->get_id();
 
-		// Ensure the table exists — guards against the activation hook not completing (e.g. prior
-		// fatal error), which would leave the transactions table absent and all DB calls silently
+		// Ensure the table exists — guards against the activation hook not completing (e.g. prior.
+		// fatal error), which would leave the transactions table absent and all DB calls silently.
 		// returning false/empty. dbDelta is idempotent; running it here is safe.
-		// IMPORTANT: needs_update() only checks the version option, which can be set from a prior
-		// partial activation even when the tables were never actually created. tables_exist() does
+		// IMPORTANT: needs_update() only checks the version option, which can be set from a prior.
+		// partial activation even when the tables were never actually created. tables_exist() does.
 		// the authoritative SHOW TABLES check.
 		if ( $this->database->needs_update() || ! $this->database->tables_exist() ) {
-			// error_log( '[PaySentinel] upsert_simulated_failure_transaction: tables missing or outdated — running create_tables().' );
 			$this->database->create_tables();
 		}
-
-		// error_log( '[PaySentinel] upsert_simulated_failure_transaction: writing record for order #' . $order_id . ', table=' . $table_name );
 
 		// Check if a record already exists for this order (the hook may have already logged it).
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -339,7 +336,7 @@ class PaySentinel_Failure_Simulator {
 
 		if ( $existing_id ) {
 			// Update the existing record to ensure the failure_reason has the [SIMULATED FAILURE] marker.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->update(
 				$table_name,
 				array(
@@ -354,7 +351,8 @@ class PaySentinel_Failure_Simulator {
 			);
 
 			if ( false === $result && $wpdb->last_error ) {
-				// error_log( '[PaySentinel] upsert_simulated_failure_transaction UPDATE failed for order #' . $order_id . ': ' . $wpdb->last_error );
+				// DB error intentionally ignored; failure is non-critical for simulation flow.
+				unset( $result );
 			}
 		} else {
 			// Insert a new record so get_simulated_failure_order_ids() can find this order.
@@ -382,7 +380,8 @@ class PaySentinel_Failure_Simulator {
 			);
 
 			if ( false === $result && $wpdb->last_error ) {
-				// error_log( '[PaySentinel] upsert_simulated_failure_transaction INSERT failed for order #' . $order_id . ': ' . $wpdb->last_error );
+				// DB error intentionally ignored; failure is non-critical for simulation flow.
+				unset( $result );
 			}
 		}
 	}

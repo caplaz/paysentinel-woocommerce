@@ -1,10 +1,12 @@
 <?php
-
 /**
  * Gateway Connectivity Checker
  *
  * Runs connectivity checks on payment gateways and stores results
+ *
+ * @package PaySentinel
  */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -57,7 +59,7 @@ class PaySentinel_Gateway_Connectivity {
 				break;
 			}
 
-			// Skip if connector class doesn't exist
+			// Skip if connector class doesn't exist.
 			if ( ! class_exists( $connector_class ) ) {
 				continue;
 			}
@@ -96,35 +98,35 @@ class PaySentinel_Gateway_Connectivity {
 
 		$connector_class = $this->connectors[ $gateway_id ];
 
-		// Skip if class doesn't exist
+		// Skip if class doesn't exist.
 		if ( ! class_exists( $connector_class ) ) {
 			return null;
 		}
 
 		try {
-			// Instantiate the connector
+			// Instantiate the connector.
 			$connector = new $connector_class();
 
-			// Run the test
+			// Run the test.
 			$status = $connector->test_connection();
 
-			// Log the result to database
+			// Log the result to database.
 			$connector->log_connectivity_check( $status );
 
-			// Trigger hook for other plugins to react
+			// Trigger hook for other plugins to react.
 			do_action( 'paysentinel_gateway_checked', $gateway_id, $status );
 
 			return $status;
 
 		} catch ( Exception $e ) {
-			// Log exception
-			// error_log(
-			// sprintf(
-			// 'Payment Monitor: Exception while checking %s gateway: %s',
-			// $gateway_id,
-			// $e->getMessage()
-			// )
-			// );
+			// Log exception.
+			// error_log(.
+			// sprintf(.
+			// 'Payment Monitor: Exception while checking %s gateway: %s',.
+			// $gateway_id,.
+			// $e->getMessage().
+			// ).
+			// );.
 
 			return null;
 		}
@@ -195,7 +197,7 @@ class PaySentinel_Gateway_Connectivity {
 		$wc_gateways = WC()->payment_gateways()->get_available_payment_gateways();
 
 		foreach ( $this->connectors as $gateway_id => $connector_class ) {
-			// Check if this gateway exists in WooCommerce and is enabled
+			// Check if this gateway exists in WooCommerce and is enabled.
 			if ( isset( $wc_gateways[ $gateway_id ] ) && $wc_gateways[ $gateway_id ]->enabled ) {
 				$enabled[] = $gateway_id;
 			}
@@ -216,7 +218,7 @@ class PaySentinel_Gateway_Connectivity {
 
 		$table = $wpdb->prefix . 'payment_monitor_gateway_connectivity';
 
-		// Calculate cutoff date
+		// Calculate cutoff date.
 		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

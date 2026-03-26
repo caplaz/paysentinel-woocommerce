@@ -1,20 +1,12 @@
 <?php
-
 /**
  * Integration tests for complete payment monitoring system.
  *
- * Tests the integration of all components:
- * - Transaction monitoring -> Health calculation -> Alert triggering
- * - Failed transaction detection -> Retry engine scheduling
- * - API endpoints -> Dashboard data display
- * - Security enforcement across all components
- *
- * Property Tests:
- * - Property 27: Complete Payment Flow Integration
- * - Property 28: Health-Alert Integration
- * - Property 29: Retry-Recovery Integration
- *
- * @package PaySentinel\Tests\Integration
+ * @package PaySentinel
+ */
+
+/**
+ * Class PaymentSystemIntegrationTest
  */
 class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 
@@ -80,20 +72,20 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 	 */
 	public function test_property_27_complete_payment_flow_integration() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			// Test 1: All core components should be instantiable
+			// Test 1: All core components should be instantiable.
 			$this->assertInstanceOf( 'PaySentinel_Logger', $this->logger );
 			$this->assertInstanceOf( 'PaySentinel_Health', $this->health );
 			$this->assertInstanceOf( 'PaySentinel_Alerts', $this->alerts );
 			$this->assertInstanceOf( 'PaySentinel_Retry', $this->retry );
 			$this->assertInstanceOf( 'PaySentinel_Database', $this->database );
 
-			// Test 2: Database should be properly initialized
+			// Test 2: Database should be properly initialized.
 			$this->assertTrue(
 				method_exists( $this->database, 'get_transactions_table' ),
 				'Database should have transactions table'
 			);
 
-			// Test 3: All components should have their core methods
+			// Test 3: All components should have their core methods.
 			$this->assertTrue(
 				method_exists( $this->logger, 'log_failure' ),
 				'Logger should have log_failure method'
@@ -114,49 +106,49 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 				'Retry should have schedule_retry method'
 			);
 
-			// Test 4: REST API should be available for all data sources
+			// Test 4: REST API should be available for all data sources.
 			$api_health       = new PaySentinel_API_Health();
 			$api_transactions = new PaySentinel_API_Transactions();
 
 			$this->assertInstanceOf( 'PaySentinel_API_Health', $api_health );
 			$this->assertInstanceOf( 'PaySentinel_API_Transactions', $api_transactions );
 
-			// Test 5: Admin pages should be available for data display
+			// Test 5: Admin pages should be available for data display.
 			$admin = new PaySentinel_Admin();
 			$this->assertInstanceOf( 'PaySentinel_Admin', $admin );
 
-			// Test 6: Settings should be retrievable for configuration
+			// Test 6: Settings should be retrievable for configuration.
 			$settings = PaySentinel_Admin::get_settings();
 			$this->assertIsArray( $settings );
 			$this->assertArrayHasKey( 'enable_monitoring', $settings );
 
-			// Test 7: Security should be applied throughout the system
+			// Test 7: Security should be applied throughout the system.
 			$security = new PaySentinel_Security();
 			$this->assertTrue(
 				method_exists( $security, 'exclude_sensitive_data' ),
 				'Security should filter sensitive data from responses'
 			);
 
-			// Test 8: Component communication should work
-			// Logger -> Database (check table exists)
+			// Test 8: Component communication should work.
+			// Logger -> Database (check table exists).
 			$this->assertTrue(
 				method_exists( $this->database, 'get_transactions_table' ),
 				'Database should support transactions table'
 			);
 
-			// Health -> Database (check table exists)
+			// Health -> Database (check table exists).
 			$this->assertTrue(
 				method_exists( $this->database, 'get_gateway_health_table' ),
 				'Database should support health table'
 			);
 
-			// Test 9: All methods should be callable
+			// Test 9: All methods should be callable.
 			$this->assertTrue( is_callable( array( $this->logger, 'log_failure' ) ) );
 			$this->assertTrue( is_callable( array( $this->health, 'calculate_all_gateway_health' ) ) );
 			$this->assertTrue( is_callable( array( $this->alerts, 'check_all_gateway_alerts' ) ) );
 			$this->assertTrue( is_callable( array( $this->retry, 'schedule_retry' ) ) );
 
-			// Test 10: System should have proper error handling
+			// Test 10: System should have proper error handling.
 			$this->assertTrue(
 				method_exists( $this->logger, 'save_transaction' ),
 				'Logger should save transaction data'
@@ -178,7 +170,7 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 	 */
 	public function test_property_28_health_alert_integration() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			// Test 3: All components should be linked
+			// Test 3: All components should be linked.
 			$health = new PaySentinel_Health();
 			$alerts = new PaySentinel_Alerts();
 
@@ -192,7 +184,7 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 				'Alerts should check gateway alerts'
 			);
 
-			// Test 2: Settings should define alert thresholds
+			// Test 2: Settings should define alert thresholds.
 			$settings = PaySentinel_Admin::get_settings();
 			$this->assertArrayHasKey( 'alert_threshold', $settings, 'Settings should have alert threshold' );
 
@@ -200,51 +192,51 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 			$this->assertGreaterThan( 0, $threshold, 'Alert threshold should be positive' );
 			$this->assertLessThanOrEqual( 100, $threshold, 'Alert threshold should be <= 100%' );
 
-			// Test 3: Alert system should have severity levels
+			// Test 3: Alert system should have severity levels.
 			$this->assertTrue(
 				method_exists( $alerts, 'trigger_alert' ),
 				'Alerts should trigger alerts with severity'
 			);
 
-			// Test 4: Alert system should support multiple notification channels
+			// Test 4: Alert system should support multiple notification channels.
 			$this->assertTrue(
 				method_exists( $alerts, 'check_and_send' ),
 				'Alerts should send notifications'
 			);
 
-			// Test 5: Rate limiting should prevent alert spam
+			// Test 5: Rate limiting should prevent alert spam.
 			$this->assertTrue(
 				method_exists( $alerts, 'is_rate_limited' ),
 				'Alerts should have rate limiting'
 			);
 
-			// Test 6: Alert resolution should be tracked
+			// Test 6: Alert resolution should be tracked.
 			$this->assertTrue(
 				method_exists( $alerts, 'resolve_alerts' ),
 				'Alerts should support resolution'
 			);
 
-			// Test 7: Database should store alert history
-			$database = new PaySentinel_Database();
+			// Test 7: Database should store alert history.
+			$database = new PaySentinel_Database(); // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 			$this->assertTrue(
 				method_exists( $database, 'get_alerts_table' ),
 				'Database should have alerts table'
 			);
 
-			// Test 8: API should expose alert data
+			// Test 8: API should expose alert data.
 			$this->assertTrue(
 				method_exists( 'PaySentinel_API_Health', 'register_routes' ),
 				'API should register routes for alert access'
 			);
 
-			// Test 9: Admin should display alerts
+			// Test 9: Admin should display alerts.
 			$admin = new PaySentinel_Admin();
 			$this->assertTrue(
 				method_exists( $admin, 'render_alerts_page' ),
 				'Admin should render alerts page'
 			);
 
-			// Test 10: Security should filter sensitive data from alerts
+			// Test 10: Security should filter sensitive data from alerts.
 			$security = new PaySentinel_Security();
 			$this->assertTrue(
 				method_exists( $security, 'mask_sensitive_data' ),
@@ -266,7 +258,7 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 	 */
 	public function test_property_29_retry_recovery_integration() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			// Test 1: Retry engine should be integrated
+			// Test 1: Retry engine should be integrated.
 			$retry = new PaySentinel_Retry();
 
 			$this->assertTrue(
@@ -274,7 +266,7 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 				'Retry should schedule retries'
 			);
 
-			// Test 2: Retry configuration should be available in settings
+			// Test 2: Retry configuration should be available in settings.
 			$settings = PaySentinel_Admin::get_settings();
 			$this->assertArrayHasKey( 'retry_enabled', $settings, 'Settings should have retry enabled flag' );
 			$this->assertArrayHasKey( 'max_retry_attempts', $settings, 'Settings should have max retry attempts' );
@@ -283,51 +275,51 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 			$this->assertGreaterThan( 0, $max_attempts, 'Max attempts should be positive' );
 			$this->assertLessThanOrEqual( 10, $max_attempts, 'Max attempts should be reasonable' );
 
-			// Test 3: Retry history should be tracked in database
-			$database = new PaySentinel_Database();
+			// Test 3: Retry history should be tracked in database.
+			$database = new PaySentinel_Database(); // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 			$this->assertTrue(
 				method_exists( $retry, 'get_retry_stats' ),
 				'Retry should track retry history'
 			);
 
-			// Test 4: Retry logic should integrate with transaction logger
+			// Test 4: Retry logic should integrate with transaction logger.
 			$logger = new PaySentinel_Logger();
 			$this->assertTrue(
 				method_exists( $logger, 'log_failure' ),
 				'Logger should record transaction failures for retry'
 			);
 
-			// Test 5: Recovery should update health metrics
+			// Test 5: Recovery should update health metrics.
 			$health = new PaySentinel_Health();
 			$this->assertTrue(
 				method_exists( $health, 'calculate_all_gateway_health' ),
 				'Health should reflect recovered transactions'
 			);
 
-			// Test 6: Retry configuration should be accessible via API
+			// Test 6: Retry configuration should be accessible via API.
 			$api_health = new PaySentinel_API_Health();
 			$this->assertInstanceOf( 'PaySentinel_API_Health', $api_health );
 
-			// Test 7: Admin should show retry configuration
+			// Test 7: Admin should show retry configuration.
 			$admin = new PaySentinel_Admin();
 			$this->assertTrue(
 				method_exists( $admin, 'render_settings_page' ),
 				'Admin should allow retry configuration'
 			);
 
-			// Test 8: Retry engine should handle exponential backoff
+			// Test 8: Retry engine should handle exponential backoff.
 			$this->assertTrue(
 				method_exists( $retry, 'attempt_retry' ),
 				'Retry should attempt retries'
 			);
 
-			// Test 9: Failed transactions should trigger retry logic
+			// Test 9: Failed transactions should trigger retry logic.
 			$this->assertTrue(
 				method_exists( $retry, 'schedule_retry_on_failure' ),
 				'Retry should process failures'
 			);
 
-			// Test 10: Recovery events should be logged
+			// Test 10: Recovery events should be logged.
 			$this->assertTrue(
 				method_exists( $logger, 'update_transaction_status' ),
 				'Logger should track recovery attempts'
@@ -339,18 +331,18 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 	 * Test integration of all major workflows
 	 */
 	public function test_complete_system_integration() {
-		// Test 1: Default settings should exist
+		// Test 1: Default settings should exist.
 		$settings = PaySentinel_Admin::get_settings();
 		$this->assertIsArray( $settings );
 		$this->assertArrayHasKey( 'enable_monitoring', $settings );
 
-		// Test 2: All database tables should exist
-		$database = new PaySentinel_Database();
+		// Test 2: All database tables should exist.
+		$database = new PaySentinel_Database(); // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 		$this->assertNotEmpty( $database->get_transactions_table() );
 		$this->assertNotEmpty( $database->get_gateway_health_table() );
 		$this->assertNotEmpty( $database->get_alerts_table() );
 
-		// Test 3: Components should be properly initialized
+		// Test 3: Components should be properly initialized.
 		$logger = new PaySentinel_Logger();
 		$health = new PaySentinel_Health();
 		$alerts = new PaySentinel_Alerts();
@@ -361,18 +353,18 @@ class PaymentSystemIntegrationTest extends PaySentinel_Test_Case {
 		$this->assertInstanceOf( 'PaySentinel_Alerts', $alerts );
 		$this->assertInstanceOf( 'PaySentinel_Retry', $retry );
 
-		// Test 4: REST API endpoints should be available
+		// Test 4: REST API endpoints should be available.
 		$api_health       = new PaySentinel_API_Health();
 		$api_transactions = new PaySentinel_API_Transactions();
 
 		$this->assertInstanceOf( 'PaySentinel_API_Health', $api_health );
 		$this->assertInstanceOf( 'PaySentinel_API_Transactions', $api_transactions );
 
-		// Test 5: Admin interface should be available
+		// Test 5: Admin interface should be available.
 		$admin = new PaySentinel_Admin();
 		$this->assertInstanceOf( 'PaySentinel_Admin', $admin );
 
-		// Test 6: Security should be in place
+		// Test 6: Security should be in place.
 		$security = new PaySentinel_Security();
 		$this->assertInstanceOf( 'PaySentinel_Security', $security );
 	}

@@ -3,7 +3,7 @@
  * Plugin Name: PaySentinel - Payment Monitor for WooCommerce
  * Plugin URI: https://github.com/caplaz/paysentinel-woocommerce/
  * Description: Real-time monitoring, alerting, and recovery capabilities for WooCommerce payment gateway failures.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: Caplaz
  * Author URI: https://www.caplaz.com
  * License: GPL v2 or later
@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'PAYSENTINEL_VERSION', '1.1.1' );
+define( 'PAYSENTINEL_VERSION', '1.1.2' );
 define( 'PAYSENTINEL_PLUGIN_FILE', __FILE__ );
 define( 'PAYSENTINEL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PAYSENTINEL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -128,7 +128,7 @@ class PaySentinel {
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-telemetry.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/core/class-paysentinel-health.php';
 
-		// Load alert system classes (order matters - dependencies first)
+		// Load alert system classes (order matters - dependencies first).
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/alerts/class-paysentinel-alert-template-manager.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/alerts/class-paysentinel-alert-notifier.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/alerts/class-paysentinel-alert-checker.php';
@@ -161,7 +161,7 @@ class PaySentinel {
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/utils/class-paysentinel-failure-simulator.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/api/class-paysentinel-api-diagnostics.php';
 
-		// Load admin handler classes (order matters - dependencies first)
+		// Load admin handler classes (order matters - dependencies first).
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/admin/class-paysentinel-admin-menu-handler.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/admin/class-paysentinel-admin-settings-handler.php';
 		require_once PAYSENTINEL_PLUGIN_DIR . 'includes/admin/class-paysentinel-admin-page-renderer.php';
@@ -228,22 +228,30 @@ class PaySentinel {
 	public $logger;
 
 	/**
-	 * @var PaySentinel_Health $health Health calculation engine instance.
+	 * Health calculation engine instance.
+	 *
+	 * @var PaySentinel_Health
 	 */
 	public $health;
 
 	/**
-	 * @var PaySentinel_Alerts $alerts Alert system instance.
+	 * Alert system instance.
+	 *
+	 * @var PaySentinel_Alerts
 	 */
 	public $alerts;
 
 	/**
-	 * @var PaySentinel_Telemetry $telemetry Telemetry system instance.
+	 * Telemetry system instance.
+	 *
+	 * @var PaySentinel_Telemetry
 	 */
 	public $telemetry;
 
 	/**
-	 * @var PaySentinel_Retry $retry Retry engine instance.
+	 * Retry engine instance.
+	 *
+	 * @var PaySentinel_Retry
 	 */
 	public $retry;
 
@@ -252,7 +260,7 @@ class PaySentinel {
 	 */
 	private function init_components() {
 		// Ensure database tables exist at runtime, not only on activation.
-		// needs_update() only checks the DB version option, which can be set from
+		// needs_update() only checks the DB version option, which can be set from.
 		// a prior partial activation even when the tables were never created.
 		// tables_exist() does the authoritative SHOW TABLES check.
 		$database = new PaySentinel_Database();
@@ -310,9 +318,9 @@ class PaySentinel {
 	 * @return string Friendly gateway name.
 	 */
 	public static function get_friendly_gateway_name( $gateway_id ) {
-		// Friendly name mapping for common payment gateways
+		// Friendly name mapping for common payment gateways.
 		$friendly_names = array(
-			// WooCommerce Payments sub-gateways
+			// WooCommerce Payments sub-gateways.
 			'woocommerce_payments_affirm'               => 'WC Payments - Affirm',
 			'woocommerce_payments_klarna'               => 'WC Payments - Klarna',
 			'woocommerce_payments_afterpay'             => 'WC Payments - Afterpay',
@@ -320,7 +328,7 @@ class PaySentinel {
 			'woocommerce_payments_woocommerce_payments' => 'WC Payments - Card',
 			'woocommerce_payments'                      => 'WC Payments',
 
-			// Stripe sub-gateways
+			// Stripe sub-gateways.
 			'stripe'                                    => 'Stripe',
 			'stripe_affirm'                             => 'Stripe - Affirm',
 			'stripe_klarna'                             => 'Stripe - Klarna',
@@ -336,17 +344,17 @@ class PaySentinel {
 			'stripe_sepa'                               => 'Stripe - SEPA Direct Debit',
 			'stripe_sofort'                             => 'Stripe - Sofort',
 
-			// PayPal
+			// PayPal.
 			'paypal'                                    => 'PayPal',
 			'ppec_paypal'                               => 'PayPal Express Checkout',
 			'paypal_pro'                                => 'PayPal Pro',
 			'paypal_pro_payflow'                        => 'PayPal Pro Payflow',
 
-			// Square
+			// Square.
 			'square_credit_card'                        => 'Square - Credit Card',
 			'square'                                    => 'Square',
 
-			// Other common gateways
+			// Other common gateways.
 			'cod'                                       => 'Cash on Delivery',
 			'cheque'                                    => 'Check Payment',
 			'bacs'                                      => 'Direct Bank Transfer',
@@ -365,12 +373,12 @@ class PaySentinel {
 			'clearpay'                                  => 'Clearpay',
 		);
 
-		// Check if we have a friendly name mapping
+		// Check if we have a friendly name mapping.
 		if ( isset( $friendly_names[ $gateway_id ] ) ) {
 			return $friendly_names[ $gateway_id ];
 		}
 
-		// Try to get the name from WooCommerce payment gateways
+		// Try to get the name from WooCommerce payment gateways.
 		if ( class_exists( 'WC_Payment_Gateways' ) ) {
 			$wc_gateways = WC_Payment_Gateways::instance();
 			$gateways    = $wc_gateways->get_available_payment_gateways();
@@ -380,7 +388,7 @@ class PaySentinel {
 			}
 		}
 
-		// Fallback to gateway ID if name not found
+		// Fallback to gateway ID if name not found.
 		return ucfirst( str_replace( '_', ' ', $gateway_id ) );
 	}
 
@@ -388,12 +396,12 @@ class PaySentinel {
 	 * Initialize gateway connectivity checker scheduler
 	 */
 	private function init_gateway_connectivity_scheduler() {
-		// Schedule the gateway connectivity check cron job
+		// Schedule the gateway connectivity check cron job.
 		if ( ! wp_next_scheduled( 'paysentinel_gateway_connectivity_check' ) ) {
 			wp_schedule_event( time(), 'wc_monitor_30min', 'paysentinel_gateway_connectivity_check' );
 		}
 
-		// Hook to run the connectivity check
+		// Hook to run the connectivity check.
 		add_action( 'paysentinel_gateway_connectivity_check', array( $this, 'run_gateway_connectivity_check' ) );
 	}
 
@@ -406,19 +414,18 @@ class PaySentinel {
 			$connectivity = new PaySentinel_Gateway_Connectivity();
 			$results      = $connectivity->check_all_gateways();
 
-			// Log connectivity check results
+			// Log connectivity check results.
 			do_action( 'paysentinel_connectivity_check_complete', $results );
 
-			// Clean up old connectivity records based on license tier
+			// Clean up old connectivity records based on license tier.
 			$license        = new PaySentinel_License();
 			$tier           = $license->get_license_tier();
 			$retention_days = isset( PaySentinel_License::RETENTION_LIMITS[ $tier ] ) ? PaySentinel_License::RETENTION_LIMITS[ $tier ] : 7;
 
 			$connectivity->cleanup_old_checks( $retention_days );
 		} catch ( Exception $e ) {
-			// error_log(
-			// 'Payment Monitor: Error during gateway connectivity check: ' . $e->getMessage()
-			// );
+			// Connectivity check errors are non-fatal; swallow to avoid breaking cron.
+			unset( $e );
 		}
 	}
 
@@ -433,19 +440,22 @@ class PaySentinel {
 
 			$database = new PaySentinel_Database();
 			$database->cleanup_old_transactions( $retention_days );
-			$database->cleanup_old_alerts( 30 ); // Alerts kept for 30 days
+			$database->cleanup_old_alerts( 30 ); // Alerts kept for 30 days.
 			$database->optimize_tables();
 		} catch ( Exception $e ) {
-			// error_log( 'Payment Monitor: Error during daily cleanup: ' . $e->getMessage() );
+			// Cleanup errors are non-fatal; swallow to avoid breaking cron.
+			unset( $e );
 		}
 	}
 
 	/**
 	 * Plugin activation
+	 *
+	 * @throws \Throwable Re-throws any exception so WordPress shows the activation error notice.
 	 */
 	public function activate() {
-		// Note: Requirements check moved to init() method to ensure WooCommerce is loaded
-		// This allows activation even if WooCommerce loads after this plugin
+		// Note: Requirements check moved to init() method to ensure WooCommerce is loaded.
+		// This allows activation even if WooCommerce loads after this plugin.
 		try {
 			// Create database tables.
 			$database = new PaySentinel_Database();
@@ -460,7 +470,6 @@ class PaySentinel {
 			// Trigger health calculation scheduling.
 			do_action( 'paysentinel_activated' );
 		} catch ( \Throwable $e ) {
-			// error_log( 'PaySentinel activation error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
 			// Re-throw so WordPress shows the activation error notice instead of a blank screen.
 			throw $e;
 		}
@@ -470,12 +479,12 @@ class PaySentinel {
 	 * Plugin deactivation
 	 */
 	public function deactivate() {
-		// Clear scheduled events
+		// Clear scheduled events.
 		wp_clear_scheduled_hook( 'paysentinel_health_calculation' );
 		wp_clear_scheduled_hook( 'paysentinel_process_retries' );
 		wp_clear_scheduled_hook( 'paysentinel_gateway_connectivity_check' );
 
-		// Clear Action Scheduler actions
+		// Clear Action Scheduler actions.
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( 'paysentinel_retry_payment' );
 		}
@@ -485,21 +494,21 @@ class PaySentinel {
 	 * Plugin uninstall
 	 */
 	public static function uninstall() {
-		// Remove database tables
+		// Remove database tables.
 		require_once plugin_dir_path( __FILE__ ) . 'includes/class-paysentinel-database.php';
 		$database = new PaySentinel_Database();
 		$database->drop_tables();
 
-		// Remove options
+		// Remove options.
 		delete_option( 'paysentinel_version' );
 		delete_option( 'paysentinel_settings' );
 		delete_option( 'paysentinel_retry_stats' );
 
-		// Clear scheduled events
+		// Clear scheduled events.
 		wp_clear_scheduled_hook( 'paysentinel_health_calculation' );
 		wp_clear_scheduled_hook( 'paysentinel_process_retries' );
 
-		// Clear Action Scheduler actions
+		// Clear Action Scheduler actions.
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( 'paysentinel_retry_payment' );
 		}
@@ -515,12 +524,12 @@ class PaySentinel {
 			return false;
 		}
 
-		// Check if WooCommerce is installed and active
+		// Check if WooCommerce is installed and active.
 		if ( ! $this->is_woocommerce_active() ) {
 			return false;
 		}
 
-		// Check WooCommerce version if available
+		// Check WooCommerce version if available.
 		if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '5.0', '<' ) ) {
 			return false;
 		}
@@ -532,17 +541,17 @@ class PaySentinel {
 	 * Check if WooCommerce is active
 	 */
 	private function is_woocommerce_active() {
-		// First check if the class exists (WooCommerce is loaded)
+		// First check if the class exists (WooCommerce is loaded).
 		if ( class_exists( 'WooCommerce' ) ) {
 			return true;
 		}
 
-		// If class doesn't exist, check if WooCommerce plugin is active
+		// If class doesn't exist, check if WooCommerce plugin is active.
 		if ( function_exists( 'is_plugin_active' ) ) {
 			return is_plugin_active( 'woocommerce/woocommerce.php' );
 		}
 
-		// Fallback: check if the plugin file exists in active plugins
+		// Fallback: check if the plugin file exists in active plugins.
 		$active_plugins = get_option( 'active_plugins', array() );
 		return in_array( 'woocommerce/woocommerce.php', $active_plugins, true );
 	}
@@ -555,12 +564,12 @@ class PaySentinel {
 			PaySentinel_Settings_Constants::ENABLED_GATEWAYS => array(),
 
 			PaySentinel_Settings_Constants::ALERT_THRESHOLD => 85,
-			PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(), // Per-gateway configuration (Pro+ feature)
+			PaySentinel_Settings_Constants::GATEWAY_ALERT_CONFIG => array(), // Per-gateway configuration (Pro+ feature).
 		);
 
 		add_option( 'paysentinel_settings', $default_settings );
 
-		// Also set defaults in main options (paysentinel_options)
+		// Also set defaults in main options (paysentinel_options).
 		$default_options = array(
 			PaySentinel_Settings_Constants::ENABLE_MONITORING => true,
 			PaySentinel_Settings_Constants::HEALTH_CHECK_INTERVAL => 300, // 5 minutes
@@ -615,5 +624,5 @@ class PaySentinel {
 	}
 }
 
-// Initialize plugin
+// Initialize plugin.
 PaySentinel::get_instance();

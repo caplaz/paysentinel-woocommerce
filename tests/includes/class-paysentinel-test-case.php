@@ -55,6 +55,7 @@ class PaySentinel_Test_Case extends TestCase {
 		);
 
 		foreach ( $tables as $table ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( 'DROP TABLE IF EXISTS ' . $table );
 		}
 
@@ -172,12 +173,12 @@ class PaySentinel_Test_Case extends TestCase {
 			$wpdb->prefix  = 'wp_';
 			$wpdb->queries = array();
 
-			$wpdb->query = function ( $sql ) use ( $wpdb ) {
+			$wpdb->query = function ( $sql ) use ( $wpdb ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->queries[] = $sql;
 				return true;
 			};
 
-			$wpdb->get_var = function ( $sql ) {
+			$wpdb->get_var = function ( $_sql ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable, Generic.CodeAnalysis.UnusedFunctionParameter.Found
 				return null;
 			};
 

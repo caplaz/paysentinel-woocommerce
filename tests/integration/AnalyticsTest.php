@@ -2,7 +2,11 @@
 /**
  * Integration tests for Analytics and Reporting.
  *
- * @package PaySentinel\Tests\Integration
+ * @package PaySentinel
+ */
+
+/**
+ * Class AnalyticsTest
  */
 class AnalyticsTest extends WP_UnitTestCase {
 
@@ -50,8 +54,8 @@ class AnalyticsTest extends WP_UnitTestCase {
 
 		// Clean up tables before each test.
 		global $wpdb;
-		$wpdb->query( "TRUNCATE TABLE {$this->database->get_transactions_table()}" );
-		$wpdb->query( "TRUNCATE TABLE {$this->database->get_gateway_health_table()}" );
+		$wpdb->query( "TRUNCATE TABLE {$this->database->get_transactions_table()}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query( "TRUNCATE TABLE {$this->database->get_gateway_health_table()}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 		// Set PRO license to enable all features.
 		update_option( 'paysentinel_license_status', 'valid' );
@@ -70,12 +74,12 @@ class AnalyticsTest extends WP_UnitTestCase {
 	 */
 	private function insert_transaction( $gateway, $status, $created_at, $reason = null, $code = null ) {
 		global $wpdb;
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$this->database->get_transactions_table(),
 			array(
-				'order_id'       => rand( 1000, 9999 ),
+				'order_id'       => wp_rand( 1000, 9999 ),
 				'gateway_id'     => $gateway,
-				'transaction_id' => 'abc_' . rand( 100, 999 ),
+				'transaction_id' => 'abc_' . wp_rand( 100, 999 ),
 				'amount'         => 100.00,
 				'currency'       => 'USD',
 				'status'         => $status,
@@ -106,6 +110,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 
 		// 3. Verify health record in DB.
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$row = $wpdb->get_row( "SELECT * FROM {$this->database->get_gateway_health_table()} WHERE gateway_id = '$gateway' AND period = '1hour'" );
 
 		$this->assertNotNull( $row );
@@ -151,7 +156,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		$table = $this->database->get_gateway_health_table();
 		$now   = current_time( 'mysql' );
 
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id'         => $gateway,
@@ -161,7 +166,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 				'calculated_at'      => $now,
 			)
 		);
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id'         => $gateway,
@@ -192,7 +197,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 
 		// Insert old transaction (95 days ago).
 		$old_date = gmdate( 'Y-m-d H:i:s', time() - ( 95 * DAY_IN_SECONDS ) );
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'order_id'   => 1,
@@ -205,7 +210,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		);
 
 		// Insert recent transaction.
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'order_id'   => 2,
@@ -219,6 +224,8 @@ class AnalyticsTest extends WP_UnitTestCase {
 
 		$deleted = $this->database->cleanup_old_transactions( 90 );
 		$this->assertEquals( 1, $deleted );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		$this->assertEquals( 1, $wpdb->get_var( "SELECT COUNT(*) FROM $table" ) );
 	}
 
@@ -231,7 +238,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		// Insert health for stripe.
 		global $wpdb;
 		$table = $this->database->get_gateway_health_table();
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id'         => 'stripe',
@@ -258,7 +265,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		$table = $this->database->get_gateway_health_table();
 
 		// Insert health for 3 different days.
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id'    => $gateway,
@@ -267,7 +274,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 				'calculated_at' => gmdate( 'Y-m-d H:i:s', time() - ( 10 * DAY_IN_SECONDS ) ),
 			)
 		);
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id'    => $gateway,
@@ -292,7 +299,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		$now   = current_time( 'mysql' );
 
 		// Stripe 99%.
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id'    => 'stripe',
@@ -302,7 +309,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 			)
 		);
 		// PayPal 80%.
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id'    => 'paypal',
@@ -326,7 +333,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 		$table = $this->database->get_gateway_health_table();
 		$now   = current_time( 'mysql' );
 
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id'              => 'stripe',
@@ -337,7 +344,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 				'calculated_at'           => $now,
 			)
 		);
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table,
 			array(
 				'gateway_id'              => 'paypal',
@@ -359,20 +366,20 @@ class AnalyticsTest extends WP_UnitTestCase {
 	 * Test PRO analytics availability check
 	 */
 	public function test_pro_analytics_availability() {
-		// Free tier - should NOT have access
+		// Free tier - should NOT have access.
 		update_option( 'paysentinel_license_status', 'invalid' );
 		$this->assertFalse( $this->analytics->is_pro_analytics_available() );
 
-		// Starter tier - should NOT have access
+		// Starter tier - should NOT have access.
 		update_option( 'paysentinel_license_status', 'valid' );
 		update_option( 'paysentinel_license_data', array( 'plan' => 'starter' ) );
 		$this->assertFalse( $this->analytics->is_pro_analytics_available() );
 
-		// Pro tier - should HAVE access
+		// Pro tier - should HAVE access.
 		update_option( 'paysentinel_license_data', array( 'plan' => 'pro' ) );
 		$this->assertTrue( $this->analytics->is_pro_analytics_available() );
 
-		// Agency tier - should HAVE access
+		// Agency tier - should HAVE access.
 		update_option( 'paysentinel_license_data', array( 'plan' => 'agency' ) );
 		$this->assertTrue( $this->analytics->is_pro_analytics_available() );
 	}
@@ -381,7 +388,7 @@ class AnalyticsTest extends WP_UnitTestCase {
 	 * Test trend calculations with partial data
 	 */
 	public function test_trend_calculations_partial_data() {
-		// Only 7day data, no 24hour data
+		// Only 7day data, no 24hour data.
 		$periods = array(
 			'7day' => array( 'success_rate' => 90.0 ),
 		);

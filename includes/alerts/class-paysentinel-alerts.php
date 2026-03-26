@@ -9,7 +9,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -94,7 +94,7 @@ class PaySentinel_Alerts {
 		$this->health          = new PaySentinel_Health();
 		$this->gateway_manager = new PaySentinel_Gateway_Manager();
 
-		// Initialize handler classes
+		// Initialize handler classes.
 		$this->template_manager = new PaySentinel_Alert_Template_Manager( $this->gateway_manager );
 		$this->notifier         = new PaySentinel_Alert_Notifier( $this->template_manager, $this->database );
 		$this->checker          = new PaySentinel_Alert_Checker(
@@ -104,7 +104,7 @@ class PaySentinel_Alerts {
 			$this->notifier
 		);
 
-		// Initialize recovery handler for retry outcome alerts
+		// Initialize recovery handler for retry outcome alerts.
 		$this->recovery_handler = new PaySentinel_Alert_Recovery_Handler( $this->checker, null, $this->database );
 
 		$this->init_hooks();
@@ -114,16 +114,16 @@ class PaySentinel_Alerts {
 	 * Initialize WordPress hooks
 	 */
 	private function init_hooks() {
-		// Hook into health calculation to check for alerts
+		// Hook into health calculation to check for alerts.
 		add_action( 'paysentinel_health_calculation', array( $this->checker, 'check_all_gateway_alerts' ) );
 
-		// Hook into individual health calculations
+		// Hook into individual health calculations.
 		add_action( 'paysentinel_gateway_health_calculated', array( $this->checker, 'check_gateway_alerts' ), 10, 2 );
 
-		// Hook into gateway connectivity checks
+		// Hook into gateway connectivity checks.
 		add_action( 'paysentinel_gateway_checked', array( $this->checker, 'check_gateway_connectivity_alert' ), 10, 2 );
 
-		// Hook into individual payment failures for immediate critical alerts
+		// Hook into individual payment failures for immediate critical alerts.
 		add_action( 'paysentinel_payment_failed', array( $this->checker, 'check_immediate_transaction_alert' ), 10, 2 );
 	}
 
@@ -258,8 +258,7 @@ class PaySentinel_Alerts {
 		$sql     .= ' ORDER BY created_at DESC LIMIT %d';
 		$params[] = $limit;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 	}
 
 	/**
@@ -284,8 +283,7 @@ class PaySentinel_Alerts {
 		$sql     .= ' ORDER BY created_at DESC LIMIT %d';
 		$params[] = $limit;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 	}
 
 	/**
@@ -298,7 +296,7 @@ class PaySentinel_Alerts {
 		global $wpdb;
 
 		$table_name = $this->database->get_alerts_table();
-		$now        = current_time( 'timestamp' );
+		$now        = time();
 		$start_date = gmdate( 'Y-m-d H:i:s', $now - ( $days * DAY_IN_SECONDS ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

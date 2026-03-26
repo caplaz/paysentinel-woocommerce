@@ -1,8 +1,12 @@
 <?php
+/**
+ * Property-based tests for health calculation engine.
+ *
+ * @package PaySentinel
+ */
 
 /**
- * Property-based tests for health calculation engine
- * Tests universal correctness properties with 100+ iterations
+ * Class HealthPropertyTest
  */
 class HealthPropertyTest extends PHPUnit\Framework\TestCase {
 
@@ -14,17 +18,17 @@ class HealthPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_success_rate_accuracy() {
 		for ( $i = 0; $i < 100; $i++ ) {
-			$total      = rand( 10, 1000 );
-			$successful = rand( 0, $total );
+			$total      = wp_rand( 10, 1000 );
+			$successful = wp_rand( 0, $total );
 
-			// Calculate success rate
+			// Calculate success rate.
 			$expected_rate = $total > 0 ? ( $successful / $total ) * 100 : 0;
 
-			// Success rate must be between 0 and 100
+			// Success rate must be between 0 and 100.
 			$this->assertGreaterThanOrEqual( 0, $expected_rate );
 			$this->assertLessThanOrEqual( 100, $expected_rate );
 
-			// Verify percentage calculation
+			// Verify percentage calculation.
 			if ( $total > 0 ) {
 				$this->assertEquals( $expected_rate, ( $successful / $total ) * 100 );
 			}
@@ -68,7 +72,7 @@ class HealthPropertyTest extends PHPUnit\Framework\TestCase {
 		foreach ( $test_cases as $test ) {
 			$rate = $test['rate'];
 
-			// Determine status based on thresholds
+			// Determine status based on thresholds.
 			if ( $rate >= 95 ) {
 				$status = 'healthy';
 			} elseif ( $rate >= 50 ) {
@@ -112,12 +116,12 @@ class HealthPropertyTest extends PHPUnit\Framework\TestCase {
 				$period  = $period_data['period'];
 				$seconds = $period_data['seconds'];
 
-				// Verify period mappings
+				// Verify period mappings.
 				$this->assertIsString( $period );
 				$this->assertIsInt( $seconds );
 				$this->assertGreaterThan( 0, $seconds );
 
-				// Calculate hours from seconds
+				// Calculate hours from seconds.
 				$hours = $seconds / 3600;
 				if ( $period === '1hour' ) {
 					$this->assertEquals( 1, $hours );
@@ -138,18 +142,18 @@ class HealthPropertyTest extends PHPUnit\Framework\TestCase {
 	 */
 	public function test_property_empty_data_handling() {
 		for ( $i = 0; $i < 50; $i++ ) {
-			// Empty transaction set
+			// Empty transaction set.
 			$total_transactions = 0;
 			$successful         = 0;
 
-			// Should not cause division by zero
+			// Should not cause division by zero.
 			if ( $total_transactions > 0 ) {
 				$rate = ( $successful / $total_transactions ) * 100;
 			} else {
 				$rate = 0;
 			}
 
-			// Result should always be valid
+			// Result should always be valid.
 			$this->assertIsNumeric( $rate );
 			$this->assertGreaterThanOrEqual( 0, $rate );
 			$this->assertLessThanOrEqual( 100, $rate );

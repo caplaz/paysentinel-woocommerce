@@ -2,14 +2,11 @@
 /**
  * Integration tests for dashboard API response format.
  *
- * Ensures the dashboard can properly consume API responses
- * and displays data correctly instead of "No gateway health data available".
- *
- * Property Tests:
- * - Property 30: Dashboard API Response Format Integration
- * - Property 31: Health Data Display Consistency
- *
- * @package PaySentinel\Tests\Integration
+ * @package PaySentinel
+ */
+
+/**
+ * Class DashboardAPIIntegrationTest
  */
 class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 
@@ -124,9 +121,9 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 		// Dashboard checks: healthData.length > 0.
 		$dashboard_would_display_data = count( $data['data']['items'] ) > 0;
 
-		// If dashboard_would_display_data is false, it would show "No gateway health data available"
-		// We want to ensure this doesn't happen when there should be data
-		// For this test, we created data, so there should be items
+		// If dashboard_would_display_data is false, it would show "No gateway health data available".
+		// We want to ensure this doesn't happen when there should be data.
+		// For this test, we created data, so there should be items.
 		$this->assertTrue( $dashboard_would_display_data, 'Dashboard should display health data when API returns items' );
 	}
 
@@ -158,7 +155,7 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 
 		// Dashboard would correctly show "No gateway health data available" only if no gateways exist.
 		$dashboard_would_show_empty_message = count( $data['data']['items'] ) === 0;
-		// We don't assert this as true since gateways may exist in test environment
+		// We don't assert this as true since gateways may exist in test environment.
 		$this->assertIsBool( $dashboard_would_show_empty_message );
 	}
 
@@ -171,7 +168,7 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 		$table_name = $wpdb->prefix . 'payment_monitor_transactions';
 
 		// Insert test transactions for stripe gateway.
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'order_id'       => 1001,
@@ -190,7 +187,7 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 			array( '%d', '%s', '%s', '%f', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
 		);
 
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_name,
 			array(
 				'order_id'       => 1002,
@@ -217,19 +214,19 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 	 * the expected structure, preventing JavaScript errors
 	 */
 	public function test_property_33_malformed_response_handling() {
-		// Test case 1: Missing data property
+		// Test case 1: Missing data property.
 		$malformed_response_1 = array(
 			'success' => true,
 			'message' => 'Success but no data',
 		);
 
-		// Test case 2: data is null
+		// Test case 2: data is null.
 		$malformed_response_2 = array(
 			'success' => true,
 			'data'    => null,
 		);
 
-		// Test case 3: data exists but no items
+		// Test case 3: data exists but no items.
 		$malformed_response_3 = array(
 			'success' => true,
 			'data'    => array(
@@ -237,7 +234,7 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 			),
 		);
 
-		// Test case 4: items is not an array
+		// Test case 4: items is not an array.
 		$malformed_response_4 = array(
 			'success' => true,
 			'data'    => array(
@@ -254,9 +251,9 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 		);
 
 		foreach ( $test_cases as $case_name => $response_data ) {
-			// We can't easily test the JavaScript directly, but we can verify
-			// that the API doesn't return these malformed responses in normal operation
-			// and document that the frontend should handle them gracefully
+			// We can't easily test the JavaScript directly, but we can verify.
+			// that the API doesn't return these malformed responses in normal operation.
+			// and document that the frontend should handle them gracefully.
 
 			// For now, just assert that our normal API doesn't return these formats.
 			$request = new WP_REST_Request( 'GET', '/paysentinel/v1/health/gateways' );
@@ -266,7 +263,7 @@ class DashboardAPIIntegrationTest extends WP_UnitTestCase {
 			$response = $this->api_health->get_all_gateway_health( $request );
 			$data     = $response->get_data();
 
-			// Normal responses should always have data and items as array
+			// Normal responses should always have data and items as array.
 			$this->assertArrayHasKey( 'data', $data, "Case $case_name: data key missing" );
 			$this->assertArrayHasKey( 'items', $data['data'], "Case $case_name: items key missing" );
 			$this->assertIsArray( $data['data']['items'], "Case $case_name: items not array" );

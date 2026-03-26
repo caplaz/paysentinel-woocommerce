@@ -1,12 +1,18 @@
 <?php
-
 /**
  * Tests that REST API routes are registered correctly.
  *
- * @package PaySentinel\Tests\API
+ * @package PaySentinel
+ */
+
+/**
+ * Class RESTAPIRouteRegistrationTest
  */
 class RESTAPIRouteRegistrationTest extends PaySentinel_Test_Case {
 
+	/**
+	 * Test that API routes are registered.
+	 */
 	public function test_api_routes_are_registered() {
 		// Ensure REST API is initialized.
 		PaySentinel::get_instance()->init_api_endpoints();
@@ -19,8 +25,14 @@ class RESTAPIRouteRegistrationTest extends PaySentinel_Test_Case {
 		$this->assertArrayHasKey( '/paysentinel/v1/alerts', $routes, 'Alerts route should be registered' );
 	}
 
+	/**
+	 * Test that API namespace is correct.
+	 */
 	public function test_api_namespace_is_correct() {
 		$api = new class() extends PaySentinel_API_Base {
+			/**
+			 * Register routes stub.
+			 */
 			public function register_routes() {}
 		};
 

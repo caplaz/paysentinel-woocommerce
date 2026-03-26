@@ -1,15 +1,35 @@
 <?php
-
 /**
  * Tests for PRO tier analytics REST API endpoints.
  *
- * @package PaySentinel\Tests\API
+ * @package PaySentinel
+ */
+
+/**
+ * Class ProAnalyticsAPITest
  */
 class ProAnalyticsAPITest extends WP_UnitTestCase {
 
 
+	/**
+	 * API instance.
+	 *
+	 * @var PaySentinel_API_Analytics_Pro
+	 */
 	private $api;
+
+	/**
+	 * License instance.
+	 *
+	 * @var PaySentinel_License
+	 */
 	private $license;
+
+	/**
+	 * Admin user ID.
+	 *
+	 * @var int
+	 */
 	public $admin_user;
 
 	/**

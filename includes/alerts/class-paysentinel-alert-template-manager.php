@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -50,7 +50,7 @@ class PaySentinel_Alert_Template_Manager {
 			return $alert_data['message'];
 		}
 
-		// Backward compatibility / default for low_success_rate
+		// Backward compatibility / default for low_success_rate.
 		$success_rate  = isset( $alert_data['success_rate'] ) ? number_format( $alert_data['success_rate'], 2 ) : '0.00';
 		$period        = isset( $alert_data['period'] ) ? $alert_data['period'] : 'custom';
 		$failed_count  = isset( $alert_data['failed_transactions'] ) ? $alert_data['failed_transactions'] : 0;

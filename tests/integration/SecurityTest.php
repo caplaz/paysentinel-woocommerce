@@ -18,7 +18,7 @@ class SecurityTest extends WP_UnitTestCase {
 	public function test_encryption_decryption() {
 		$data = 'secret_password_123';
 
-		// Ensure AUTH_KEY is defined for testing if it's not already
+		// Ensure AUTH_KEY is defined for testing if it's not already.
 		if ( ! defined( 'AUTH_KEY' ) ) {
 			define( 'AUTH_KEY', 'test_auth_key_for_phpunit' );
 		}
@@ -30,11 +30,11 @@ class SecurityTest extends WP_UnitTestCase {
 		$decrypted = PaySentinel_Security::decrypt_credential( $encrypted );
 		$this->assertEquals( $data, $decrypted );
 
-		// Test empty input
+		// Test empty input.
 		$this->assertFalse( PaySentinel_Security::encrypt_credential( '' ) );
 		$this->assertFalse( PaySentinel_Security::decrypt_credential( '' ) );
 
-		// Test validation method
+		// Test validation method.
 		$this->assertTrue( PaySentinel_Security::validate_encryption() );
 	}
 
@@ -56,11 +56,11 @@ class SecurityTest extends WP_UnitTestCase {
 		$signature = PaySentinel_Security::generate_hmac_signature( $payload, $timestamp, $secret );
 		$this->assertNotEmpty( $signature );
 
-		// Generate again with same data, should be identical
+		// Generate again with same data, should be identical.
 		$signature2 = PaySentinel_Security::generate_hmac_signature( $payload, $timestamp, $secret );
 		$this->assertEquals( $signature, $signature2 );
 
-		// Test with string payload
+		// Test with string payload.
 		$string_payload = '{"a":"first","m":{"1":"inner_first","2":"inner_last"},"z":"last"}';
 		$signature3     = PaySentinel_Security::generate_hmac_signature( $string_payload, $timestamp, $secret );
 		$this->assertEquals( $signature, $signature3 );
@@ -101,14 +101,14 @@ class SecurityTest extends WP_UnitTestCase {
 			),
 		);
 
-		// 1. Exclusion
+		// 1. Exclusion.
 		$excluded = PaySentinel_Security::exclude_sensitive_data( $data );
 		$this->assertArrayHasKey( 'user_id', $excluded );
 		$this->assertArrayNotHasKey( 'api_key', $excluded );
 		$this->assertArrayNotHasKey( 'token', $excluded['nested'] );
 		$this->assertArrayHasKey( 'name', $excluded['nested'] );
 
-		// 2. Masking
+		// 2. Masking.
 		$masked = PaySentinel_Security::mask_sensitive_data( $data );
 		$this->assertEquals( '***REDACTED***', $masked['api_key'] );
 		$this->assertEquals( '***REDACTED***', $masked['nested']['token'] );
@@ -121,16 +121,16 @@ class SecurityTest extends WP_UnitTestCase {
 	public function test_sql_utilities() {
 		global $wpdb;
 
-		// Test preparation
+		// Test preparation.
 		$query    = "SELECT * FROM {$wpdb->prefix}users WHERE ID = %d";
 		$prepared = PaySentinel_Security::prepare_sql_query( $query, array( 1 ) );
 		$this->assertStringContainsString( 'WHERE ID = 1', $prepared );
 
-		// Test execution (SELECT)
+		// Test execution (SELECT).
 		$results = PaySentinel_Security::execute_query( "SELECT ID FROM {$wpdb->prefix}users WHERE ID = %d", array( 1 ) );
 		$this->assertIsArray( $results );
 
-		// Test execution (Other)
+		// Test execution (Other).
 		$count = PaySentinel_Security::execute_query( "UPDATE {$wpdb->prefix}options SET option_value = %s WHERE option_name = %s", array( 'new_val', 'non_existent_key' ) );
 		$this->assertEquals( 0, $count );
 	}
@@ -152,20 +152,20 @@ class SecurityTest extends WP_UnitTestCase {
 	 * Test API Authentication validation.
 	 */
 	public function test_validate_api_authentication() {
-		// 1. Not logged in
+		// 1. Not logged in.
 		wp_set_current_user( 0 );
 		$result = PaySentinel_Security::validate_api_authentication();
 		$this->assertWPError( $result );
 		$this->assertEquals( 'not_authenticated', $result->get_error_code() );
 
-		// 2. Logged in, no permissions
+		// 2. Logged in, no permissions.
 		$user_id = $this->factory->user->create( array( 'role' => 'subscriber' ) );
 		wp_set_current_user( $user_id );
 		$result = PaySentinel_Security::validate_api_authentication();
 		$this->assertWPError( $result );
 		$this->assertEquals( 'insufficient_permissions', $result->get_error_code() );
 
-		// 3. Logged in with permissions
+		// 3. Logged in with permissions.
 		$admin_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
 		$admin    = get_userdata( $admin_id );
 		$admin->add_cap( 'manage_woocommerce' );
@@ -210,7 +210,7 @@ class SecurityTest extends WP_UnitTestCase {
 			'retry_enabled'     => '1',
 			'some_number'       => '42',
 			'some_text'         => 'Hello World',
-			'DROP TABLE users'  => 'illegal_key', // This key should be rejected
+			'DROP TABLE users'  => 'illegal_key', // This key should be rejected.
 			'nested'            => array(
 				'key' => 'value',
 			),
@@ -224,13 +224,13 @@ class SecurityTest extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'DROP TABLE users', $validated );
 		$this->assertEquals( 'value', $validated['nested']['key'] );
 
-		// Test unchecked checkboxes
+		// Test unchecked checkboxes.
 		$settings_unchecked  = array( 'current_tab' => 'general' );
 		$validated_unchecked = PaySentinel_Security::validate_admin_settings( $settings_unchecked );
 		$this->assertEquals( 0, $validated_unchecked['enable_monitoring'] );
 		$this->assertEquals( 0, $validated_unchecked['retry_enabled'] );
 
-		// Test advanced tab
+		// Test advanced tab.
 		$settings_advanced  = array( 'current_tab' => 'advanced' );
 		$validated_advanced = PaySentinel_Security::validate_admin_settings( $settings_advanced );
 		$this->assertEquals( 0, $validated_advanced['enable_test_mode'] );

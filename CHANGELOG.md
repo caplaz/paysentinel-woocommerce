@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2026-03-26
+
+### Fixed
+- Added nonce verification (`wp_verify_nonce`) to all admin flash-message displays that read `$_GET['message']` and `$_GET['type']`, and included `_wpnonce` in all corresponding `wp_safe_redirect()` calls to fully address `NonceVerification.Recommended` warnings.
+- Suppressed `PluginCheck.Security.DirectDB.UnescapedDBParameter` and `WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber` on dynamically-built but properly parameterised queries in `class-paysentinel-api-alerts.php` and `class-paysentinel-api-transactions.php`.
+- Added `WordPress.DB.DirectDatabaseQuery.NoCaching` to existing phpcs:ignore in `class-paysentinel-failure-simulator.php`.
+- Consolidated standalone `phpcs:ignore` lines into inline comments on `return`/assignment statements across `class-paysentinel-health.php`, `class-paysentinel-alerts.php`, `class-paysentinel-logger.php`, `class-paysentinel-security.php`, `class-paysentinel-database.php`, and `class-paysentinel-diagnostics.php` to ensure PHPCS correctly suppresses `DirectQuery` and `NoCaching` warnings.
+
+### Changed
+- Replaced `current_time('timestamp')` with `time()` throughout the codebase (`class-paysentinel-health.php`, `class-paysentinel-license.php`, `class-paysentinel-analytics-pro.php`, `class-paysentinel-alerts.php`, `class-paysentinel-alert-checker.php`).
+- Renamed reserved-keyword function parameters (`$default` → `$default_value`, `$array` → `$input_array`, `$string` → `$input_string`) in `class-paysentinel-config.php`, `class-paysentinel-admin.php`, `class-paysentinel-api-base.php`, and `class-paysentinel-security.php`.
+- Added strict third argument (`true`) to all `in_array()` calls.
+- Changed loose `==` comparisons to strict `===` in `class-paysentinel-health.php` and `class-paysentinel-retry.php`.
+- Registered `manage_woocommerce` as a known capability in `phpcs.xml` to suppress false-positive `WordPress.WP.Capabilities.Unknown` warnings.
+- Removed all commented-out `error_log()` debug blocks from production source files.
+- Added `@var`, `@param`, `@throws`, and class/file docblocks missing across source files to meet WordPress Coding Standards.
+- Merged unnecessary string concatenations and removed unused variables across source files.
+
 ## [1.1.1] - 2026-03-24
 
 ### Security (Audit Compliance)

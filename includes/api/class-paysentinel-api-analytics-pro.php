@@ -1,19 +1,24 @@
 <?php
-
 /**
  * PRO tier analytics REST API endpoints
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_API_Analytics_Pro.
+ */
 class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
-
 
 	/**
 	 * Analytics instance
+	 *
+	 * @var PaySentinel_Analytics_Pro
 	 */
 	private $analytics;
 
@@ -29,7 +34,7 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 	 * Register REST routes for PRO analytics endpoints
 	 */
 	public function register_routes() {
-		// Get comparative analytics for a gateway
+		// Get comparative analytics for a gateway.
 		register_rest_route(
 			$this->namespace,
 			'/analytics/comparative/(?P<gateway_id>[^/]+)',
@@ -47,7 +52,7 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 			)
 		);
 
-		// Get failure pattern analysis
+		// Get failure pattern analysis.
 		register_rest_route(
 			$this->namespace,
 			'/analytics/failure-patterns/(?P<gateway_id>[^/]+)',
@@ -72,7 +77,7 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 			)
 		);
 
-		// Get advanced metrics summary
+		// Get advanced metrics summary.
 		register_rest_route(
 			$this->namespace,
 			'/analytics/metrics-summary',
@@ -83,7 +88,7 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 			)
 		);
 
-		// Get extended history
+		// Get extended history.
 		register_rest_route(
 			$this->namespace,
 			'/analytics/extended-history/(?P<gateway_id>[^/]+)',
@@ -108,7 +113,7 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 			)
 		);
 
-		// Get gateway comparison
+		// Get gateway comparison.
 		register_rest_route(
 			$this->namespace,
 			'/analytics/gateway-comparison',
@@ -123,7 +128,7 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 	/**
 	 * Get comparative analytics for a gateway
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -154,7 +159,7 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 	/**
 	 * Get failure pattern analysis
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -186,11 +191,12 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 	/**
 	 * Get advanced metrics summary
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_metrics_summary( $request ) {
+		unset( $request ); // No request parameters needed for this endpoint.
 		$result = $this->analytics->get_advanced_metrics_summary();
 
 		if ( isset( $result['error'] ) ) {
@@ -207,7 +213,7 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 	/**
 	 * Get extended history
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -239,11 +245,12 @@ class PaySentinel_API_Analytics_Pro extends PaySentinel_API_Base {
 	/**
 	 * Get gateway comparison
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_gateway_comparison( $request ) {
+		unset( $request ); // No request parameters needed for this endpoint.
 		$result = $this->analytics->get_gateway_comparison();
 
 		if ( isset( $result['error'] ) ) {

@@ -1,29 +1,51 @@
 <?php
-
 /**
  * Database management class
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_Database.
+ */
 class PaySentinel_Database {
-
-
 
 	/**
 	 * Database version
 	 */
-	public const DB_VERSION = '1.1.1';
+	public const DB_VERSION = '1.1.2';
 
 	/**
-	 * Table names
+	 * Transactions table name
+	 *
+	 * @var string
 	 */
 	private $transactions_table;
+
+	/**
+	 * Gateway health table name
+	 *
+	 * @var string
+	 */
 	private $gateway_health_table;
+
+	/**
+	 * Alerts table name
+	 *
+	 * @var string
+	 */
 	private $alerts_table;
+
+	/**
+	 * Gateway connectivity table name
+	 *
+	 * @var string
+	 */
 	private $gateway_connectivity_table;
 
 	/**
@@ -47,7 +69,7 @@ class PaySentinel_Database {
 		$this->create_alerts_table();
 		$this->create_gateway_connectivity_table();
 
-		// Update database version
+		// Update database version.
 		update_option( 'payment_monitor_db_version', self::DB_VERSION );
 	}
 
@@ -95,7 +117,7 @@ class PaySentinel_Database {
 	private function create_gateway_health_table() {
 		global $wpdb;
 
-		// Drop legacy unique index if it exists (dbDelta won't do this)
+		// Drop legacy unique index if it exists (dbDelta won't do this).
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$index_exists = $wpdb->get_results(
 			$wpdb->prepare(
@@ -206,7 +228,7 @@ class PaySentinel_Database {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $this->gateway_connectivity_table ) );
 
-		// Remove database version
+		// Remove database version.
 		delete_option( 'payment_monitor_db_version' );
 	}
 
@@ -271,7 +293,7 @@ class PaySentinel_Database {
 	/**
 	 * Get latest transaction for an order
 	 *
-	 * @param int $order_id Order ID
+	 * @param int $order_id Order ID.
 	 * @return object|null Transaction data or null if not found
 	 */
 	public function get_latest_transaction_for_order( $order_id ) {
@@ -284,14 +306,13 @@ class PaySentinel_Database {
 			$order_id
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_row( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return $wpdb->get_row( $query ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
 	 * Get the date of the first transaction for a gateway
 	 *
-	 * @param string $gateway_id Gateway ID
+	 * @param string $gateway_id Gateway ID.
 	 *
 	 * @return string|null Date string or null if no transactions
 	 */
@@ -305,8 +326,7 @@ class PaySentinel_Database {
 			$gateway_id
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_var( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return $wpdb->get_var( $query ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
@@ -324,7 +344,7 @@ class PaySentinel_Database {
 	public function run_migrations() {
 		$current_version = $this->get_db_version();
 
-		// Migrations array: version => callable
+		// Migrations array: version => callable.
 		$migrations = array(
 			'0.0.0' => array( $this, 'migrate_to_v1_0_0' ),
 			'1.0.0' => array( $this, 'migrate_to_v1_0_1' ),
@@ -347,7 +367,7 @@ class PaySentinel_Database {
 	 * @return bool True on success
 	 */
 	private function migrate_to_v1_0_0() {
-		// Create all tables from scratch or update existing ones
+		// Create all tables from scratch or update existing ones.
 		$this->create_tables();
 		return true;
 	}
@@ -360,7 +380,7 @@ class PaySentinel_Database {
 	private function migrate_to_v1_0_1() {
 		global $wpdb;
 
-		// Drop the unique index to allow history
+		// Drop the unique index to allow history.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$index_exists = $wpdb->get_results(
 			$wpdb->prepare(
@@ -375,7 +395,7 @@ class PaySentinel_Database {
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX idx_gateway_period', $this->gateway_health_table ) );
 		}
 
-		// Recreate tables (this will add the new non-unique index via dbDelta)
+		// Recreate tables (this will add the new non-unique index via dbDelta).
 		$this->create_tables();
 
 		return true;
@@ -406,7 +426,7 @@ class PaySentinel_Database {
 		);
 
 		foreach ( $tables_info as $table => $info ) {
-			// Check if table exists
+			// Check if table exists.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 			if ( ! $table_exists ) {
@@ -414,7 +434,7 @@ class PaySentinel_Database {
 				continue;
 			}
 
-			// Check required columns
+			// Check required columns.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
 			foreach ( $info['required_columns'] as $column ) {
@@ -423,7 +443,7 @@ class PaySentinel_Database {
 				}
 			}
 
-			// Check required indexes
+			// Check required indexes.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$indexes = $wpdb->get_col( $wpdb->prepare( 'SHOW INDEX FROM %i', $table ) );
 			foreach ( $info['required_indexes'] as $index ) {
@@ -450,7 +470,7 @@ class PaySentinel_Database {
 
 		$stats = array();
 
-		// Transactions statistics
+		// Transactions statistics.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$trans_count           = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->transactions_table ) );
 		$stats['transactions'] = array(
@@ -459,7 +479,7 @@ class PaySentinel_Database {
 			'table_size'    => $wpdb->get_var( $wpdb->prepare( 'SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = %s', $this->transactions_table ) ),
 		);
 
-		// Gateway health statistics
+		// Gateway health statistics.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$health_count            = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->gateway_health_table ) );
 		$stats['gateway_health'] = array(
@@ -468,7 +488,7 @@ class PaySentinel_Database {
 			'table_size'    => $wpdb->get_var( $wpdb->prepare( 'SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = %s', $this->gateway_health_table ) ),
 		);
 
-		// Alerts statistics
+		// Alerts statistics.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$alerts_count    = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->alerts_table ) );
 		$stats['alerts'] = array(
@@ -483,7 +503,7 @@ class PaySentinel_Database {
 	/**
 	 * Clean up old transaction records
 	 *
-	 * @param int $days Number of days to keep (default: 90)
+	 * @param int $days Number of days to keep (default: 90).
 	 *
 	 * @return int Number of records deleted
 	 */
@@ -511,7 +531,7 @@ class PaySentinel_Database {
 	/**
 	 * Clean up old alert records
 	 *
-	 * @param int $days Number of days to keep (default: 30)
+	 * @param int $days Number of days to keep (default: 30).
 	 *
 	 * @return int Number of records deleted
 	 */

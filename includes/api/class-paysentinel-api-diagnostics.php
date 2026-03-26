@@ -1,21 +1,30 @@
 <?php
-
 /**
  * REST API endpoints for diagnostics and recovery tools
+ *
+ * @package PaySentinel
  */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_API_Diagnostics.
+ */
 class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 
 	/**
 	 * Diagnostics instance
+	 *
+	 * @var PaySentinel_Diagnostics
 	 */
 	private $diagnostics;
 
 	/**
 	 * Failure simulator instance
+	 *
+	 * @var PaySentinel_Failure_Simulator
 	 */
 	private $simulator;
 
@@ -45,7 +54,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 	 * @return void
 	 */
 	private function register_diagnostic_routes() {
-		// Full diagnostics
+		// Full diagnostics.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/full',
@@ -56,7 +65,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Database diagnostics
+		// Database diagnostics.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/database',
@@ -67,7 +76,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Gateway diagnostics
+		// Gateway diagnostics.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/gateways',
@@ -78,7 +87,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Recent failures
+		// Recent failures.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/failures/recent',
@@ -95,7 +104,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Failure analysis
+		// Failure analysis.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/failures/analyze',
@@ -112,7 +121,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Test gateway connectivity
+		// Test gateway connectivity.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/gateway/test/(?P<gateway_id>[a-zA-Z0-9_-]+)',
@@ -132,7 +141,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 	 * @return void
 	 */
 	private function register_recovery_routes() {
-		// Force retry
+		// Force retry.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/retry/(?P<order_id>\d+)',
@@ -143,7 +152,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Reset gateway health
+		// Reset gateway health.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/health/reset',
@@ -160,7 +169,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Recalculate health
+		// Recalculate health.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/health/recalculate',
@@ -171,7 +180,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Clean orphaned records
+		// Clean orphaned records.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/cleanup/orphaned',
@@ -182,7 +191,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Archive old transactions
+		// Archive old transactions.
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/cleanup/archive',
@@ -199,7 +208,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 			)
 		);
 
-		// Maintenance endpoints (aliases for cleanup)
+		// Maintenance endpoints (aliases for cleanup).
 		register_rest_route(
 			$this->namespace,
 			'/diagnostics/maintenance/orphaned',
@@ -235,7 +244,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 	 * @return void
 	 */
 	private function register_simulator_routes() {
-		// Failure simulator routes
+		// Failure simulator routes.
 		register_rest_route(
 			$this->namespace,
 			'/simulator/scenarios',
@@ -472,10 +481,10 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 		$count      = $request->get_param( 'count' );
 
 		if ( $count > 1 ) {
-			// Bulk simulation
+			// Bulk simulation.
 			$result = $this->simulator->generate_bulk_failures( $count, $gateway_id, array( $scenario ) );
 		} else {
-			// Single simulation
+			// Single simulation.
 			$result = $this->simulator->create_test_order_with_failure( $scenario, $gateway_id );
 		}
 
@@ -484,7 +493,7 @@ class PaySentinel_API_Diagnostics extends PaySentinel_API_Base {
 		} elseif ( isset( $result['success'] ) && ! $result['success'] ) {
 			return $this->get_error_response( $result['message'], 400 );
 		} else {
-			// Bulk result
+			// Bulk result.
 			return $this->get_success_response( $result );
 		}
 	}

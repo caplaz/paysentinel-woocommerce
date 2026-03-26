@@ -1,24 +1,31 @@
 <?php
-
 /**
  * Base REST API endpoint class
+ *
+ * @package PaySentinel
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class PaySentinel_API_Base.
+ */
 abstract class PaySentinel_API_Base {
-
 
 	/**
 	 * REST namespace
+	 *
+	 * @var string
 	 */
 	protected $namespace = 'paysentinel/v1';
 
 	/**
 	 * Database instance
+	 *
+	 * @var PaySentinel_Database
 	 */
 	protected $database;
 
@@ -67,22 +74,23 @@ abstract class PaySentinel_API_Base {
 	/**
 	 * Check if user has permission to access API
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return bool|WP_Error
 	 */
 	public function check_permission( $request ) {
-		// Allow access if user is logged in with manage_woocommerce capability
-		// REST API automatically validates the request and sets up user context
+		unset( $request ); // Parameter required by WP_REST_Server callback signature; not used here.
+		// Allow access if user is logged in with manage_woocommerce capability.
+		// REST API automatically validates the request and sets up user context.
 		return current_user_can( 'manage_woocommerce' );
 	}
 
 	/**
 	 * Get error response with consistent format
 	 *
-	 * @param string $error_code Error code
-	 * @param string $message    Error message
-	 * @param int    $status     HTTP status code
+	 * @param string $error_code Error code.
+	 * @param string $message    Error message.
+	 * @param int    $status     HTTP status code.
 	 *
 	 * @return WP_REST_Response
 	 */
@@ -100,8 +108,8 @@ abstract class PaySentinel_API_Base {
 	/**
 	 * Get success response with consistent format (direct/unwrapped)
 	 *
-	 * @param mixed $data   Response data
-	 * @param int   $status HTTP status code
+	 * @param mixed $data   Response data.
+	 * @param int   $status HTTP status code.
 	 *
 	 * @return WP_REST_Response
 	 */
@@ -118,11 +126,11 @@ abstract class PaySentinel_API_Base {
 	/**
 	 * Get paginated response (direct/unwrapped format)
 	 *
-	 * @param array $items    Array of items
-	 * @param int   $total    Total count
-	 * @param int   $page     Current page
-	 * @param int   $per_page Items per page
-	 * @param int   $status   HTTP status code
+	 * @param array $items    Array of items.
+	 * @param int   $total    Total count.
+	 * @param int   $page     Current page.
+	 * @param int   $per_page Items per page.
+	 * @param int   $status   HTTP status code.
 	 *
 	 * @return WP_REST_Response
 	 */
@@ -148,7 +156,7 @@ abstract class PaySentinel_API_Base {
 	/**
 	 * Validate pagination parameters
 	 *
-	 * @param WP_REST_Request $request Request object
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return array Validated pagination parameters
 	 */
@@ -156,11 +164,11 @@ abstract class PaySentinel_API_Base {
 		$page     = $request->get_param( 'page' );
 		$per_page = $request->get_param( 'per_page' );
 
-		// Set defaults
+		// Set defaults.
 		$page     = $page ? intval( $page ) : 1;
 		$per_page = $per_page ? intval( $per_page ) : 20;
 
-		// Validate ranges
+		// Validate ranges.
 		$page     = $page > 0 ? $page : 1;
 		$per_page = ( $per_page > 0 && $per_page <= 100 ) ? $per_page : 20;
 
@@ -173,8 +181,8 @@ abstract class PaySentinel_API_Base {
 	/**
 	 * Calculate offset for pagination
 	 *
-	 * @param int $page     Current page number
-	 * @param int $per_page Items per page
+	 * @param int $page     Current page number.
+	 * @param int $per_page Items per page.
 	 *
 	 * @return int Offset for LIMIT clause
 	 */
@@ -185,7 +193,7 @@ abstract class PaySentinel_API_Base {
 	/**
 	 * Sanitize and validate date parameters
 	 *
-	 * @param string $date_string Date string to validate (Y-m-d format)
+	 * @param string $date_string Date string to validate (Y-m-d format).
 	 *
 	 * @return string|WP_REST_Response Validated date or error
 	 */
@@ -194,7 +202,7 @@ abstract class PaySentinel_API_Base {
 			return '';
 		}
 
-		// Check format
+		// Check format.
 		$date = DateTime::createFromFormat( 'Y-m-d', $date_string );
 		if ( ! $date || $date->format( 'Y-m-d' ) !== $date_string ) {
 			return $this->get_error_response(
@@ -210,28 +218,28 @@ abstract class PaySentinel_API_Base {
 	/**
 	 * Get sanitized string parameter
 	 *
-	 * @param WP_REST_Request $request Request object
-	 * @param string          $param   Parameter name
-	 * @param string          $default Default value
+	 * @param WP_REST_Request $request       Request object.
+	 * @param string          $param         Parameter name.
+	 * @param string          $default_value Default value.
 	 *
 	 * @return string
 	 */
-	protected function get_string_param( $request, $param, $default = '' ) {
+	protected function get_string_param( $request, $param, $default_value = '' ) {
 		$value = $request->get_param( $param );
-		return $value ? sanitize_text_field( $value ) : $default;
+		return $value ? sanitize_text_field( $value ) : $default_value;
 	}
 
 	/**
 	 * Get sanitized integer parameter
 	 *
-	 * @param WP_REST_Request $request Request object
-	 * @param string          $param   Parameter name
-	 * @param int             $default Default value
+	 * @param WP_REST_Request $request       Request object.
+	 * @param string          $param         Parameter name.
+	 * @param int             $default_value Default value.
 	 *
 	 * @return int
 	 */
-	protected function get_int_param( $request, $param, $default = 0 ) {
+	protected function get_int_param( $request, $param, $default_value = 0 ) {
 		$value = $request->get_param( $param );
-		return $value ? intval( $value ) : $default;
+		return $value ? intval( $value ) : $default_value;
 	}
 }

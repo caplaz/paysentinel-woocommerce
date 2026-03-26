@@ -1,16 +1,13 @@
 <?php
-
 /**
  * Unit tests for admin page header components.
  *
- * These tests run without a full WordPress environment (plain PHPUnit).
- * They cover:
- * - PaySentinel_Admin_Page_Renderer::HELP_URL constant
- * - render_page_header() output (h1)
- *
- * @package PaySentinel\Tests\Admin
+ * @package PaySentinel
  */
 
+/**
+ * Class AdminPageHeaderTest
+ */
 class AdminPageHeaderTest extends PaySentinel_Test_Case {
 
 	/**
@@ -26,7 +23,7 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 	protected function setUp(): void {
 		parent::setUp();
 
-		// Stub WordPress menu-registration functions (not needed here, but
+		// Stub WordPress menu-registration functions (not needed here, but.
 		// PaySentinel_Admin constructor may call them indirectly).
 		foreach ( array( 'add_menu_page', 'add_submenu_page', 'add_action', 'add_filter' ) as $fn ) {
 			if ( ! function_exists( $fn ) ) {
@@ -45,7 +42,7 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 	}
 
 	// -------------------------------------------------------------------------
-	// HELP_URL constant
+	// HELP_URL constant.
 	// -------------------------------------------------------------------------
 
 	/**
@@ -115,11 +112,11 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 	}
 
 	// -------------------------------------------------------------------------
-	// render_page_header() — h1 + button in one shot
+	// render_page_header() — h1 + button in one shot.
 	// -------------------------------------------------------------------------
 
 	/**
-	 * render_page_header() must be private (internal API).
+	 * The render_page_header() must be private (internal API).
 	 */
 	public function test_render_page_header_is_private_method() {
 		$m = new ReflectionMethod( PaySentinel_Admin_Page_Renderer::class, 'render_page_header' );
@@ -127,7 +124,7 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 	}
 
 	/**
-	 * render_page_header() must output an h1 containing the supplied title.
+	 * The render_page_header() must output an h1 containing the supplied title.
 	 */
 	public function test_render_page_header_outputs_h1_with_title() {
 		$output = $this->invoke_header( 'My Page' );
@@ -137,7 +134,7 @@ class AdminPageHeaderTest extends PaySentinel_Test_Case {
 	}
 
 	// -------------------------------------------------------------------------
-	// Helpers
+	// Helpers.
 	// -------------------------------------------------------------------------
 
 	/**

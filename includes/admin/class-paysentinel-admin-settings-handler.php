@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-// Prevent direct access
+// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -54,7 +54,7 @@ class PaySentinel_Admin_Settings_Handler {
 	 * This includes general settings, notification settings, gateway settings, and advanced settings.
 	 */
 	public function register_settings() {
-		// Register setting group
+		// Register setting group.
 		register_setting(
 			'paysentinel_settings',
 			'paysentinel_options',
@@ -108,7 +108,7 @@ class PaySentinel_Admin_Settings_Handler {
 	 * @return void
 	 */
 	private function register_settings_fields() {
-		// General fields
+		// General fields.
 		add_settings_field(
 			'enable_monitoring',
 			__( 'Enable Monitoring', 'paysentinel' ),
@@ -149,7 +149,7 @@ class PaySentinel_Admin_Settings_Handler {
 			'paysentinel_general'
 		);
 
-		// Gateway configuration
+		// Gateway configuration.
 		add_settings_field(
 			'gateway_alert_config',
 			__( 'Per-Gateway Alert Configuration', 'paysentinel' ),
@@ -158,7 +158,7 @@ class PaySentinel_Admin_Settings_Handler {
 			'paysentinel_gateways'
 		);
 
-		// Advanced settings
+		// Advanced settings.
 		add_settings_field(
 			'enable_test_mode',
 			__( 'Enable Test Mode', 'paysentinel' ),
@@ -414,7 +414,6 @@ class PaySentinel_Admin_Settings_Handler {
 	 * Render license key field
 	 */
 	public function render_field_license_key() {
-		$options        = get_option( 'paysentinel_options', array() );
 		$license_key    = $this->license->get_license_key();
 		$license_status = $this->license->get_license_status();
 		$license_data   = $this->license->get_license_data();
@@ -633,7 +632,7 @@ class PaySentinel_Admin_Settings_Handler {
 		$tier           = $this->license->get_license_tier();
 		$is_locked      = ! in_array( $tier, array( 'pro', 'agency' ), true );
 
-		// Get active WooCommerce payment gateways
+		// Get active WooCommerce payment gateways.
 		$active_gateways = array();
 		if ( class_exists( 'WC_Payment_Gateways' ) ) {
 			$payment_gateways = WC_Payment_Gateways::instance();
@@ -643,7 +642,7 @@ class PaySentinel_Admin_Settings_Handler {
 			}
 		}
 
-		// Add common gateway IDs if not detected
+		// Add common gateway IDs if not detected.
 		$default_gateways = array(
 			'stripe'      => 'Stripe',
 			'paypal'      => 'PayPal',
@@ -724,25 +723,25 @@ class PaySentinel_Admin_Settings_Handler {
 								<label style="margin-right: 15px; display: inline-block;">
 									<input type="checkbox"
 										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
-										value="email" <?php checked( in_array( 'email', $channels ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
+										value="email" <?php checked( in_array( 'email', $channels, true ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
 									<?php esc_html_e( 'Email', 'paysentinel' ); ?>
 								</label>
 								<label style="margin-right: 15px; display: inline-block;">
 									<input type="checkbox"
 										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
-										value="slack" <?php checked( in_array( 'slack', $channels ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
+										value="slack" <?php checked( in_array( 'slack', $channels, true ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
 									<?php esc_html_e( 'Slack', 'paysentinel' ); ?>
 								</label>
 								<label style="margin-right: 15px; display: inline-block;">
 									<input type="checkbox"
 										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
-										value="discord" <?php checked( in_array( 'discord', $channels ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
+										value="discord" <?php checked( in_array( 'discord', $channels, true ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
 									<?php esc_html_e( 'Discord', 'paysentinel' ); ?>
 								</label>
 								<label style="display: inline-block;">
 									<input type="checkbox"
 										name="paysentinel_options[gateway_alert_config][<?php echo esc_attr( $gateway_id ); ?>][channels][]"
-										value="teams" <?php checked( in_array( 'teams', $channels ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
+										value="teams" <?php checked( in_array( 'teams', $channels, true ), true ); ?> <?php echo $is_locked ? 'disabled' : ''; ?> />
 									<?php esc_html_e( 'Teams', 'paysentinel' ); ?>
 								</label>
 							</td>

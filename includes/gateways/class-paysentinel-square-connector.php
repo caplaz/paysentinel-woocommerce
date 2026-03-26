@@ -1,10 +1,12 @@
 <?php
-
 /**
  * Square Gateway Connector
  *
  * Handles connectivity checks with Square API
+ *
+ * @package PaySentinel
  */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -88,7 +90,7 @@ class PaySentinel_Square_Connector extends PaySentinel_Gateway_Connector {
 	 * @return array
 	 */
 	public function test_connection() {
-		// Validate credentials first
+		// Validate credentials first.
 		$validation = $this->validate_credentials();
 		if ( ! $validation['valid'] ) {
 			return $this->response_unconfigured();
@@ -97,7 +99,7 @@ class PaySentinel_Square_Connector extends PaySentinel_Gateway_Connector {
 		$credentials = $this->get_credentials();
 		$api_base    = $credentials['sandbox'] ? self::SQUARE_SANDBOX_API : self::SQUARE_PRODUCTION_API;
 
-		// Make request to Square Locations API (simplest read-only endpoint)
+		// Make request to Square Locations API (simplest read-only endpoint).
 		$response = $this->make_http_request(
 			$api_base . '/locations',
 			array(
@@ -105,7 +107,7 @@ class PaySentinel_Square_Connector extends PaySentinel_Gateway_Connector {
 				'headers' => array(
 					'Authorization'  => 'Bearer ' . $credentials['access_token'],
 					'Content-Type'   => 'application/json',
-					'Square-Version' => '2023-10-20', // Use a recent API version
+					'Square-Version' => '2023-10-20', // Use a recent API version.
 				),
 			)
 		);
@@ -121,7 +123,7 @@ class PaySentinel_Square_Connector extends PaySentinel_Gateway_Connector {
 		$http_code = wp_remote_retrieve_response_code( $response['response'] );
 		$body      = json_decode( wp_remote_retrieve_body( $response['response'] ), true );
 
-		// Square returns 200 OK for successful locations retrieval
+		// Square returns 200 OK for successful locations retrieval.
 		if ( 200 === $http_code && isset( $body['locations'] ) ) {
 			return $this->response_online(
 				'Successfully connected to Square',
@@ -130,7 +132,7 @@ class PaySentinel_Square_Connector extends PaySentinel_Gateway_Connector {
 			);
 		}
 
-		// Check for error response
+		// Check for error response.
 		if ( isset( $body['errors'] ) ) {
 			$error_msg = $body['errors'][0]['detail'] ?? 'Unknown Square API error';
 			return $this->response_offline(
@@ -140,7 +142,7 @@ class PaySentinel_Square_Connector extends PaySentinel_Gateway_Connector {
 			);
 		}
 
-		// Unexpected response format
+		// Unexpected response format.
 		return $this->response_offline(
 			'Unexpected response from Square API (HTTP ' . $http_code . ')',
 			$http_code,
